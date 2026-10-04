@@ -1,5 +1,5 @@
 // Finances section entry point. Routes: #/finances (dashboard) and #/finances/edit (add/edit data).
-import { h, sectionIcon } from '../../js/util.js';
+import { h, pageTitle } from '../../js/util.js';
 import { toast, confirmDialog } from '../../js/ui.js';
 import { emptyDoc, isEmptyDoc, validate, exampleDoc, summary } from './model.js';
 import { renderDashboard } from './dashboard.js';
@@ -14,7 +14,7 @@ function emptyState(root, ctx) {
   document.title = 'Finances · AI-TOR';
   root.append(
     h('div', { class: 'topbar' }, h('a', { class: 'back', href: '#/' }, '‹ Home')),
-    h('div', { class: 'fin-head' }, h('h1', { class: 'with-ico' }, sectionIcon('finances'), 'Finances')),
+    h('div', { class: 'fin-head' }, pageTitle('finances', 'Finances')),
     refreshBar(null, ctx.rerender),
     h('div', { class: 'card empty', id: 'empty-state' },
       h('div', { class: 'empty-icon', 'aria-hidden': 'true' }, '💰'),

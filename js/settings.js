@@ -83,7 +83,7 @@ export async function renderSettings(root, ctx) {
 
   root.append(
     h('div', { class: 'topbar' }, h('a', { class: 'back', href: '#/' }, '‹ Home')),
-    h('div', { class: 'fin-head' }, h('h1', null, 'Settings')),
+    h('div', { class: 'fin-head' }, h('h1', { class: 'ph-title' }, 'Settings')),
     h('h2', { class: 'sec' }, 'Profile'),
     h('form', { class: 'card form', id: 'profile-form', onsubmit: saveProfile },
       field('Your name', name, 'Used for the greeting on the home screen'),

@@ -91,7 +91,7 @@ function syncTabBadge(n) {
   if (!tab) return;
   let b = tab.querySelector('.trv-tabbadge');
   if (!n) { if (b) b.remove(); return; }
-  if (!b) { b = h('span', { class: 'trv-tabbadge', id: 'tab-dest-new' }); tab.append(b); }
+  if (!b) { b = h('span', { class: 'trv-tabbadge', id: 'tab-dest-new' }); (tab.querySelector('.tab-lbl') || tab).append(b); }
   b.textContent = String(n); b.setAttribute('aria-label', `${n} new`);
 }
 

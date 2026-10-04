@@ -120,7 +120,7 @@ export function renderEdit(root, doc, ctx) {
     const addBtn = (kind, label) => (open && open.kind === kind ? null : h('button', { type: 'button', class: 'btn primary add', id: 'add-' + kind, onclick: () => openForm(kind) }, '＋ ' + label));
 
     root.append(h('div', { class: 'topbar' }, h('a', { class: 'back', href: '#/finances' }, '‹ Dashboard'), h('a', { class: 'btn ghost small', href: '#/finances', id: 'done-btn' }, 'Done')),
-      h('div', { class: 'fin-head' }, h('h1', null, 'Your finances'), h('div', { class: 'asof' }, 'Everything is saved on this device as you go.')));
+      h('div', { class: 'fin-head' }, h('h1', { class: 'ph-title' }, 'Your finances'), h('div', { class: 'asof' }, 'Everything is saved on this device as you go.')));
 
     root.append(h('h2', { class: 'sec' }, 'Accounts'));
     root.append(listCard('accounts-list', doc.accounts, (a) => itemRow('account', doc.accounts, a, a.name, a.group + (a.note ? ' · ' + a.note : ''), money(a.value), 'account'), 'No accounts yet. Add a bank account, brokerage, retirement account, property, etc.'));

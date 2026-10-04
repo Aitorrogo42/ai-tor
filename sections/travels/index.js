@@ -1,6 +1,6 @@
 // Travels section: two tabs. Visited = countries you have been to (#/travels); Destinations = places your Travel Guide proposes
 // (#/travels/destinations, #/travels/destinations/<id>; see dest-ui.js). Both live in the one document aitor:sec:travels.
-import { h, sectionIcon } from '../../js/util.js';
+import { h, pageTitle } from '../../js/util.js';
 import { toast, confirmDialog } from '../../js/ui.js';
 import { COUNTRIES, CONTINENTS } from './countries.js';
 import { validate, summary, emptyDoc, isEmptyDoc, TOTAL, LIMITS, norm } from './model.js';
@@ -162,9 +162,12 @@ export async function render(root, ctx) {
   } }, 'Clear all travels');
 
   const tabs = (active) => h('div', { class: 'trv-tabs', role: 'tablist', 'aria-label': 'Travels' },
-    h('a', { class: 'trv-tab' + (active === 'visited' ? ' on' : ''), id: 'tab-visited', role: 'tab', 'aria-selected': String(active === 'visited'), href: '#/travels' }, 'Visited'),
-    h('a', { class: 'trv-tab' + (active === 'dest' ? ' on' : ''), id: 'tab-dest', role: 'tab', 'aria-selected': String(active === 'dest'), href: LIST_HASH }, 'Destinations',
-      newCount() ? h('span', { class: 'trv-tabbadge', id: 'tab-dest-new', 'aria-label': `${newCount()} new` }, String(newCount())) : null));
+    h('a', { class: 'trv-tab' + (active === 'visited' ? ' on' : ''), id: 'tab-visited', role: 'tab', 'aria-selected': String(active === 'visited'), href: '#/travels' },
+      active === 'visited' ? h('span', { class: 'tab-pill', 'aria-hidden': 'true' }) : null, h('span', { class: 'tab-lbl' }, 'Visited')),
+    h('a', { class: 'trv-tab' + (active === 'dest' ? ' on' : ''), id: 'tab-dest', role: 'tab', 'aria-selected': String(active === 'dest'), href: LIST_HASH },
+      active === 'dest' ? h('span', { class: 'tab-pill', 'aria-hidden': 'true' }) : null,
+      h('span', { class: 'tab-lbl' }, 'Destinations',
+        newCount() ? h('span', { class: 'trv-tabbadge', id: 'tab-dest-new', 'aria-label': `${newCount()} new` }, String(newCount())) : null)));
   function newCount() { return (doc.destinations || []).filter((p) => !p.seen).length; }
 
   // ---- Destinations tab (list + detail) ----
@@ -178,7 +181,7 @@ export async function render(root, ctx) {
     document.title = 'Destinations · Travels · AI-TOR';
     root.append(
       h('div', { class: 'topbar' }, h('a', { class: 'back', href: '#/' }, '‹ Home')),
-      h('div', { class: 'fin-head' }, h('h1', { class: 'with-ico' }, sectionIcon('travels'), 'Travels'), h('p', { class: 'asof' }, 'Places your Travel Guide suggests')),
+      h('div', { class: 'fin-head' }, pageTitle('travels', 'Travels'), h('p', { class: 'asof' }, 'Places your Travel Guide suggests')),
       tabs('dest'));
     renderList(root, ctx);
     return;
@@ -186,7 +189,7 @@ export async function render(root, ctx) {
 
   root.append(
     h('div', { class: 'topbar' }, h('a', { class: 'back', href: '#/' }, '‹ Home')),
-    h('div', { class: 'fin-head' }, h('h1', { class: 'with-ico' }, sectionIcon('travels'), 'Travels'), h('p', { class: 'asof' }, 'Countries you have visited')),
+    h('div', { class: 'fin-head' }, pageTitle('travels', 'Travels'), h('p', { class: 'asof' }, 'Countries you have visited')),
     tabs('visited'),
     h('div', { class: 'card trv-top' }, countText, progress,
       h('p', { class: 'note' }, '🔒 Stored only on this device. Include it in backups via Settings → Export.')),

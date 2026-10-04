@@ -67,3 +67,29 @@ export function fmtDate(iso) {
 /** Section logo (square PNG from icons/sections). Same rendered size everywhere it is used. */
 export const sectionIcon = (id, size = 40) =>
   h('img', { class: 'sec-ico', src: `icons/sections/${id}-256.png`, width: String(size), height: String(size), alt: '', 'aria-hidden': 'true', decoding: 'async', style: `width:${size}px;height:${size}px` });
+
+/** Page title for a section header: line-art icon + title. The icon and the title are shared elements in page transitions. */
+export const pageTitle = (id, text, size = 40) => h('h1', { class: 'with-ico' }, sectionIcon(id, size), h('span', { class: 'ph-title' }, text));
+
+/** True while a navigation's entrance animation is running (used to count numbers up only when a page is entered). */
+export const isEntering = () => {
+  const a = document.getElementById('app');
+  return !!(a && a.classList.contains('enter')) && !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+};
+
+/** Animate a number inside `el` from 0 to `value` (display via `format`). The final text is always exact. */
+export function countUp(el, value, format, ms = 900) {
+  if (!el || !Number.isFinite(value) || !isEntering()) return;
+  const t0 = performance.now();
+  const final = el.textContent;
+  el.setAttribute('aria-label', final);
+  const step = (t) => {
+    if (!el.isConnected) return;
+    const p = Math.min(1, (t - t0) / ms), e = 1 - Math.pow(1 - p, 4);   // ease-out quart
+    el.textContent = p >= 1 ? final : format(value * e);
+    if (p < 1) requestAnimationFrame(step);
+    else el.removeAttribute('aria-label');
+  };
+  el.textContent = format(0);
+  requestAnimationFrame(step);
+}

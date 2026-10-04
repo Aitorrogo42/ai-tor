@@ -1,6 +1,6 @@
 .todo{gap:12px}
 .todo-add{display:flex;flex-direction:column;gap:10px;padding:14px}
-.todo-add-input{width:100%;min-height:54px;padding:12px 14px;border-radius:14px;border:1px solid #26365a;background:#0d1628;color:var(--text);font:inherit;font-size:17px;-webkit-appearance:none;appearance:none}
+.todo-add-input{width:100%;min-height:54px;padding:12px 14px;border-radius:14px;border:1px solid var(--hair-2);background:var(--field);color:var(--text);font:inherit;font-size:17px;-webkit-appearance:none;appearance:none}
 .todo-add-input:focus-visible{outline:2px solid var(--blue);outline-offset:1px}
 .todo-add-row{display:flex;gap:10px;align-items:flex-end}
 .todo-due-wrap{display:flex;flex-direction:column;gap:4px;flex:1;min-width:0}
@@ -8,7 +8,7 @@
 .todo-due-wrap .hint{display:none}
 .todo-due-input{min-height:54px}
 .todo-add-row .btn{min-height:54px;flex:none;padding:0 22px}
-input[type=password]{width:100%;min-height:46px;padding:10px 12px;border-radius:12px;border:1px solid #26365a;background:#0d1628;color:var(--text);font:inherit;font-size:16px}
+input[type=password]{width:100%;min-height:46px;padding:10px 12px;border-radius:12px;border:1px solid var(--hair-2);background:var(--field);color:var(--text);font:inherit;font-size:16px}
 input[type=password]:focus-visible{outline:2px solid var(--blue);outline-offset:1px}
 .linkbtn{background:none;border:0;color:var(--blue);font:inherit;font-size:inherit;padding:0 6px;min-height:44px;cursor:pointer}
 .linkbtn.danger-txt{color:var(--red)}
@@ -20,25 +20,25 @@ input[type=password]:focus-visible{outline:2px solid var(--blue);outline-offset:
 .todo-lists{display:flex;flex-direction:column;gap:12px}
 .todo-h{font-size:18px;display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:4px}
 .todo-ul{list-style:none;margin:0;padding:0}
-.todo-row{border-bottom:1px solid #18233a}
+.todo-row{border-bottom:1px solid var(--hair)}
 .todo-row:last-child{border-bottom:0}
 .todo-line{display:flex;align-items:stretch;gap:2px}
 .todo-check{display:grid;place-items:center;width:56px;flex:none;min-height:60px;cursor:pointer}
 .todo-cb{width:28px;height:28px;margin:0;accent-color:#3ee07f;cursor:pointer}
 .todo-main{flex:1;min-width:0;display:flex;flex-direction:column;justify-content:center;gap:5px;text-align:left;background:none;border:0;color:var(--text);font:inherit;padding:12px 6px 12px 0;min-height:60px;cursor:pointer}
 .todo-title{font-size:17px;line-height:1.3;overflow-wrap:anywhere}
-.todo-row.done .todo-title{color:var(--muted);text-decoration:line-through;text-decoration-color:#4b5b78}
+.todo-row.done .todo-title{color:var(--muted);text-decoration:line-through;text-decoration-color:rgba(255,255,255,.35)}
 .todo-meta{display:flex;flex-wrap:wrap;gap:6px}
 .todo-meta:empty{display:none}
 .todo-chip{font-size:12px;color:var(--muted);border:1px solid var(--line);border-radius:99px;padding:2px 9px;white-space:nowrap}
-.todo-chip.overdue{color:var(--red);border-color:#6b2431}
-.todo-chip.today{color:var(--amber);border-color:#5b4513}
-.todo-chip.cmt{color:var(--blue);border-color:#1f4670}
-.todo-chip.src{color:var(--purple);border-color:#43377a}
+.todo-chip.overdue{color:var(--red);border-color:var(--red-line)}
+.todo-chip.today{color:var(--amber);border-color:var(--amber-line)}
+.todo-chip.cmt{color:var(--blue);border-color:rgba(138,180,255,.4)}
+.todo-chip.src{color:var(--purple);border-color:rgba(185,167,255,.4)}
 .todo-detail{padding:0 4px 14px 58px;display:flex;flex-direction:column;gap:10px}
-.todo-notes{font-size:14px;color:#c8d3e6;white-space:pre-wrap;overflow-wrap:anywhere;border-left:3px solid #2d4373;padding-left:10px}
+.todo-notes{font-size:14px;color:var(--text-soft);white-space:pre-wrap;overflow-wrap:anywhere;border-left:3px solid var(--hair-2);padding-left:10px}
 .todo-clist{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
-.todo-comment{background:#0d1628;border:1px solid #1d2a47;border-radius:12px;padding:10px 12px}
+.todo-comment{background:var(--field);border:1px solid var(--hair);border-radius:12px;padding:10px 12px}
 .todo-ctext-view{font-size:15px;white-space:pre-wrap;overflow-wrap:anywhere}
 .todo-cmeta{display:flex;justify-content:space-between;align-items:center;gap:8px;color:var(--muted);font-size:12px;margin-top:4px}
 .todo-cact{display:flex}
@@ -52,3 +52,18 @@ input[type=password]:focus-visible{outline:2px solid var(--blue);outline-offset:
 .todo-sync>summary{display:flex;justify-content:space-between;align-items:center}
 .todo-syncbody{padding:0 16px 14px}
 .todo .btn:disabled{opacity:.6}
+
+/* ---- Mars / Raycast retheme (overrides) ---- */
+
+.todo-cb{accent-color:var(--green)}
+.todo-add-input{background:var(--field)}
+.todo-due-wrap .fl{font-family:var(--mono);font-size:11px;letter-spacing:.1em;font-weight:500}
+.todo-chip{font-family:var(--mono);font-size:11px}
+.todo-chip.today{color:var(--amber)}
+.todo-chip.cmt{color:var(--cool)}
+.todo-chip.src{color:var(--lav)}
+.todo-notes{border-left:3px solid var(--accent-line)}
+.todo-comment{background:rgba(255,255,255,.025)}
+.todo-row{transition:background var(--t-fast)}
+.todo-main:active{background:var(--accent-soft)}
+.todo-row.done .todo-title{text-decoration-color:rgba(255,255,255,.3)}

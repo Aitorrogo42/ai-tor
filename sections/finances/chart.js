@@ -33,26 +33,26 @@ export function projectionChart({ series, start, end, goalValue, nowValue }) {
   const svg = s('svg', { viewBox: `0 0 ${W} ${H}`, role: 'img',
     'aria-label': 'Illustration only, not a forecast. Dashed line is a straight line from your current net worth to your goal; the other line keeps today\'s net worth flat. No investment returns are assumed.' });
   ticks.forEach((v) => {
-    svg.append(s('line', { x1: L, x2: W - R, y1: Y(v), y2: Y(v), stroke: '#1c2740', 'stroke-width': '1' }));
-    svg.append(s('text', { x: L - 6, y: Y(v) + 3, 'text-anchor': 'end', fill: '#8b9bb4', 'font-size': '10' }, moneyCompact(v)));
+    svg.append(s('line', { x1: L, x2: W - R, y1: Y(v), y2: Y(v), stroke: 'rgba(255,255,255,.08)', 'stroke-width': '1' }));
+    svg.append(s('text', { x: L - 6, y: Y(v) + 3, 'text-anchor': 'end', fill: '#9c9c9d', 'font-size': '10' }, moneyCompact(v)));
   });
   const fmtD = (ms) => new Date(ms).toLocaleDateString(undefined, { month: 'short', year: '2-digit', timeZone: 'UTC' });
   for (let i = 0; i <= 3; i++) {
     const ms = x0 + ((x1 - x0) * i) / 3;
     const x = L + (i / 3) * (W - L - R);
-    svg.append(s('line', { x1: x, x2: x, y1: H - B, y2: H - B + 4, stroke: '#8b9bb4' }));
-    svg.append(s('text', { x, y: H - B + 16, 'text-anchor': i === 0 ? 'start' : i === 3 ? 'end' : 'middle', fill: '#8b9bb4', 'font-size': '10' }, fmtD(ms)));
+    svg.append(s('line', { x1: x, x2: x, y1: H - B, y2: H - B + 4, stroke: '#9c9c9d' }));
+    svg.append(s('text', { x, y: H - B + 16, 'text-anchor': i === 0 ? 'start' : i === 3 ? 'end' : 'middle', fill: '#9c9c9d', 'font-size': '10' }, fmtD(ms)));
   }
-  svg.append(s('line', { x1: L, x2: W - R, y1: H - B, y2: H - B, stroke: '#2a3858' }));
-  svg.append(s('line', { x1: L, x2: W - R, y1: Y(goalValue), y2: Y(goalValue), stroke: '#3ee07f', 'stroke-width': '1', 'stroke-dasharray': '2 4', opacity: '.7' }));
-  svg.append(s('text', { x: W - R, y: Y(goalValue) - 5, 'text-anchor': 'end', fill: '#3ee07f', 'font-size': '10' }, 'Goal ' + moneyCompact(goalValue)));
+  svg.append(s('line', { x1: L, x2: W - R, y1: H - B, y2: H - B, stroke: 'rgba(255,255,255,.18)' }));
+  svg.append(s('line', { x1: L, x2: W - R, y1: Y(goalValue), y2: Y(goalValue), stroke: '#3ddc84', 'stroke-width': '1', 'stroke-dasharray': '2 4', opacity: '.7' }));
+  svg.append(s('text', { x: W - R, y: Y(goalValue) - 5, 'text-anchor': 'end', fill: '#3ddc84', 'font-size': '10' }, 'Goal ' + moneyCompact(goalValue)));
   for (const ser of series) {
     const pts = ser.points.map(([d, v]) => `${X(d).toFixed(1)},${Y(v).toFixed(1)}`).join(' ');
     svg.append(s('polyline', { points: pts, fill: 'none', stroke: ser.color, 'stroke-width': '2.5', 'stroke-linecap': 'round', 'stroke-linejoin': 'round', ...(ser.dash ? { 'stroke-dasharray': ser.dash } : {}) }));
   }
-  svg.append(s('circle', { cx: X(start), cy: Y(nowValue), r: 4.5, fill: '#a78bfa', stroke: '#0b1220', 'stroke-width': '2' }));
-  svg.append(s('circle', { cx: X(end), cy: Y(goalValue), r: 4.5, fill: '#3ee07f', stroke: '#0b1220', 'stroke-width': '2' }));
-  svg.append(s('text', { x: X(start) + 8, y: Y(nowValue) + 16, fill: '#c9b8ff', 'font-size': '10' }, 'Today ' + moneyCompact(nowValue)));
-  if (min > 0) svg.append(s('text', { x: 6, y: H - 4, fill: '#8b9bb4', 'font-size': '9' }, 'Y-axis starts at ' + moneyCompact(min) + ' (not zero)'));
+  svg.append(s('circle', { cx: X(start), cy: Y(nowValue), r: 4.5, fill: '#ff7a45', stroke: '#0c0d0f', 'stroke-width': '2' }));
+  svg.append(s('circle', { cx: X(end), cy: Y(goalValue), r: 4.5, fill: '#3ddc84', stroke: '#0c0d0f', 'stroke-width': '2' }));
+  svg.append(s('text', { x: X(start) + 8, y: Y(nowValue) + 16, fill: '#ffb08f', 'font-size': '10' }, 'Today ' + moneyCompact(nowValue)));
+  if (min > 0) svg.append(s('text', { x: 6, y: H - 4, fill: '#9c9c9d', 'font-size': '9' }, 'Y-axis starts at ' + moneyCompact(min) + ' (not zero)'));
   return svg;
 }

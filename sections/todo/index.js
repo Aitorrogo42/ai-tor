@@ -1,6 +1,6 @@
 // To-Do section. Route: #/todo
 // Open tasks on top (newest first), a collapsed "Done" pile below. Tap a task to see/add comments.
-import { h, sectionIcon, fmtDate, todayISO, uid } from '../../js/util.js';
+import { h, pageTitle, fmtDate, todayISO, uid } from '../../js/util.js';
 import { toast, confirmDialog } from '../../js/ui.js';
 import { validate, summary, emptyDoc, isEmptyDoc, newTask, openTasks, doneTasks, LIMITS } from './model.js';
 import * as sync from './sync.js';
@@ -227,7 +227,7 @@ export async function render(root, ctx) {
     const doc = load();
     const open = openTasks(doc), done = doneTasks(doc);
     head.replaceChildren(
-      h('h1', { class: 'with-ico' }, sectionIcon('todo'), 'To-Do'),
+      pageTitle('todo', 'To-Do'),
       h('p', { class: 'asof', id: 'todo-counts' }, `${open.length} open · ${done.length} done`));
 
     const openCard = h('section', { class: 'card todo-open', id: 'todo-open' },

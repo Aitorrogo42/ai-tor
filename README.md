@@ -6,6 +6,14 @@ An installable personal-life app (PWA). Plain HTML/CSS/JS: **no build step, no C
 
 Today: **Finances** (accounts, debts, income/expenses, goals, notes, dashboard, and an optional ↻ Refresh from your assistant) and **Travels** with two tabs: **Visited** (tick the countries you have visited out of a bundled offline list of 195, with search, per-continent counts, and optional year(s)/note per country) and **Destinations** (places your Travel Guide bot proposes, from an optional encrypted feed). **To-Do** (a clear task list with a Done pile, comments per task, and an optional daily feed from your assistant). The home screen is a registry of sections, so more can be added later. Section logos live in `icons/sections/`.
 
+## Look & feel (v11: Raycast-style, Mars accent)
+- **Theme.** Near-black `#07080a`, glass panels (`#0c0d0f`/`#111214`, 1px hairlines, inner highlight), text `#cdcece` / `#9c9c9d`, self-hosted **Inter** (UI) and **JetBrains Mono** (small caps labels). The accent is **Mars**: `--mars #e2512b`, `--ember #ff7a45`, `--rust #8f2a14`. Everything lives in `:root` of `css/app.css` (accent, glows, button gradient `--btn-top/--btn-bot`, semantic `--green/--red/--amber`, easing); change a variable and every section follows. Per-section glow positions/hues are in `css/motion.css` (`html[data-sec=…]`).
+- **Fonts.** `fonts/*.woff2` (Google Fonts builds of Inter and JetBrains Mono, SIL Open Font License 1.1, notices in `fonts/OFL-*.txt`). No runtime requests to any font host; all four files are precached.
+- **Background.** Fixed layer behind the app: three Mars-toned glow blobs drifting on CSS transform animations (compositor only) + a ~70-particle star/ember canvas (30 fps, DPR ≤ 2). Glow centre and hue shift per section and animate during transitions. Pauses when the page is hidden; `prefers-reduced-motion` gives a static gradient and one still frame of stars. It is `pointer-events:none` and `contain:strict`. Glass blur (`backdrop-filter`) is only used on a few small surfaces (home cards, tab bar, dialogs, toast) so scrolling stays cheap on iPhone.
+- **Transitions.** Home → section: the tapped card, its icon and its title morph into the page header (shared elements) while the old page recedes, the glow sweeps to the new section and the content staggers up; back reverses it. Opening a destination / the edit page slides in (push), going back slides out (pop); Visited ⇄ Destinations slides the content and glides the pill indicator. Uses the **View Transitions API** (iOS 18+ Safari, Chrome) and falls back to Web Animations (WAAPI) with a FLIP icon morph elsewhere. About 350–500 ms, transform/opacity only. Reduced motion → a short crossfade. In-place re-renders (save, refresh, sync) never replay transitions.
+- **Micro-interactions.** Pressed-state scale + Mars glow, a spotlight that follows the finger on home cards, count-up of the Finances headline numbers when the page is entered (skipped for reduced motion; the text is always exact when it ends), toasts that slide in and out.
+- **Accessibility.** AA contrast for text and the primary button (white on `#cb4123`→`#a9341a`), visible focus rings, ≥ 44 px tap targets, safe-area insets, `overscroll-behavior:none`.
+
 ## Using it
 1. Open the hosted URL, add to home screen (iPhone: Share → *Add to Home Screen*; Android: ⋮ → *Install app*).
 2. Home → ⚙️ **Settings**: set your name and display currency (USD default; display only, nothing is converted).
@@ -24,8 +32,11 @@ cd ai-tor && python3 -m http.server 8765 --bind 127.0.0.1
 ## Structure
 ```
 index.html, manifest.webmanifest, sw.js
-css/app.css                  shell + form/dialog styles (dark theme)
-js/app.js                    hash router, home screen (greeting, ⚙️)
+css/app.css                  design tokens (:root: Mars palette, surfaces, radii, easing) + shell, buttons, forms, dialogs, toast
+css/motion.css               dynamic background, page-transition (View Transitions) rules, staggered entrances, tab pill
+js/app.js                    hash router (animated navigations vs in-place re-renders), home screen (time-of-day greeting, ⚙)
+js/nav.js                    page transitions: View Transitions API + WAAPI fallback, shared-element morphs, reduced-motion handling
+js/bg.js                     background: starfield/ember-dust canvas, scroll/tilt parallax, per-section glow, pause when hidden
 js/sections.js               SECTION REGISTRY (id, title, icon, route, loader)
 js/storage.js                namespaced localStorage (core + one key per section)
 js/dataio.js                 export / validate / import of the whole app
@@ -45,6 +56,7 @@ sections/finances/
 feed/tasks.enc.json          (published copy only) the ENCRYPTED to-do feed, written by the assistant's publish script
 feed/finances.enc.json       (published copy only) the ENCRYPTED finance snapshot, same format and passphrase
 feed/destinations.enc.json   (published copy only) the ENCRYPTED Travel Guide proposals, same format and passphrase
+fonts/                       self-hosted Inter (variable) + JetBrains Mono (variable), latin + latin-ext woff2, with their SIL OFL licences
 icons/                       192/512, maskable, apple-touch-icon, favicon (the PWA app icon)
 icons/sections/              finances|travels|todo .png (512 master) and -256.png (used in the UI)
 screenshots/                 fake-data screenshots only

@@ -24,7 +24,7 @@ export function toast(msg) {
   document.querySelectorAll('.toast').forEach((t) => t.remove());
   const t = h('div', { class: 'toast', role: 'status' }, msg);
   document.body.append(t);
-  setTimeout(() => t.remove(), 2600);
+  setTimeout(() => { t.classList.add('out'); setTimeout(() => t.remove(), 260); }, 2600);
 }
 
 /** Labeled field wrapper. */

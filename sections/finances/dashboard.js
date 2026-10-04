@@ -1,4 +1,4 @@
-import { h, sectionIcon, money, pct, fmtDate, todayISO } from '../../js/util.js';
+import { h, pageTitle, countUp, money, pct, fmtDate, todayISO } from '../../js/util.js';
 import { compute, alerts, projectableGoals } from './model.js';
 import { projectionChart } from './chart.js';
 import { refreshBar } from './refreshbar.js';
@@ -40,12 +40,12 @@ function projectionCard(doc, c, cands) {
       h('div', { class: 'chart-wrap' }, projectionChart({
         start: today, end: goal.date, goalValue: goal.target, nowValue: c.netWorth,
         series: [
-          { label: 'Net worth held flat', color: '#a78bfa', points: [[today, c.netWorth], [goal.date, c.netWorth]] },
-          { label: 'Straight line to goal', color: '#3ee07f', dash: '6 5', points: [[today, c.netWorth], [goal.date, goal.target]] },
+          { label: 'Net worth held flat', color: '#ff7a45', points: [[today, c.netWorth], [goal.date, c.netWorth]] },
+          { label: 'Straight line to goal', color: '#3ddc84', dash: '6 5', points: [[today, c.netWorth], [goal.date, goal.target]] },
         ] })),
       h('div', { class: 'legend' },
-        h('span', null, h('span', { class: 'dot', style: 'background:#a78bfa' }), 'Net worth today, held flat'),
-        h('span', null, h('span', { class: 'dot', style: 'background:#3ee07f' }), 'Straight line to goal')),
+        h('span', null, h('span', { class: 'dot', style: 'background:#ff7a45' }), 'Net worth today, held flat'),
+        h('span', null, h('span', { class: 'dot', style: 'background:#3ddc84' }), 'Straight line to goal')),
       h('div', { style: 'margin-top:10px' },
         h('div', { class: 'row' }, h('div', { class: 'l' }, 'Net worth today'), h('div', { class: 'r' }, money(c.netWorth))),
         h('div', { class: 'row' }, h('div', { class: 'l' }, 'Goal (' + fmtDate(goal.date) + ')'), h('div', { class: 'r' }, money(goal.target))),
@@ -67,7 +67,7 @@ export function renderDashboard(root, doc, ctx) {
   root.append(
     h('div', { class: 'topbar' }, h('a', { class: 'back', href: '#/' }, '‹ Home'),
       h('a', { class: 'btn ghost small', href: '#/finances/edit', id: 'edit-btn' }, '✎ Edit')),
-    h('div', { class: 'fin-head' }, h('h1', { class: 'with-ico' }, sectionIcon('finances'), 'Finances'),
+    h('div', { class: 'fin-head' }, pageTitle('finances', 'Finances'),
       doc.updatedAt && !(doc.feed && doc.feed.refreshedAt) ? h('div', { class: 'asof' }, 'Last updated ' + new Date(doc.updatedAt).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })) : null));
 
   root.append(refreshBar(doc, ctx.rerender));
@@ -84,7 +84,7 @@ export function renderDashboard(root, doc, ctx) {
   const top = c.groups[0];
   root.append(h('div', { class: 'card', id: 'networth' },
     h('div', { class: 'k' }, 'Net worth'),
-    h('div', { class: 'v ' + (c.netWorth < 0 ? 'neg' : '') }, money(c.netWorth)),
+    h('div', { class: 'v ' + (c.netWorth < 0 ? 'neg' : ''), 'data-count': String(c.netWorth) }, money(c.netWorth)),
     h('div', { class: 'sub' }, 'Assets ' + money(c.assets) + ' − Debts ' + money(c.debts)),
     h('div', null,
       !doc.debts.length ? h('span', { class: 'chip warn' }, 'No debts added') : null,
@@ -98,10 +98,10 @@ export function renderDashboard(root, doc, ctx) {
   root.append(h('h2', { class: 'sec' }, 'Monthly income & expenses'));
   if (hasInc || hasExp) {
     root.append(h('div', { class: 'grid2', id: 'income' },
-      hasInc ? h('div', { class: 'card' }, h('div', { class: 'k' }, 'Income / month'), h('div', { class: 'v sm' }, money(doc.monthlyIncome))) : na('na-income', 'Monthly income', 'Add it to see your monthly surplus.'),
-      hasExp ? h('div', { class: 'card' }, h('div', { class: 'k' }, 'Expenses / month'), h('div', { class: 'v sm' }, money(doc.monthlyExpenses))) : na('na-expenses', 'Monthly expenses', 'Add it to see your monthly surplus.'),
+      hasInc ? h('div', { class: 'card' }, h('div', { class: 'k' }, 'Income / month'), h('div', { class: 'v sm', 'data-count': String(doc.monthlyIncome) }, money(doc.monthlyIncome))) : na('na-income', 'Monthly income', 'Add it to see your monthly surplus.'),
+      hasExp ? h('div', { class: 'card' }, h('div', { class: 'k' }, 'Expenses / month'), h('div', { class: 'v sm', 'data-count': String(doc.monthlyExpenses) }, money(doc.monthlyExpenses))) : na('na-expenses', 'Monthly expenses', 'Add it to see your monthly surplus.'),
       c.surplus != null ? h('div', { class: 'card span2' }, h('div', { class: 'k' }, 'Income − expenses'),
-        h('div', { class: 'v sm ' + (c.surplus >= 0 ? 'pos' : 'neg') }, money(c.surplus)), h('div', { class: 'sub' }, 'per month, derived from your numbers')) : null));
+        h('div', { class: 'v sm ' + (c.surplus >= 0 ? 'pos' : 'neg'), 'data-count': String(c.surplus) }, money(c.surplus)), h('div', { class: 'sub' }, 'per month, derived from your numbers')) : null));
   } else {
     root.append(h('div', { class: 'grid2' }, na('na-income', 'Monthly income', 'Optional.'), na('na-expenses', 'Monthly expenses', 'Optional.')));
   }
@@ -151,4 +151,6 @@ export function renderDashboard(root, doc, ctx) {
     root.append(h('details', { class: 'src-all', id: 'notes' }, h('summary', null, 'Tap to expand your notes'), h('div', { class: 'gbody' }, h('p', { class: 'notes-text' }, doc.notes))));
   }
   root.append(h('p', { class: 'note center' }, '🔒 Stored only on this device. Export a backup any time in Settings.'));
+  // count the headline numbers up when the page is entered (no-op for reduced motion and for in-place re-renders)
+  root.querySelectorAll('[data-count]').forEach((el) => countUp(el, Number(el.dataset.count), money));
 }
