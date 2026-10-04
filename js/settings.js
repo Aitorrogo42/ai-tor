@@ -5,8 +5,9 @@ import { field, confirmDialog, toast } from './ui.js';
 import * as storage from './storage.js';
 import { buildExport, validateImport, applyImport, MAX_IMPORT_BYTES } from './dataio.js';
 import { sections } from './sections.js';
+import { isDynamicBackground, setDynamicBackground } from './bg.js';
 
-export const APP_VERSION = '2.6.0 (v20)';
+export const APP_VERSION = '2.7.0 (v21)';
 
 export async function renderSettings(root, ctx) {
   document.title = 'Settings · AI-TOR';
@@ -83,6 +84,9 @@ export async function renderSettings(root, ctx) {
     ctx.rerender();
   } }, 'Erase all data');
 
+  // ---- v21: dynamic sunrise background toggle (device-local, default on)
+  const dyn = h('input', { type: 'checkbox', class: 'set-cb', id: 'set-dynbg', checked: isDynamicBackground(), onchange: () => { setDynamicBackground(dyn.checked); toast(dyn.checked ? 'Dynamic sunrise background on' : 'Dynamic sunrise background off'); } });
+
   root.append(
     h('div', { class: 'topbar' }, h('a', { class: 'back', href: '#/' }, icon('chevL'), 'Home')),
     h('div', { class: 'fin-head' }, pageTitle('settings', 'Settings')),
@@ -92,6 +96,11 @@ export async function renderSettings(root, ctx) {
       field('Display currency', cur, 'Only changes how amounts are shown. Numbers are not converted.'),
       profileMsg,
       h('div', { class: 'btnrow' }, h('button', { type: 'submit', class: 'btn primary', id: 'save-profile' }, 'Save profile'))),
+    h('h2', { class: 'sec' }, 'Background'),
+    h('div', { class: 'card' },
+      h('label', { class: 'set-toggle', for: 'set-dynbg' }, dyn,
+        h('span', { class: 'set-toggle-txt' }, h('span', { class: 'set-toggle-t' }, 'Dynamic sunrise background'),
+          h('span', { class: 'note' }, 'On the home screen the Mars planet moves through sunrise, day, sunset and night as you turn the wheel (one turn = one Martian day). Off keeps the still planet.')))),
     h('h2', { class: 'sec' }, 'Your data'),
     h('div', { class: 'card stackc' },
       h('p', { class: 'note' }, 'Your data lives only in this browser on this device. Export a backup to keep it safe or move it to another device.'),

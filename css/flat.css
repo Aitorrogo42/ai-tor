@@ -71,11 +71,15 @@ summary .sec-glyph{display:inline-block;vertical-align:-.28em}   /* v19: Setting
 .home-greet .tagline{margin:2px auto 0;max-width:34em;font-size:12px;line-height:1.35;font-weight:400;letter-spacing:.03em;color:var(--muted)}
 @media (max-height:700px){.home-head,.lockup-hero{--lk:72px}}
 /* flat checkboxes (Travels + To-Do): square outline box, Ember when checked, tap area stays on the row (48px) */
-.trv-cb,.todo-cb{-webkit-appearance:none;appearance:none;position:relative;flex:none;margin:0;background:var(--surf);border:1px solid var(--surf-line);border-radius:var(--r-sm);cursor:pointer;transition:background .15s,border-color .15s}
-.trv-cb:checked,.todo-cb:checked{background:var(--surf-on);border-color:var(--ember)}
-.trv-cb:checked::after,.todo-cb:checked::after{content:"";position:absolute;left:34%;top:14%;width:28%;height:52%;border:solid #fff;border-width:0 1.5px 1.5px 0;transform:rotate(42deg)}
-.trv-cb:focus-visible,.todo-cb:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
-.trv-cb:active,.todo-cb:active{border-color:var(--ember)}
+.trv-cb,.todo-cb,.set-cb{-webkit-appearance:none;appearance:none;position:relative;flex:none;margin:0;background:var(--surf);border:1px solid var(--surf-line);border-radius:var(--r-sm);cursor:pointer;transition:background .15s,border-color .15s}
+.trv-cb:checked,.todo-cb:checked,.set-cb:checked{background:var(--surf-on);border-color:var(--ember)}
+.trv-cb:checked::after,.todo-cb:checked::after,.set-cb:checked::after{content:"";position:absolute;left:34%;top:14%;width:28%;height:52%;border:solid #fff;border-width:0 1.5px 1.5px 0;transform:rotate(42deg)}
+.trv-cb:focus-visible,.todo-cb:focus-visible,.set-cb:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+.trv-cb:active,.todo-cb:active,.set-cb:active{border-color:var(--ember)}
+.set-toggle{display:flex;align-items:flex-start;gap:14px;min-height:48px;cursor:pointer}
+.set-cb{width:24px;height:24px;margin-top:2px}
+.set-toggle-txt{display:flex;flex-direction:column;gap:4px;min-width:0}
+.set-toggle-t{font-size:15px;font-weight:600;color:var(--text)}
 
 /* ===== v16: inner tabs + chips (Visited / Destinations, Personal / Work, filter chips) =====
    Flat translucent blocks, 2px corners, NO outline. Active = faint Mars fill + a 3px Ember underline. No chamfer, no shadow. */

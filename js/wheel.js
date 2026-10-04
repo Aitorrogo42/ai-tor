@@ -3,6 +3,7 @@
 // (inertia + snap), tapping a tick, the arrow keys, Home/End or the mouse wheel; it always snaps so exactly one section is at the top.
 // v17: the hollow centre shows ONLY the selected section's line icon and a Mars-red down marker (no text); v18: the marker is a bold solid down-pointing triangle; the section name stays as a visually
 // hidden label + a polite live region for screen readers. The centre is the link that opens the section.
+// v21: every paint dispatches a 'wheel-angle' event on window ({angle: continuous degrees, index, dragging}) for the dynamic sunrise background (js/bg.js).
 // Reduced motion: no inertia or spring, the dial jumps to the new position. Flat: no blur, no glow, no shadow.
 import { h } from './util.js';
 import { icon, sectionGlyph, hasSectionGlyph } from './icons.js';
@@ -71,6 +72,8 @@ export function createWheel(items) {
     }
     const n = nearest(rot);
     if (n !== sel) setSel(n);
+    // v21: the continuous dial angle drives the home background (js/bg.js turns it into the sun angle: one full turn = one Martian day)
+    window.dispatchEvent(new CustomEvent('wheel-angle', { detail: { angle: rot, index: sel, dragging: !!drag } }));
   }
   function setSel(n) {
     sel = n; lastSel = n;

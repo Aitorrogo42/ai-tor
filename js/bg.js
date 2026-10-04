@@ -2,6 +2,11 @@
 // Lightweight by design: ~70 particles, 30fps, DPR capped at 2, paused while the page is hidden, never touches input.
 // Reacts gently to scroll (parallax) and to device tilt where the browser allows it without a permission prompt.
 // prefers-reduced-motion: draws one static frame and nothing moves.
+// v21: DYNAMIC SUNRISE. The home wheel drives a sun angle ("sol", one full wheel turn = one Martian day, see README) and a WebGL shader (js/sunrise.js)
+// draws the lit Mars sphere, atmosphere, sun and stars behind the home screen. Falls back to the CSS layers (a glow + a night veil, moved by transform/opacity only) when
+// WebGL is missing / lost, and to the plain static photo when the Settings toggle "Dynamic sunrise background" is off. Sections keep the (dimmed) photo look.
+import { createSunrise, solarState } from './sunrise.js';
+import * as storage from './storage.js';
 const reduce = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 let root, par, marsPar, cv, ctx2d, W = 0, H = 0, dpr = 1;
@@ -68,6 +73,153 @@ function stop() { running = false; cancelAnimationFrame(raf); document.documentE
 
 export function setBackdropSection(id) {
   document.documentElement.dataset.sec = id || 'home';
+  sunSync();
+}
+
+// ===================== v21 dynamic sunrise =====================
+const SOL_OFFSET = 90;                       // sol (deg) = 90 - wheel angle (deg): with the wheel at rest on the first section (Finances) the sun is rising at the limb
+export const solFromWheel = (angleDeg) => SOL_OFFSET - angleDeg;      // linear, unwrapped: any number of turns loops seamlessly
+const norm360 = (d) => ((d % 360) + 360) % 360;
+const cfg = () => storage.config('display');
+export const isDynamicBackground = () => { try { const c = cfg().get(); return !(c && c.dynbg === false); } catch { return true; } };
+const sun = { mode: 'off', renderer: null, canvas: null, cur: SOL_OFFSET, tgt: SOL_OFFSET, first: true, raf: 0, last: 0, lastDraw: 0, texImg: null, ready: false, scale: 0, slow: 0, cost: 0, timer: 0, glow: null, night: null, dirty: true, frames: 0 };
+const isHome = () => { const s = document.documentElement.dataset.sec; return !s || s === 'home'; };
+
+function sunLayout() {
+  const W = window.innerWidth, H = window.innerHeight, dpr = Math.min(window.devicePixelRatio || 1, 2);
+  if (!sun.scale) sun.scale = dpr;
+  let sc = Math.min(sun.scale, dpr);
+  const budget = 1.25e6;                                   // ~1.25 Mpx per frame max: keeps iPhone GPUs comfortable
+  if (W * H * sc * sc > budget) sc = Math.sqrt(budget / (W * H));
+  sun.renderer.resize(W, H, sc);
+}
+
+function setVars(st) {
+  const el = root; if (!el) return;
+  el.style.setProperty('--sol-deg', norm360(sun.cur).toFixed(2));
+  el.style.setProperty('--sol-elev', st.E.toFixed(2));
+  el.style.setProperty('--sol-day', st.day.toFixed(3));
+  el.style.setProperty('--sol-night', st.night.toFixed(3));
+}
+
+function cssState() {
+  const W = window.innerWidth, H = window.innerHeight, R = 1.5 * Math.min(W, 0.7 * H);
+  return solarState(norm360(sun.cur) * Math.PI / 180, W, H, W / 2, 0.62 * H + R, R);
+}
+function applyCss(st) {                                      // fallback layers: transform / opacity only
+  if (sun.glow) {
+    const prox = Math.exp(-Math.pow(st.sinE / 0.3, 2)), amp = st.sinE < 0 ? Math.exp(st.sinE * 3.4) : Math.max(0.15, 1 - 0.78 * Math.min(1, Math.max(0, (st.sinE - 0.04) / 0.71)));
+    sun.glow.style.transform = `translate3d(${st.sunX.toFixed(1)}px,${Math.max(st.sunY, -200).toFixed(1)}px,0)`;
+    sun.glow.style.opacity = Math.min(1, (0.2 + 0.8 * prox) * amp).toFixed(3);
+  }
+  if (sun.night) sun.night.style.opacity = (0.82 * st.night).toFixed(3);
+  const dust = document.getElementById('bg-dust'); if (dust) dust.style.opacity = (0.25 + 0.75 * st.night).toFixed(3);
+}
+
+function sunRender(t) {
+  const still = reduce();
+  const t0 = performance.now();
+  const st = sun.renderer.draw(norm360(sun.cur) * Math.PI / 180, still ? 0 : t / 1000, still);
+  sun.cost = sun.cost * 0.7 + (performance.now() - t0) * 0.3;      // CPU-side cost of the draw call (≈0 on a real GPU, large on a software renderer)
+  if (st) setVars(st);
+  sun.dirty = false;
+}
+
+const IDLE_MS = 100;                                        // idle (wheel at rest): ~10 fps is plenty for the slow rotation / star twinkle
+function sunFrame(t) {
+  sun.raf = requestAnimationFrame(sunFrame);
+  const dt = sun.last ? Math.min(100, t - sun.last) : 16; sun.last = t;
+  const diff = sun.tgt - sun.cur;
+  let moving = false;
+  if (Math.abs(diff) > 0.02) { sun.cur += diff * (1 - Math.exp(-dt / 70)); moving = true; } else if (diff !== 0) { sun.cur = sun.tgt; moving = true; }
+  const still = reduce();
+  if (!moving && !sun.dirty && (still || t - sun.lastDraw < IDLE_MS)) return;      // idle: ~10 fps for the star twinkle / slow rotation, nothing at all in reduced motion
+  if (sun.cost > 8 && t - sun.lastDraw < sun.cost * 2.2) return;                   // slow (software) renderer: never use more than ~1/3 of the main thread
+  sun.lastDraw = t;
+  sunRender(t);
+  // adaptive quality: if drawing is slow, render fewer pixels
+  if (sun.cost > 14 || (moving && dt > 26)) { sun.slow++; if (sun.slow > (sun.cost > 14 ? 4 : 30) && sun.scale > 0.5) { sun.scale *= 0.8; sun.slow = 0; sun.cost = 0; sunLayout(); sun.dirty = true; } } else sun.slow = Math.max(0, sun.slow - 1);
+}
+
+function sunStart() {
+  if (sun.mode !== 'gl' || sun.raf || document.hidden || !isHome()) return;
+  sun.last = 0; sun.dirty = true; sun.raf = requestAnimationFrame(sunFrame);
+}
+function sunStop() { if (sun.raf) cancelAnimationFrame(sun.raf); sun.raf = 0; }
+
+function sunSync() {                                          // called when the visible section / visibility / toggle changes
+  if (sun.mode === 'gl') { isHome() ? sunStart() : sunStop(); }
+  else if (sun.mode === 'css') { applyCss(cssState()); }
+}
+
+function onWheelAngle(e) {
+  if (sun.mode === 'off') return;
+  const d = e.detail || {}; if (typeof d.angle !== 'number') return;
+  const tgt = solFromWheel(d.angle);
+  const apply = () => { sun.tgt = tgt; if (sun.first || reduce() || sun.mode === 'css') { sun.cur = tgt; sun.first = false; } sun.dirty = true; if (sun.mode === 'css') { const st = cssState(); setVars(st); applyCss(st); } else if (sun.mode === 'gl') { isHome() && !sun.raf ? sunStart() : 0; } };
+  if (reduce() && d.dragging) { clearTimeout(sun.timer); sun.timer = setTimeout(() => { sun.tgt = tgt; sun.cur = tgt; sun.dirty = true; if (sun.mode === 'css') { const st = cssState(); setVars(st); applyCss(st); } }, 160); return; }   // reduced motion: change only once the wheel settles
+  if (reduce() && !d.dragging) { clearTimeout(sun.timer); sun.timer = setTimeout(apply, 60); return; }
+  apply();
+}
+
+function fallbackCss(reason) {
+  sun.mode = 'css'; document.documentElement.classList.remove('gl-on'); document.documentElement.classList.add('sol-css');
+  sunStop(); sun.reason = reason || 'no-webgl';
+  const st = cssState(); setVars(st); applyCss(st);
+}
+
+function sunEnable() {
+  const html = document.documentElement;
+  if (!root) return;
+  if (!sun.glow) {
+    sun.glow = root.querySelector('.sol-glow'); sun.night = root.querySelector('.sol-night');
+  }
+  if (sun.mode === 'gl' || sun.mode === 'css') { html.classList.toggle('gl-on', sun.mode === 'gl' && sun.ready); html.classList.toggle('sol-css', sun.mode === 'css'); sunSync(); return; }
+  let r = null;
+  try {
+    sun.canvas = sun.canvas || document.getElementById('bg-gl') || Object.assign(document.createElement('canvas'), { id: 'bg-gl' });
+    if (!sun.canvas.parentNode) root.append(sun.canvas);
+    r = createSunrise(sun.canvas, { onLost: () => { sun.ready = false; fallbackCss('context-lost'); }, onRestored: () => { sun.renderer = r; sun.mode = 'gl'; sun.ready = true; html.classList.remove('sol-css'); html.classList.add('gl-on'); sunLayout(); sun.dirty = true; sunSync(); } });
+  } catch (err) { fallbackCss('webgl-failed'); return; }
+  sun.renderer = r; sun.mode = 'gl'; sunLayout();
+  const done = () => {
+    if (sun.mode !== 'gl') return;
+    sunRender(performance.now() / 1000 * 1000); sun.ready = true;
+    html.classList.add('gl-on'); html.classList.remove('sol-css'); sunSync();
+  };
+  const img = new Image(); img.decoding = 'async';
+  img.onload = () => { try { r.setTexture(img); } catch { /* plain procedural planet */ } done(); };
+  img.onerror = () => done();
+  img.src = new URL('../assets/mars-map.webp', import.meta.url).href;
+}
+
+function sunDisable() {
+  const html = document.documentElement;
+  sunStop(); html.classList.remove('gl-on', 'sol-css'); sun.mode = 'off';
+  if (root) ['--sol-deg', '--sol-elev', '--sol-day', '--sol-night'].forEach((k) => root.style.removeProperty(k));
+  if (sun.glow) sun.glow.style.opacity = '0'; if (sun.night) sun.night.style.opacity = '0';
+  const dust = document.getElementById('bg-dust'); if (dust) dust.style.opacity = '';
+  if (sun.renderer) { try { sun.renderer.dispose(); } catch { /* ignore */ } sun.renderer = null; if (sun.canvas) { sun.canvas.remove(); sun.canvas = null; } sun.ready = false; }
+}
+
+/** Settings toggle. Persists on this device only. */
+export function setDynamicBackground(on) {
+  try { cfg().set({ dynbg: !!on }); } catch { /* storage blocked: still applies for this session */ }
+  if (on) { sun.first = true; sunEnable(); } else sunDisable();
+}
+
+function initSun() {
+  window.addEventListener('wheel-angle', onWheelAngle);
+  window.addEventListener('resize', () => { if (sun.mode === 'gl') { sunLayout(); sun.dirty = true; } else if (sun.mode === 'css') applyCss(cssState()); }, { passive: true });
+  document.addEventListener('visibilitychange', () => { if (sun.mode === 'gl') (document.hidden ? sunStop() : sunSync()); });
+  const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
+  mq.addEventListener && mq.addEventListener('change', () => { sun.dirty = true; sunSync(); });
+  if (isDynamicBackground()) sunEnable();
+  window.__aitorBg.sun = {
+    mode: () => sun.mode, ready: () => sun.ready, reason: () => sun.reason || '', solDeg: () => norm360(sun.cur), targetDeg: () => norm360(sun.tgt), running: () => !!sun.raf,
+    snap: (deg) => { sun.tgt = sun.cur = deg; sun.dirty = true; if (sun.mode === 'gl') { sunRender(performance.now()); } else if (sun.mode === 'css') { const st = cssState(); setVars(st); applyCss(st); } },
+    scale: () => sun.scale,
+  };
 }
 
 export function initBackground() {
@@ -88,4 +240,5 @@ export function initBackground() {
   mq.addEventListener && mq.addEventListener('change', () => { if (mq.matches) { stop(); draw(0); } else start(); });
   start();
   window.__aitorBg = { running: () => running, stars: stars.length };   // used by the test script only
+  initSun();
 }
