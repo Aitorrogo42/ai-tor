@@ -15,6 +15,8 @@
   --surf:rgba(255,255,255,.08);--surf-hi:rgba(255,255,255,.14);--surf-line:rgba(255,255,255,.35);--surf-line-lo:rgba(255,255,255,.2);
   --surf-dim:rgba(10,3,5,.5);                          /* tonal step 2: inputs, footer scrim (background still reads through) */
   --surf-over:rgba(14,5,8,.88);                        /* tonal step 3: layers that sit over scrolling content: sticky strip, dialog, toast */
+  --tab-fill:rgba(255,255,255,.1);                      /* v16 inner tabs (Visited/Destinations, Personal/Work, chips): flat translucent, NO outline */
+  --tab-on:rgba(217,58,45,.26);                        /* active tab: Mars fill + Ember underline */
   --surf-on:rgba(217,58,45,.18);                       /* active tab / selected: faint Mars fill + Ember border */
   --panel:var(--surf);--panel-2:var(--surf);--field:var(--surf-dim);
   --hair:rgba(255,255,255,.14);--hair-2:rgba(255,255,255,.3);--hl:transparent;

@@ -1,9 +1,12 @@
 // To-Do section. Route: #/todo
-// Open tasks on top (newest first), a collapsed "Done" pile below. Tap a task to see/add comments.
+// Two parallel lists, "Personal" and "Work" (tabs at the top, same look and function). Open tasks on top (newest first), a collapsed
+// "Done" pile below. Tap a task to see/add comments. Personal = everything typed in before + the assistant's encrypted feed; Work = typed
+// in by hand, local only, never touched by sync. The selected tab is remembered in a device setting (aitor:cfg:todo-ui).
 import { h, pageTitle, fmtDate, todayISO, uid } from '../../js/util.js';
 import { icon } from '../../js/icons.js';
 import { toast, confirmDialog } from '../../js/ui.js';
-import { validate, summary, emptyDoc, isEmptyDoc, newTask, openTasks, doneTasks, LIMITS } from './model.js';
+import * as storage from '../../js/storage.js';
+import { validate, summary, emptyDoc, isEmptyDoc, newTask, openTasks, doneTasks, inList, listOf, LISTS, LIST_LABEL, LIMITS } from './model.js';
 import * as sync from './sync.js';
 
 export { validate, summary, emptyDoc };
@@ -23,7 +26,7 @@ export async function render(root, ctx) {
         h('div', { class: 'card error', id: 'corrupt' }, h('h2', null, 'Saved To-Do data looks damaged'), h('p', { class: 'note' }, v.errors.join(' ')),
           h('p', { class: 'note' }, 'You can restore a backup from Settings > Import, or reset this section.'),
           h('div', { class: 'btnrow' }, h('a', { class: 'btn ghost', href: '#/settings' }, 'Open Settings'),
-            h('button', { class: 'btn danger', onclick: async () => { if (await confirmDialog({ title: 'Reset To-Do data?', message: 'This deletes the saved tasks on this device.', okLabel: 'Reset', danger: true })) { store.clear(); ctx.rerender(); } } }, 'Reset To-Do'))));
+            h('button', { class: 'btn danger', onclick: async () => { if (await confirmDialog({ title: 'Reset To-Do data?', message: 'This deletes all saved tasks on this device (Personal and Work).', okLabel: 'Reset', danger: true })) { store.clear(); ctx.rerender(); } } }, 'Reset To-Do'))));
       return;
     }
   }
@@ -43,7 +46,17 @@ export async function render(root, ctx) {
   const drafts = new Map();         // task id -> unsent comment text
   let editingComment = null;        // `${taskId}:${commentId}`
   let editingTask = null;
-  let doneOpen = false;
+  const doneOpen = { personal: false, work: false };
+  const uiCfg = storage.config('todo-ui');
+  let list = 'personal';
+  try { const u = uiCfg.get(); if (u && LISTS.includes(u.list)) list = u.list; } catch { /* default */ }
+  const setList = (l) => {
+    if (l === list) return;
+    list = l; editingTask = null; editingComment = null;
+    try { uiCfg.set({ list }); } catch { /* remembering the tab is best effort */ }
+    addTitle.value = ''; addDueInput.value = ''; addDue = '';
+    draw();
+  };
   let addDue = '';
   let syncOpen = false;
   let syncMsg = null;               // { cls, text } result of the last manual sync
@@ -56,19 +69,22 @@ export async function render(root, ctx) {
     e.preventDefault();
     const title = addTitle.value.trim();
     if (!title) { addTitle.focus(); return; }
-    if (load().tasks.length >= LIMITS.tasks) { toast('Too many tasks. Clear some finished ones first.'); return; }
+    if (inList(load(), list).length >= LIMITS.tasks) { toast('Too many tasks. Clear some finished ones first.'); return; }
     const due = addDueInput.value || '';
-    if (mutate((d) => { d.tasks.unshift(newTask({ title, due })); })) { addTitle.value = ''; addDueInput.value = ''; addDue = ''; addTitle.focus(); }
+    const target = list;
+    if (mutate((d) => { d.tasks.unshift(newTask({ title, due, list: target })); })) { addTitle.value = ''; addDueInput.value = ''; addDue = ''; addTitle.focus(); }
   } },
     addTitle,
     h('div', { class: 'todo-add-row' },
       h('label', { class: 'todo-due-wrap' }, h('span', { class: 'fl' }, 'Due'), addDueInput, h('span', { class: 'hint' }, 'optional')),
       h('button', { type: 'submit', class: 'btn primary big', id: 'todo-add-btn' }, 'Add task')));
 
+  const tabsEl = h('div', { class: 'trv-tabs todo-tabs', id: 'todo-tabs', role: 'tablist', 'aria-label': 'To-Do lists' });
   const syncBar = h('div', { class: 'todo-syncbar', id: 'todo-syncbar' });
   const syncPanel = h('details', { class: 'group todo-sync', id: 'todo-sync-panel' });
   syncPanel.addEventListener('toggle', () => { syncOpen = syncPanel.open; });
   const lists = h('div', { class: 'todo-lists', id: 'todo-lists' });
+  const footNote = h('p', { class: 'note center', id: 'todo-foot' });
 
   // ------------------------------------------------------------ rows
   function dueChip(t) {
@@ -226,26 +242,38 @@ export async function render(root, ctx) {
   // ------------------------------------------------------------ main draw
   function draw() {
     const doc = load();
-    const open = openTasks(doc), done = doneTasks(doc);
+    const open = openTasks(doc, list), done = doneTasks(doc, list);
+    const work = list === 'work';
     head.replaceChildren(
       pageTitle('todo', 'To-Do'),
       h('p', { class: 'asof', id: 'todo-counts' }, `${open.length} open · ${done.length} done`));
+    tabsEl.replaceChildren(...LISTS.map((l) => {
+      const n = openTasks(doc, l).length, on = l === list;
+      return h('button', { type: 'button', class: 'trv-tab' + (on ? ' on' : ''), id: 'tab-' + l, role: 'tab', 'aria-selected': String(on), 'aria-label': `${LIST_LABEL[l]}, ${n} open`, onclick: () => setList(l) },
+        on ? h('span', { class: 'tab-pill', 'aria-hidden': 'true' }) : null,
+        h('span', { class: 'tab-lbl' }, LIST_LABEL[l], h('span', { class: 'todo-tabn', id: 'tab-' + l + '-n', 'aria-hidden': 'true' }, String(n))));
+    }));
+    addTitle.placeholder = work ? 'Add a work task…' : 'Add a task…';
+    addTitle.setAttribute('aria-label', work ? 'New work task' : 'New task');
+    syncBar.hidden = work; syncPanel.hidden = work;
+    footNote.replaceChildren(icon('lock'), work ? 'Work tasks are typed in by you and stay only on this device. Never synced. Included in backups via Settings > Export.' : 'Stored only on this device. Included in backups via Settings > Export.');
 
     const openCard = h('section', { class: 'card todo-open', id: 'todo-open' },
       h('h2', { class: 'todo-h' }, 'To do ', h('span', { class: 'trv-pill', id: 'todo-open-count' }, String(open.length))),
       open.length ? h('ul', { class: 'todo-ul', id: 'todo-open-list' }, open.map(row))
-        : h('p', { class: 'note todo-empty', id: 'todo-none' }, done.length ? 'All done. Nothing left to do.' : 'No tasks yet. Add one above' + (sync.isConfigured() ? ', or tap Sync now.' : '.')));
+        : h('p', { class: 'note todo-empty', id: 'todo-none' }, done.length ? 'All done. Nothing left to do.' : work ? 'No work tasks yet. Add one above.' : 'No tasks yet. Add one above' + (sync.isConfigured() ? ', or tap Sync now.' : '.')));
 
     const doneDet = h('details', { class: 'group todo-done', id: 'todo-done' },
       h('summary', { id: 'todo-done-summary' }, h('span', { class: 'trv-gname' }, 'Done'), h('span', { class: 'trv-gcount', id: 'todo-done-count' }, String(done.length))),
       done.length ? h('div', { class: 'todo-donebody' }, h('ul', { class: 'todo-ul', id: 'todo-done-list' }, done.map(row)),
         h('div', { class: 'btnrow' }, h('button', { type: 'button', class: 'btn ghost small', id: 'todo-clear-done', onclick: async () => {
-          if (!(await confirmDialog({ title: `Delete ${done.length} finished task${done.length === 1 ? '' : 's'}?`, message: 'They and their comments are removed from this device. Tasks from your assistant will not come back on sync.', okLabel: 'Delete finished', danger: true }))) return;
-          mutate((d) => { const gone = d.tasks.filter((x) => x.done); d.tasks = d.tasks.filter((x) => !x.done); for (const g of gone) if (g.source === 'sync' && !d.dismissed.includes(g.id)) d.dismissed.push(g.id); d.dismissed = d.dismissed.slice(-LIMITS.dismissed); });
+          if (!(await confirmDialog({ title: `Delete ${done.length} finished task${done.length === 1 ? '' : 's'}?`, message: work ? 'They and their comments are removed from this device.' : 'They and their comments are removed from this device. Tasks from your assistant will not come back on sync.', okLabel: 'Delete finished', danger: true }))) return;
+          mutate((d) => { const gone = d.tasks.filter((x) => x.done && listOf(x) === forList); d.tasks = d.tasks.filter((x) => !(x.done && listOf(x) === forList)); for (const g of gone) if (g.source === 'sync' && !d.dismissed.includes(g.id)) d.dismissed.push(g.id); d.dismissed = d.dismissed.slice(-LIMITS.dismissed); });
         } }, 'Delete finished tasks')))
         : h('p', { class: 'note', style: 'padding:0 16px 14px' }, 'Checked tasks will show up here.'));
-    doneDet.open = doneOpen;
-    doneDet.addEventListener('toggle', () => { doneOpen = doneDet.open; });
+    doneDet.open = doneOpen[list];
+    const forList = list;
+    doneDet.addEventListener('toggle', () => { doneOpen[forList] = doneDet.open; });
 
     lists.replaceChildren(openCard, doneDet);
     drawSync();
@@ -258,8 +286,8 @@ export async function render(root, ctx) {
 
   root.append(
     h('div', { class: 'topbar' }, h('a', { class: 'back', href: '#/' }, icon('chevL'), 'Home')),
-    head, addForm, syncBar, lists, syncPanel,
-    h('p', { class: 'note center' }, icon('lock'), 'Stored only on this device. Included in backups via Settings > Export.'));
+    head, tabsEl, addForm, syncBar, lists, syncPanel,
+    footNote);
   draw();
   if (sync.isConfigured() && sync.shouldAutoSync()) { sync.maybeAutoSync().then(() => { /* view refreshes via event */ }); }
 }

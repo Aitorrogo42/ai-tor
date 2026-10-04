@@ -133,3 +133,41 @@ html.vt-tab::view-transition-new(root){animation:vt-in .3s ease-out both}
   html[class*=vt-]::view-transition-old(root){animation:vt-out-tab .16s linear both}
   html[class*=vt-]::view-transition-new(root){animation:vt-in .2s linear both}
 }
+
+/* ===== launch splash (js/splash.js; markup #splash is static in index.html and <html class="splash">) =====
+   .splash    : pure black, only the white A (pulsing gently). The app, header and the whole Mars background (#bg) are hidden (opacity 0).
+   .splash-go : after the tap. The A flies to the header logo (WAAPI FLIP in JS); #app becomes visible (its children stagger in via .stg);
+                #bg fades in over 1.1 s (slightly after the logo starts moving). The real header logo stays hidden until the flying copy lands.
+   Reduced motion: no flight; #splash and #app crossfade, #bg fades. Failsafe: if JS never starts, everything is revealed after 6 s. */
+html.splash,html.splash-go{background:#000}
+html.splash{overflow:hidden;height:100%}
+html.splash body{overflow:hidden}
+#splash{position:fixed;inset:0;z-index:100;background:#000}
+html.splash-go #splash{background:transparent;pointer-events:none}
+#splash-btn{position:absolute;inset:0;width:100%;height:100%;margin:0;padding:0;border:0;background:none;color:#fff;cursor:pointer;display:grid;place-items:center;-webkit-tap-highlight-color:transparent}
+.splash-pulse{display:block;width:var(--splash-w);animation:splash-pulse 2.6s ease-in-out infinite}
+#splash{--splash-w:clamp(112px,34vw,148px)}
+.stop-pulse .splash-pulse{animation:none}
+.splash-mark{display:block;width:100%;height:auto;aspect-ratio:640/544;color:#fff;will-change:transform}
+@keyframes splash-pulse{0%,100%{opacity:.78;transform:scale(1)}50%{opacity:1;transform:scale(1.045)}}
+#splash-btn:focus,#splash-btn:focus-visible{outline:none}
+/* the focus ring only shows once the keyboard is used (js/splash.js adds .kb), never for a plain tap / programmatic focus */
+#splash.kb #splash-btn:focus-visible .splash-pulse{outline:2px solid var(--focus);outline-offset:14px}
+html.splash #app{visibility:hidden}
+html.splash #bg{opacity:0;transition:none}
+html.splash-go #bg{opacity:1;transition:opacity 1.1s cubic-bezier(.4,0,.2,1) .14s}
+html.splash-go .home-head .brand-mark{opacity:0}
+html.splash-go.splash-rm .home-head .brand-mark{opacity:1}
+html.splash-go.splash-rm #bg{transition-duration:.6s;transition-delay:0s}
+html.splash-go.splash-rm #app{animation:vt-in .45s ease both}
+/* failsafe: JS did not run (blocked/very slow): reveal the app and background by themselves */
+html.splash:not(.splash-armed) #app{animation:splash-failsafe 0s linear 6s forwards}
+html.splash:not(.splash-armed) #bg{animation:splash-failsafe-bg 0s linear 6s forwards}
+html.splash:not(.splash-armed) #splash{animation:splash-failsafe-out 0s linear 6s forwards}
+@keyframes splash-failsafe{to{visibility:visible}}
+@keyframes splash-failsafe-bg{to{opacity:1}}
+@keyframes splash-failsafe-out{to{opacity:0;pointer-events:none;visibility:hidden}}
+@media (prefers-reduced-motion:reduce){.splash-pulse{animation:none}}
+/* the wordmark appears as the A arrives above it (the flying A would otherwise pass over it) */
+html.splash-go:not(.splash-rm) .home-head .wordmark{animation:splash-wm .46s var(--ease) .28s both}
+@keyframes splash-wm{from{opacity:0;transform:translate3d(0,-6px,0)}to{opacity:1;transform:none}}

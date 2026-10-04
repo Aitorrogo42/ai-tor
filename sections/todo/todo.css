@@ -67,3 +67,8 @@ input[type=password]:focus-visible{outline:2px solid var(--blue);outline-offset:
 .todo-row{transition:background var(--t-fast)}
 .todo-main:active{background:var(--accent-soft)}
 .todo-row.done .todo-title{text-decoration-color:rgba(255,255,255,.3)}
+
+/* ---- v16: Personal / Work tabs (same floating chamfered tabs as Travels' Visited / Destinations; active = Mars fill + Ember notch) ---- */
+.todo-tabs .trv-tab{appearance:none;-webkit-appearance:none;border:0;margin:0;font:inherit;font-weight:600;font-size:15px;letter-spacing:.04em;color:var(--text);cursor:pointer;-webkit-tap-highlight-color:transparent}
+.todo-tabs .trv-tab.on{color:#fff}
+.todo-tabn{min-width:24px;height:22px;padding:0 6px;font-size:12px;font-weight:500;letter-spacing:0;line-height:20px;text-align:center;font-variant-numeric:tabular-nums;color:var(--text)}

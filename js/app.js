@@ -5,9 +5,12 @@ import { h, setCurrency } from './util.js';
 import * as storage from './storage.js';
 import { renderSettings } from './settings.js';
 import { initBackground, setBackdropSection } from './bg.js';
+import { createWheel } from './wheel.js';
 import { classify, transition, beginEnter, markEnter } from './nav.js';
+import { splashWanted, armSplash, skipNextSplash } from './splash.js';
 
 const app = document.getElementById('app');
+const splashOn = splashWanted();   // launch splash (see js/splash.js): the first render must not start its entrance animation behind it
 initBackground();
 let deferredInstall = null;
 window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); deferredInstall = e; if (!location.hash || location.hash === '#/') route(); });
@@ -16,8 +19,6 @@ function isStandalone() {
   return window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
 }
 
-// Settings gear: the shared thin line icon (js/icons.js)
-const gearIcon = () => icon('gear', 'ico ico-lg');
 
 function greetingText(name) {
   const hr = new Date().getHours();
@@ -28,14 +29,9 @@ function greetingText(name) {
 function renderHome() {
   document.title = 'AI-TOR';
   const name = storage.getCore().profile.name;
-  const list = h('nav', { class: 'section-list', 'aria-label': 'Sections' },
-    sections.map((s) =>
-      h('a', { class: 'section-btn', href: s.route, 'data-section': s.id },
-        h('span', { class: 'section-icon', 'aria-hidden': 'true' }, h('img', { src: s.icon, width: '56', height: '56', alt: '', decoding: 'async' })),
-        h('span', { class: 'section-text' },
-          h('span', { class: 'section-title' }, s.title),
-          s.subtitle ? h('span', { class: 'section-sub' }, s.subtitle) : null),
-        h('span', { class: 'chev', 'aria-hidden': 'true' }, icon('chevR', 'ico chev-ico')))));
+  // the home selection wheel (js/wheel.js): one entry per section + Settings
+  const wheelItems = [...sections.map((x) => ({ id: x.id, title: x.title, route: x.route, iconSrc: x.icon })), { id: 'settings', title: 'Settings', route: '#/settings', iconName: 'gear' }];
+  const list = createWheel(wheelItems);
   const foot = h('footer', { class: 'home-foot' },
     h('p', { class: 'priv' }, icon('lock'), 'Your data stays on this device. No tracking.'));
   if (!isStandalone()) {
@@ -49,7 +45,6 @@ function renderHome() {
   app.replaceChildren(
     h('header', { class: 'home-head' },
       h('h1', { class: 'lockup-h1', 'aria-label': 'ai-tor' }, lockup('lockup lockup-hero')),
-      h('span', { class: 'gear-slot' }, h('a', { class: 'gear', href: '#/settings', id: 'settings-link', 'aria-label': 'Settings' }, gearIcon())),
       h('p', { class: 'greeting', id: 'greeting' }, greetingText(name)),
       h('p', { class: 'tagline' }, name ? 'Your finances, travels and to-do list in one place.' : 'Your finances, travels and to-do list in one place. Add your name in Settings.')),
     list, foot);
@@ -79,7 +74,7 @@ async function route(opts = {}) {
   const kind = opts.animate && shownHash != null ? classify(shownHash, hash) : null;
   const first = shownHash == null;
   const prevSec = shownSec;
-  const animateIn = !!opts.animate || first;
+  const animateIn = (!!opts.animate || first) && !(first && splashOn);
 
   // what to draw (module is loaded BEFORE the transition starts, so the old page never freezes on a slow import)
   let build;
@@ -133,7 +128,8 @@ async function route(opts = {}) {
 }
 
 window.addEventListener('hashchange', () => route({ animate: true }));
-route({ animate: true });
+const firstRoute = route({ animate: true });
+if (splashOn) armSplash(firstRoute, () => { beginEnter(app, 'fwd'); markEnter(app, 'fwd'); });
 storage.requestPersistence();
 
 // Optional To-Do task sync: does nothing (and loads nothing) unless the user configured it in To-Do. At most once every few hours.
@@ -176,7 +172,7 @@ if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     const had = !!navigator.serviceWorker.controller;
     let reloaded = false;
-    navigator.serviceWorker.addEventListener('controllerchange', () => { if (had && !reloaded) { reloaded = true; location.reload(); } });
+    navigator.serviceWorker.addEventListener('controllerchange', () => { if (had && !reloaded) { reloaded = true; skipNextSplash(); location.reload(); } });
     navigator.serviceWorker.register('./sw.js', { updateViaCache: 'none' }).then((reg) => {
       if (!reg || typeof reg.update !== 'function') return;   // some embedded/blocked contexts resolve with nothing
       document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') reg.update().catch(() => {}); });

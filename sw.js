@@ -2,14 +2,14 @@
 // The bundle contains NO user data: each user's finances live only in their own browser storage (localStorage).
 // The encrypted feeds (feed/tasks.enc.json, feed/finances.enc.json, feed/destinations.enc.json; anything under feed/) is NEVER precached or served cache-first: it is fetched network-first and the last copy
 // is kept in a separate cache ('aitor-feed') only as an offline fallback.
-// v15: flat style (css/flat.css replaces css/glass.css + js/glass.js), A logo + lockup.
+// v15: flat style (css/flat.css replaces css/glass.css + js/glass.js), A logo + lockup. v16: To-Do split into Personal / Work lists (no new files).
 // Bump VERSION whenever any file changes so phones pick up the update.
-const VERSION = 'aitor-v15';
+const VERSION = 'aitor-v16';
 const FEED_CACHE = 'aitor-feed';
 const PRECACHE = [
   './', 'index.html', 'manifest.webmanifest',
   'css/app.css', 'css/motion.css', 'css/flat.css', 'assets/mars-photo.webp', 'sections/finances/finances.css', 'sections/travels/travels.css', 'sections/todo/todo.css',
-  'js/app.js', 'js/sections.js', 'js/util.js', 'js/storage.js', 'js/ui.js', 'js/dataio.js', 'js/settings.js', 'js/feedcrypto.js', 'js/bg.js', 'js/nav.js', 'js/brand.js', 'js/icons.js',
+  'js/app.js', 'js/sections.js', 'js/util.js', 'js/storage.js', 'js/ui.js', 'js/dataio.js', 'js/settings.js', 'js/feedcrypto.js', 'js/bg.js', 'js/nav.js', 'js/brand.js', 'js/splash.js', 'js/wheel.js', 'js/icons.js',
   'sections/finances/index.js', 'sections/finances/model.js', 'sections/finances/dashboard.js', 'sections/finances/edit.js', 'sections/finances/chart.js', 'sections/finances/feed.js', 'sections/finances/refreshbar.js',
   'sections/travels/index.js', 'sections/travels/model.js', 'sections/travels/countries.js', 'sections/travels/dest-model.js', 'sections/travels/dest-feed.js', 'sections/travels/dest-ui.js',
   'sections/todo/index.js', 'sections/todo/model.js', 'sections/todo/sync.js',

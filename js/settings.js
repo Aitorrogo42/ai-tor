@@ -6,7 +6,7 @@ import * as storage from './storage.js';
 import { buildExport, validateImport, applyImport, MAX_IMPORT_BYTES } from './dataio.js';
 import { sections } from './sections.js';
 
-export const APP_VERSION = '2.4.0 (v15)';
+export const APP_VERSION = '2.5.0 (v16)';
 
 export async function renderSettings(root, ctx) {
   document.title = 'Settings · AI-TOR';
@@ -75,7 +75,7 @@ export async function renderSettings(root, ctx) {
 
   // ---- erase
   const eraseBtn = h('button', { type: 'button', class: 'btn danger', id: 'erase-btn', onclick: async () => {
-    const ok = await confirmDialog({ title: 'Erase all data?', message: 'This permanently deletes your profile and everything you entered on this device, including saved To-Do sync settings. Export a backup first if you might want it back.', okLabel: 'Erase everything', danger: true });
+    const ok = await confirmDialog({ title: 'Erase all data?', message: 'This permanently deletes your profile and everything you entered on this device, including your Personal and Work to-do lists and the saved To-Do sync settings. Export a backup first if you might want it back.', okLabel: 'Erase everything', danger: true });
     if (!ok) return;
     storage.eraseAll(); setCurrency('USD');
     toast('All data erased');

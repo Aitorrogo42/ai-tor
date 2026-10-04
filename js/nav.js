@@ -29,7 +29,7 @@ function setName(el, name) { if (el) { el.style.viewTransitionName = name; named
 function clearNames() { for (const el of named) el.style.viewTransitionName = ''; named.clear(); }
 
 // ---- shared-element pairs ----
-const homeCard = (app, id) => id === 'settings' ? app.querySelector('a.gear') : app.querySelector(`a.section-btn[data-section="${id}"]`);
+const homeCard = (app, id) => app.querySelector(`a.section-btn[data-section="${id}"]`);   // the wheel's centre link of that section (Settings included)
 function nameHomeCard(app, id) {
   const c = homeCard(app, id); if (!c) return false;
   setName(c, 'sec-card');

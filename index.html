@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" data-sec="home">
+<html lang="en" data-sec="home" class="splash">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -20,7 +20,7 @@
 <meta name="apple-mobile-web-app-title" content="AI-TOR">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="preload" href="fonts/league-spartan-latin.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="preload" href="assets/mars-photo.webp" as="image" type="image/webp" fetchpriority="low">
+<link rel="preload" href="assets/mars-photo.webp" as="image" type="image/webp" fetchpriority="high">
 <link rel="stylesheet" href="css/app.css">
 <link rel="stylesheet" href="css/motion.css">
 <link rel="stylesheet" href="sections/finances/finances.css">
@@ -30,7 +30,8 @@
 </head>
 <body>
 <div id="bg" aria-hidden="true"><div class="bg-par"><div class="blob b3"><i></i></div><div class="blob b1"><i></i></div><div class="blob b2"><i></i></div></div><canvas id="bg-dust"></canvas>
-<div class="mars"><div class="mars-par"><div class="mars-wrap"><img class="mars-photo" src="assets/mars-photo.webp" alt="" width="2058" height="1155" decoding="async" fetchpriority="low"><i class="mars-glow"></i><i class="mars-dim"></i></div></div></div></div>
+<div class="mars"><div class="mars-par"><div class="mars-wrap"><img class="mars-photo" src="assets/mars-photo.webp" alt="" width="2058" height="1155" decoding="async" fetchpriority="high"><i class="mars-glow"></i><i class="mars-dim"></i></div></div></div></div>
+<div id="splash"><button type="button" id="splash-btn" aria-label="Open AI-TOR"><span class="splash-pulse"><svg class="brand-mark splash-mark" viewBox="0 0 640 544" aria-hidden="true" focusable="false"><path fill="currentColor" d="M 314 0 L 0 544 L 314 544 L 314 448 L 166 448 L 314 192 Z M 326 0 L 640 544 L 326 544 L 326 448 L 474 448 L 326 192 Z"/></svg></span></button></div>
 <main id="app" aria-live="polite"><div class="loading" role="status"><div class="lockup"><svg class="brand-mark" viewBox="0 0 640 544" aria-hidden="true" focusable="false"><path fill="currentColor" d="M 314 0 L 0 544 L 314 544 L 314 448 L 166 448 L 314 192 Z M 326 0 L 640 544 L 326 544 L 326 448 L 474 448 L 326 192 Z"/></svg><span class="wordmark">ai-tor</span></div><span class="sr-only">Loading…</span></div></main>
 <noscript><p style="padding:24px;color:#fff;position:relative">AI-TOR needs JavaScript enabled.</p></noscript>
 <script type="module" src="js/app.js"></script>
