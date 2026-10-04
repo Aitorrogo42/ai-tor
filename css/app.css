@@ -62,23 +62,11 @@ h1,h2,h3,p{margin:0}
 .logo{width:30px;height:30px;border-radius:9px;display:grid;place-items:center;font-weight:800;font-size:12px;letter-spacing:-.02em;color:#fff;
   background:linear-gradient(150deg,var(--ember),var(--mars) 55%,var(--rust));box-shadow:0 0 18px var(--accent-glow),inset 0 1px 0 rgba(255,255,255,.35)}
 .wordmark{font-family:var(--mono);font-size:13px;font-weight:600;letter-spacing:.28em;color:var(--text-hi)}
-.gear{width:48px;height:48px;display:grid;place-items:center;color:var(--text);border-radius:var(--r-md);border:1px solid var(--hair);background:var(--glass-2);
-  -webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);box-shadow:inset 0 1px 0 var(--hl);transition:transform var(--t-fast),border-color var(--t-fast),box-shadow var(--t-mid)}
-.gear:active{transform:scale(.94);border-color:var(--accent-line);box-shadow:inset 0 1px 0 var(--hl),0 0 22px var(--accent-glow)}
 .greeting{font-size:30px;line-height:1.1;font-weight:650;margin-top:26px;letter-spacing:-.035em;color:var(--text-hi);
   background:linear-gradient(180deg,#fff 30%,#a9a9ab);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
 .tagline{color:var(--muted);margin-top:8px;font-size:15px}
 .section-list{display:flex;flex-direction:column;gap:12px;margin-top:4px}
 
-.section-btn{position:relative;overflow:hidden;display:flex;align-items:center;gap:16px;padding:20px 18px;min-height:96px;border-radius:var(--r-lg);border:1px solid var(--hair);
-  background:var(--panel-bg);box-shadow:var(--panel-shadow);-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px);
-  transition:transform .18s var(--ease),border-color .2s,box-shadow .3s;--mx:50%;--my:50%;isolation:isolate}
-.section-btn::before{content:"";position:absolute;inset:0;z-index:-1;opacity:0;transition:opacity .25s;border-radius:inherit;
-  background:radial-gradient(240px circle at var(--mx) var(--my),var(--accent-glow),transparent 70%)}
-.section-btn::after{content:"";position:absolute;left:18px;right:18px;top:0;height:1px;background:linear-gradient(90deg,transparent,var(--accent-line),transparent);opacity:0;transition:opacity .25s}
-.section-btn:active{transform:scale(.975);border-color:var(--accent-line);box-shadow:var(--panel-shadow),0 0 32px var(--accent-soft)}
-.section-btn:active::before,.section-btn:active::after{opacity:1}
-@media (hover:hover){.section-btn:hover{border-color:var(--accent-line);transform:translateY(-1px)}.section-btn:hover::before,.section-btn:hover::after{opacity:1}}
 .section-icon{width:56px;height:56px;display:block;background:transparent;border:0;flex:none;overflow:visible}
 .section-icon img{display:block;width:56px;height:56px;object-fit:contain;transition:filter .3s,transform .3s var(--ease)}
 .section-btn:active .section-icon img{filter:drop-shadow(0 0 10px var(--accent-glow));transform:scale(1.04)}
@@ -87,8 +75,6 @@ h1.with-ico{display:flex;align-items:center;gap:12px}
 .section-text{display:flex;flex-direction:column;flex:1;min-width:0}
 .section-title{font-size:22px;font-weight:650;letter-spacing:-.025em;color:var(--text-hi)}
 .section-sub{color:var(--muted);font-size:13px;margin-top:2px}
-.chev{flex:none;width:30px;height:30px;border-radius:50%;display:grid;place-items:center;font-size:20px;line-height:1;color:var(--muted);border:1px solid var(--hair);background:rgba(255,255,255,.03);transition:transform .25s var(--ease),color .2s,border-color .2s}
-.section-btn:active .chev{transform:translateX(3px);color:var(--accent-2);border-color:var(--accent-line)}
 .home-foot{margin-top:28px;text-align:center;color:var(--muted);font-size:12.5px;display:flex;flex-direction:column;gap:12px;align-items:center}
 .ghost{background:transparent;color:var(--text);border:1px solid var(--hair-2);border-radius:var(--r-md);padding:12px 18px;font-size:15px;min-height:44px}
 
@@ -100,7 +86,6 @@ h1.with-ico{display:flex;align-items:center;gap:12px}
 [hidden]{display:none!important}
 
 /* page header: glass panel with the section line-art icon */
-.fin-head{position:relative;padding:14px 16px;border-radius:var(--r-lg);border:1px solid var(--hair);background:var(--panel-bg);box-shadow:var(--panel-shadow);overflow:hidden}
 .fin-head::after{content:"";position:absolute;right:-40px;top:-60px;width:180px;height:140px;background:radial-gradient(closest-side,var(--accent-soft),transparent);pointer-events:none}
 .ph-title{font-weight:650;letter-spacing:-.03em;color:var(--text-hi)}
 

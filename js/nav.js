@@ -105,6 +105,8 @@ export async function transition(opts, commit) {
       await commit(info); return;
     }
     running = vt;
+    vt.ready.catch(() => {});   // a skipped transition (rapid taps) rejects `ready`: expected, not an error
+    vt.updateCallbackDone.catch(() => {});
     const done = () => { if (seq === me) { clearNames(); root.className = root.className.replace(/\bvt-\S+/g, '').trim(); } if (running === vt) running = null; };
     vt.finished.then(done, done);
     try { await vt.updateCallbackDone; } catch { /* commit threw: route() shows its own error card */ }

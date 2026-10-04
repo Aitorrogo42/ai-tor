@@ -3,10 +3,12 @@ import { h, setCurrency } from './util.js';
 import * as storage from './storage.js';
 import { renderSettings } from './settings.js';
 import { initBackground, setBackdropSection } from './bg.js';
+import { initGlass } from './glass.js';
 import { classify, transition, beginEnter, markEnter } from './nav.js';
 
 const app = document.getElementById('app');
 initBackground();
+initGlass();
 let deferredInstall = null;
 window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); deferredInstall = e; if (!location.hash || location.hash === '#/') route(); });
 

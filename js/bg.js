@@ -1,10 +1,10 @@
-// Dynamic Mars background: a small starfield / ember-dust canvas (the big glow blobs are pure CSS, see css/motion.css).
+// Dynamic Mars background: a small starfield / ember-dust canvas (the glow blobs and the rising Mars planet are pure CSS + one WebP, see css/motion.css).
 // Lightweight by design: ~70 particles, 30fps, DPR capped at 2, paused while the page is hidden, never touches input.
 // Reacts gently to scroll (parallax) and to device tilt where the browser allows it without a permission prompt.
 // prefers-reduced-motion: draws one static frame and nothing moves.
 const reduce = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-let root, par, cv, ctx2d, W = 0, H = 0, dpr = 1;
+let root, par, marsPar, cv, ctx2d, W = 0, H = 0, dpr = 1;
 let stars = [];
 let raf = 0, last = 0, running = false;
 let scrollY = 0, tiltX = 0, tiltY = 0, tX = 0, tY = 0, curY = 0, curX = 0, needPar = true;
@@ -45,6 +45,8 @@ function applyPar() {
   // ease toward the target so the motion is soft (no jitter from scroll events)
   curY += (tY - curY) * 0.12; curX += (tX - curX) * 0.12;
   if (par) par.style.transform = `translate3d(${(curX * 6).toFixed(2)}px,${(-curY * 0.04).toFixed(2)}px,0)`;
+  // the planet is the far horizon: it hardly moves (a few px of tilt, a hair of scroll) and always stays fixed to the screen
+  if (marsPar) marsPar.style.transform = `translate3d(${(curX * 3).toFixed(2)}px,${(Math.max(-24, Math.min(0, -curY * 0.012))).toFixed(2)}px,0)`;
   return Math.abs(tY - curY) > 0.1 || Math.abs(tX - curX) > 0.05;
 }
 
@@ -70,7 +72,7 @@ export function setBackdropSection(id) {
 
 export function initBackground() {
   root = document.getElementById('bg'); if (!root) return;
-  par = root.querySelector('.bg-par'); cv = document.getElementById('bg-dust');
+  par = root.querySelector('.bg-par'); marsPar = root.querySelector('.mars-par'); cv = document.getElementById('bg-dust');
   if (!cv || !cv.getContext) return;
   ctx2d = cv.getContext('2d');
   stars = make(72);

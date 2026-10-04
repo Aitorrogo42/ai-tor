@@ -1,0 +1,105 @@
+/* AI-TOR "Liquid Glass" material (v12). Loaded LAST so it wins over section css.
+   Two strengths of the same material:
+     .section-btn                      home cards: the clearest, most crystal surface (Mars + stars refract through)
+     .fin-head .trv-tabs .gear ...     page chrome: same glass with a little more dark tint so text is always AA-readable
+   Layers, top to bottom: rim light (gradient 1px ring) -> top/left specular lines (inset shadows) -> corner sheen + glare band
+   (background gradients) -> backdrop blur / saturate / brightness. Only ~4 elements blur at once (home: 3 cards + gear;
+   sections: header + tab bar + sticky search bar). Content cards stay on the old near-opaque panel so lists stay readable.
+   iOS Safari has no SVG refraction in backdrop-filter, so the real "bend" is an extra, Chromium-only layer (.lg-refract, see js/glass.js). */
+
+:root{
+  --lg-r:26px;--lg-r-sm:18px;
+  --lg-blur:16px;--lg-blur-tint:18px;
+  --lg-spring:cubic-bezier(.34,1.56,.64,1);          /* release overshoot: the glass springs back */
+  --lg-rim:linear-gradient(140deg,rgba(255,255,255,.78),rgba(255,255,255,.14) 26%,rgba(255,255,255,.04) 52%,rgba(255,196,160,.22) 78%,rgba(255,255,255,.42));
+  --lg-sheen:radial-gradient(130% 110% at 0% 0%,rgba(255,255,255,.20),rgba(255,255,255,0) 46%),
+             linear-gradient(112deg,rgba(255,255,255,0) 34%,rgba(255,255,255,.07) 42%,rgba(255,255,255,0) 54%);
+  --text-on-glass:#f6f6f7;--muted-on-glass:#d6d7d9}
+
+/* ===== home cards: crystal clear ===== */
+.section-btn{position:relative;overflow:hidden;isolation:isolate;display:flex;align-items:center;gap:16px;padding:20px 18px;min-height:100px;
+  border-radius:var(--lg-r);border:1px solid rgba(255,255,255,.07);--mx:50%;--my:50%;
+  background:var(--lg-sheen),linear-gradient(90deg,rgba(6,3,3,.30),rgba(6,3,3,.24) 72%,rgba(6,3,3,.04)),linear-gradient(180deg,rgba(255,255,255,.10),rgba(255,255,255,.02) 52%,rgba(8,4,4,.16)),rgba(12,7,6,.16);
+  -webkit-backdrop-filter:blur(var(--lg-blur)) saturate(1.8) brightness(1.14);backdrop-filter:blur(var(--lg-blur)) saturate(1.8) brightness(1.14);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.55),inset 1px 0 0 rgba(255,255,255,.2),inset 0 -1px 0 rgba(255,255,255,.09),inset 0 0 30px rgba(255,255,255,.045),
+    inset 0 -22px 34px -22px rgba(255,138,92,.16),0 16px 36px -10px rgba(0,0,0,.55),0 2px 8px rgba(0,0,0,.28);
+  transition:transform .5s var(--lg-spring),box-shadow .4s,background-color .3s}
+/* rim light: 1px gradient ring, bright top-left, warm bottom-right */
+.section-btn::after{content:"";position:absolute;inset:0;border-radius:inherit;padding:1px;pointer-events:none;background:var(--lg-rim);opacity:.82;transition:opacity .25s;
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask:linear-gradient(#000 0 0) content-box exclude,linear-gradient(#000 0 0)}
+/* finger-following Mars light, only on press / hover */
+.section-btn::before{content:"";position:absolute;inset:0;z-index:-1;opacity:0;transition:opacity .3s;border-radius:inherit;
+  background:radial-gradient(220px circle at var(--mx) var(--my),rgba(255,122,69,.34),rgba(226,81,43,.12) 45%,transparent 72%)}
+.section-btn:active{transform:scale(.965,.945);transition:transform .12s var(--ease),box-shadow .2s;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.8),inset 1px 0 0 rgba(255,255,255,.34),inset 0 -1px 0 rgba(255,255,255,.14),inset 0 0 36px rgba(255,150,100,.16),
+    0 6px 18px -8px rgba(0,0,0,.5),0 0 34px rgba(226,81,43,.2)}
+.section-btn:active::before{opacity:1}.section-btn:active::after{opacity:1}
+@media (hover:hover){.section-btn:hover::before{opacity:.8}.section-btn:hover::after{opacity:1}.section-btn:hover{transform:translateY(-1px)}}
+.section-btn .section-title{text-shadow:0 1px 10px rgba(0,0,0,.55)}
+.section-btn .section-sub{color:var(--muted-on-glass);text-shadow:0 1px 8px rgba(0,0,0,.6)}
+.section-btn:active .section-icon img{filter:drop-shadow(0 0 10px rgba(226,81,43,.5));transform:scale(1.05)}
+.chev{flex:none;width:32px;height:32px;border-radius:50%;display:grid;place-items:center;font-size:20px;line-height:1;color:var(--muted-on-glass);
+  border:1px solid rgba(255,255,255,.18);background:linear-gradient(160deg,rgba(255,255,255,.16),rgba(255,255,255,.03));box-shadow:inset 0 1px 0 rgba(255,255,255,.35);
+  transition:transform .3s var(--ease),color .2s,border-color .2s}
+.section-btn:active .chev{transform:translateX(3px);color:#ffb08a;border-color:var(--accent-line)}
+
+/* ===== page chrome: the same glass, a bit more tint ===== */
+.gear,.fin-head,.trv-tabs,.trv-searchrow{
+  background:var(--lg-sheen),linear-gradient(180deg,rgba(255,255,255,.06),rgba(255,255,255,.01) 55%,rgba(8,4,4,.16)),rgba(10,6,6,.38);
+  -webkit-backdrop-filter:blur(var(--lg-blur-tint)) saturate(1.5) brightness(1.04);backdrop-filter:blur(var(--lg-blur-tint)) saturate(1.5) brightness(1.04);
+  border:1px solid rgba(255,255,255,.07);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.42),inset 1px 0 0 rgba(255,255,255,.14),inset 0 -1px 0 rgba(255,255,255,.07),inset 0 0 24px rgba(255,255,255,.035),0 12px 28px -10px rgba(0,0,0,.5)}
+.gear{width:48px;height:48px;display:grid;place-items:center;color:var(--text-hi);border-radius:16px;transition:transform .45s var(--lg-spring),box-shadow .3s}
+.gear:active{transform:scale(.92,.9);transition:transform .12s var(--ease);box-shadow:inset 0 1px 0 rgba(255,255,255,.7),inset 0 0 20px rgba(255,150,100,.2),0 0 24px rgba(226,81,43,.25)}
+.fin-head{position:relative;padding:14px 16px;border-radius:var(--lg-r);overflow:hidden}
+.fin-head .ph-title{text-shadow:0 1px 10px rgba(0,0,0,.5)}
+.fin-head .asof,.fin-head .sub,.fin-head p{color:var(--muted-on-glass)}
+.trv-tabs{padding:5px;border-radius:22px}
+.trv-tab{border-radius:17px;color:var(--muted-on-glass)}
+.trv-tab.on{color:var(--text-on-glass)}
+/* sliding selection: a clear glass lens with a Mars tint (kept translucent: it is captured as a shared view-transition element) */
+.tab-pill{border-radius:17px;border:1px solid rgba(255,255,255,.2);
+  background:radial-gradient(120% 140% at 0% 0%,rgba(255,255,255,.28),rgba(255,255,255,0) 55%),linear-gradient(180deg,rgba(255,150,100,.30),rgba(226,81,43,.20));
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.65),inset 0 -1px 0 rgba(255,255,255,.12),inset 0 0 18px rgba(255,150,100,.18),0 6px 18px -6px rgba(226,81,43,.5)}
+.tab-pill::after{display:none}
+/* sticky search bar: a glass strip instead of a solid bar */
+.trv-searchrow{top:6px;padding:8px;border-radius:22px;margin:0 -2px}
+.trv-search{background:rgba(5,3,3,.5);border-color:rgba(255,255,255,.16)}
+/* filter chips: tint + rim only (no blur: there can be many of them) */
+.dst-chip{border:1px solid rgba(255,255,255,.14);background:linear-gradient(180deg,rgba(255,255,255,.09),rgba(255,255,255,.02)),rgba(10,6,6,.4);color:var(--muted-on-glass);box-shadow:inset 0 1px 0 rgba(255,255,255,.3);
+  transition:transform .4s var(--lg-spring),background .2s,border-color .2s}
+.dst-chip:active{transform:scale(.94,.9);transition:transform .1s}
+.dst-chip.on{color:var(--text-on-glass);border-color:rgba(255,160,120,.55);background:radial-gradient(120% 140% at 0% 0%,rgba(255,255,255,.22),rgba(255,255,255,0) 55%),linear-gradient(180deg,rgba(255,150,100,.30),rgba(226,81,43,.2)),rgba(10,6,6,.3)}
+.back{color:#ffb08a}
+.back:active{background:rgba(255,255,255,.1)}
+/* buttons get the light version (no blur) */
+.btn{background:linear-gradient(180deg,rgba(255,255,255,.1),rgba(255,255,255,.03)),rgba(10,6,6,.35);border-color:rgba(255,255,255,.16);box-shadow:inset 0 1px 0 rgba(255,255,255,.38);transition:transform .45s var(--lg-spring),box-shadow .3s,border-color .2s}
+.btn:active{transform:scale(.95,.92);transition:transform .1s var(--ease)}
+.btn.primary{background:linear-gradient(180deg,var(--btn-top),var(--btn-bot));border-color:rgba(255,190,160,.5)}
+/* content cards: light version of the same family (near-opaque for readability, rim + specular line, no blur) */
+.card,details.group,details.src-all,.dst-row,.dst-bar-card,.dst-sec,.feedbar,#networth{box-shadow:inset 0 1px 0 rgba(255,255,255,.2),inset 1px 0 0 rgba(255,255,255,.06),0 10px 26px -10px rgba(0,0,0,.5);border-color:rgba(255,255,255,.1)}
+.card.error{border-color:var(--red-line)}
+.toast{background:linear-gradient(180deg,rgba(255,255,255,.1),rgba(255,255,255,.02)),rgba(14,9,8,.8);border:1px solid rgba(255,255,255,.2);
+  -webkit-backdrop-filter:blur(18px) saturate(1.6);backdrop-filter:blur(18px) saturate(1.6);box-shadow:inset 0 1px 0 rgba(255,255,255,.45),0 12px 30px rgba(0,0,0,.5)}
+
+/* footer text sits over the planet: lighter text on a soft dark scrim */
+.home-foot{position:relative;isolation:isolate}
+.home-foot::before{content:"";position:absolute;inset:-22px -14px -34px;z-index:-1;pointer-events:none;border-radius:44px;background:radial-gradient(closest-side,rgba(5,2,2,.78),rgba(5,2,2,.5) 62%,rgba(5,2,2,0))}
+.home-foot p,.home-foot .muted{color:var(--muted-on-glass);text-shadow:0 1px 8px rgba(0,0,0,.7)}
+
+/* shared-element captures (view transitions): keep the morphing card cheap and stable, glass returns when the names are cleared */
+[style*="view-transition-name"].section-btn,[style*="view-transition-name"].fin-head,[style*="view-transition-name"].gear{
+  -webkit-backdrop-filter:none;backdrop-filter:none;background:var(--lg-sheen),linear-gradient(180deg,rgba(255,255,255,.07),rgba(255,255,255,.015)),rgba(14,9,8,.62)}
+
+/* browsers without backdrop-filter: a bit more tint instead of blur */
+@supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){
+  .section-btn,.gear,.fin-head,.trv-tabs,.trv-searchrow{background-color:rgba(14,9,8,.72)}}
+
+/* Chromium-only real refraction: js/glass.js adds html.lg-refract and injects the SVG displacement filter */
+html.lg-refract .section-btn{-webkit-backdrop-filter:url(#lg-bend) blur(10px) saturate(1.7) brightness(1.08);backdrop-filter:url(#lg-bend) blur(10px) saturate(1.7) brightness(1.08)}
+#lg-defs{position:absolute;width:0;height:0;overflow:hidden;pointer-events:none}
+
+@media (prefers-reduced-motion:reduce){
+  .section-btn,.gear,.btn,.dst-chip,.chev{transition:none}
+  .section-btn:active,.gear:active,.btn:active,.dst-chip:active{transform:none}
+}
