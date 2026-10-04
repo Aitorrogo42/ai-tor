@@ -40,11 +40,11 @@ function projectionCard(doc, c, cands) {
       h('div', { class: 'chart-wrap' }, projectionChart({
         start: today, end: goal.date, goalValue: goal.target, nowValue: c.netWorth,
         series: [
-          { label: 'Net worth held flat', color: '#ff7a45', points: [[today, c.netWorth], [goal.date, c.netWorth]] },
+          { label: 'Net worth held flat', color: '#ff5238', points: [[today, c.netWorth], [goal.date, c.netWorth]] },
           { label: 'Straight line to goal', color: '#3ddc84', dash: '6 5', points: [[today, c.netWorth], [goal.date, goal.target]] },
         ] })),
       h('div', { class: 'legend' },
-        h('span', null, h('span', { class: 'dot', style: 'background:#ff7a45' }), 'Net worth today, held flat'),
+        h('span', null, h('span', { class: 'dot', style: 'background:#ff5238' }), 'Net worth today, held flat'),
         h('span', null, h('span', { class: 'dot', style: 'background:#3ddc84' }), 'Straight line to goal')),
       h('div', { style: 'margin-top:10px' },
         h('div', { class: 'row' }, h('div', { class: 'l' }, 'Net worth today'), h('div', { class: 'r' }, money(c.netWorth))),

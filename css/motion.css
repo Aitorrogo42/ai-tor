@@ -7,20 +7,21 @@
      .bg-par   : JS parallax (scroll / tilt) as one transform
        .blob   : per-section position (CSS transition), holds an <i> that drifts forever (CSS keyframes, compositor only)
      canvas    : faint starfield + ember dust (30fps, paused when hidden) */
-@property --g1{syntax:"<color>";inherits:true;initial-value:#e2512b}
-@property --g2{syntax:"<color>";inherits:true;initial-value:#ff7a45}
-@property --g3{syntax:"<color>";inherits:true;initial-value:#8f2a14}
-html{--g1:#e2512b;--g2:#ff7a45;--g3:#8f2a14;
+@property --g1{syntax:"<color>";inherits:true;initial-value:#d6333a}
+@property --g2{syntax:"<color>";inherits:true;initial-value:#ff4a3a}
+@property --g3{syntax:"<color>";inherits:true;initial-value:#5a0f14}
+html{--g1:#d6333a;--g2:#ff4a3a;--g3:#5a0f14;
   --b1x:-18;--b1y:-14;--b2x:30;--b2y:40;--b3x:-8;--b3y:92;
   transition:--g1 1.1s ease,--g2 1.1s ease,--g3 1.1s ease}
 /* each section has its own glow centre and a slight hue shift (units: % of viewport) */
-html[data-sec=finances]{--g1:#e8662b;--g2:#ffa05a;--g3:#8a3512;--b1x:26;--b1y:-10;--b2x:-34;--b2y:30;--b3x:20;--b3y:86}
-html[data-sec=travels]{--g1:#d8402f;--g2:#ff6a52;--g3:#7e1f1a;--b1x:-30;--b1y:36;--b2x:34;--b2y:8;--b3x:-10;--b3y:96}
-html[data-sec=todo]{--g1:#ee5a2a;--g2:#ff8f5e;--g3:#923216;--b1x:30;--b1y:66;--b2x:-28;--b2y:-6;--b3x:0;--b3y:60}
-html[data-sec=settings]{--g1:#a8472f;--g2:#d87a58;--g3:#5b2a1d;--b1x:0;--b1y:90;--b2x:-34;--b2y:20;--b3x:34;--b3y:40}
+html[data-sec=finances]{--g1:#dc3532;--g2:#ff5a44;--g3:#660f14;--b1x:26;--b1y:-10;--b2x:-34;--b2y:30;--b3x:20;--b3y:86}
+html[data-sec=travels]{--g1:#c8283a;--g2:#ff5a6e;--g3:#560d1a;--b1x:-30;--b1y:36;--b2x:34;--b2y:8;--b3x:-10;--b3y:96}
+html[data-sec=todo]{--g1:#e63c30;--g2:#ff6650;--g3:#6a1210;--b1x:30;--b1y:66;--b2x:-28;--b2y:-6;--b3x:0;--b3y:60}
+html[data-sec=settings]{--g1:#8e2a2e;--g2:#c25860;--g3:#3a1013;--b1x:0;--b1y:90;--b2x:-34;--b2y:20;--b3x:34;--b3y:40}
 
-#bg{position:fixed;inset:0;z-index:-1;overflow:hidden;pointer-events:none;background:
-  radial-gradient(120% 70% at 50% 0%,rgba(255,255,255,.025),transparent 60%),var(--bg);contain:strict}
+#bg{position:fixed;inset:0;z-index:-1;overflow:hidden;pointer-events:none;contain:strict;
+  /* sky: near-black at the zenith, deepening to the photo's maroon haze toward the horizon */
+  background:radial-gradient(120% 60% at 50% 0%,rgba(255,255,255,.02),transparent 60%),linear-gradient(180deg,var(--sky-top) 0,#12050a 38%,var(--sky-mid) 72%,#380c10 100%)}
 .bg-par{position:absolute;inset:-12%;will-change:transform}
 .blob{position:absolute;left:50%;top:0;width:0;height:0;
   transition:transform 1.25s var(--ease);will-change:transform}
@@ -35,52 +36,42 @@ html[data-sec=settings]{--g1:#a8472f;--g2:#d87a58;--g3:#5b2a1d;--b1x:0;--b1y:90;
 @keyframes drift2{from{transform:translate3d(-50%,-50%,0) scale(1.05)}to{transform:translate3d(calc(-50% - 11vw),calc(-50% + 5vh),0) scale(.9)}}
 @keyframes drift3{from{transform:translate3d(-50%,-50%,0) scale(1)}to{transform:translate3d(calc(-50% + 6vw),calc(-50% - 7vh),0) scale(1.1)}}
 #bg-dust{position:absolute;inset:0;width:100%;height:100%;display:block}
-#bg::after{content:"";position:absolute;inset:0;background:radial-gradient(150% 100% at 50% 52%,transparent 58%,rgba(7,8,10,.55));pointer-events:none}
+#bg::after{content:"";position:absolute;inset:0;background:radial-gradient(150% 100% at 50% 52%,transparent 58%,rgba(8,2,4,.55));pointer-events:none}
 html.bg-paused .blob>i{animation-play-state:paused}
 /* browsers without color-mix: fall back to plain translucent mars */
 @supports not (color: color-mix(in srgb,red 50%,transparent)){
-  .blob.b1>i{background:radial-gradient(closest-side,rgba(226,81,43,.34),transparent)}
-  .blob.b2>i{background:radial-gradient(closest-side,rgba(255,122,69,.2),transparent)}
-  .blob.b3>i{background:radial-gradient(closest-side,rgba(143,42,20,.46),transparent)}}
+  .blob.b1>i{background:radial-gradient(closest-side,rgba(214,51,58,.34),transparent)}
+  .blob.b2>i{background:radial-gradient(closest-side,rgba(255,74,58,.2),transparent)}
+  .blob.b3>i{background:radial-gradient(closest-side,rgba(90,15,20,.46),transparent)}}
 
 
-/* ===== MARS-RISE: a huge planet whose top arc peeks over the bottom edge =====
-   .mars (anchored to the bottom, dips lower inside sections) > .mars-par (JS parallax) > halo/glow (atmosphere) + disc (clipped circle)
-   Disc = procedural texture (assets/mars-cap.webp, made by tools/make_mars_texture.py) + CSS lighting: terminator, limb darkening, thin bright rim.
-   Size: diameter --pd = 236vw (portrait) so only ~24vh of the top cap shows; --rise is how much of the arc is above the bottom edge. */
-.mars{--pd:min(236vw,300vh);--pr:calc(var(--pd)/2);--rise:calc(24vh + var(--safe-b));--dip:0px;
-  position:absolute;left:50%;top:calc(100% - var(--rise));width:0;height:0;pointer-events:none;
+/* ===== MARS-RISE (v13): the reference photo, text removed, anchored to the bottom edge =====
+   .mars (positioned so the planet's limb sits --rise above the bottom edge; dips lower inside sections)
+     > .mars-par   (JS parallax: a few px)
+       > .mars-wrap (mask: the top of the photo fades into the sky gradient of #bg, so the join is invisible)
+           img.mars-photo  assets/mars-photo.webp  (2058x1155, made by tools/make_mars_photo.py)
+           i.mars-glow     blurred red radial gradient on the limb, slowly breathing (opacity only)
+           i.mars-dim      darkens the planet inside sections so text stays readable
+   Geometry: the photo is 16:9-ish (1.7818:1); its limb peaks at 33.6 % of its height, centred. --hi is the displayed height:
+   46vh on a phone (the arc then spans the whole width, cropped at the sides), 56.1vw on wide screens (the whole photo fits the width). */
+.mars{--hi:max(46vh,56.1vw);--wi:calc(var(--hi)*1.7818);--rise:calc(25vh + var(--safe-b));--dip:0px;
+  position:absolute;left:50%;top:calc(100% - var(--rise) - var(--hi)*.336);width:var(--wi);height:var(--hi);margin-left:calc(var(--wi)*-.5);pointer-events:none;
   transform:translate3d(0,var(--dip),0);transition:transform 1.5s var(--ease)}
 html:not([data-sec=home]) .mars{--dip:9vh}
-.mars-par{position:absolute;left:0;top:0;width:0;height:0;will-change:transform}
-.mars-disc{position:absolute;left:-50vw;top:0;width:100vw;height:calc(var(--pd)*.4);overflow:hidden;clip-path:circle(var(--pr) at 50% var(--pr));-webkit-clip-path:circle(var(--pr) at 50% var(--pr))}
-.mars-tex{position:absolute;left:50%;top:0;width:calc(var(--pd)*1.06);height:auto;margin-left:calc(var(--pd)*-.53);max-width:none;display:block;
-  transform:translate3d(-2%,0,0);animation:mars-spin 150s ease-in-out infinite alternate;will-change:transform;filter:saturate(1.08) contrast(1.06)}
-@keyframes mars-spin{from{transform:translate3d(-2.2%,0,0)}to{transform:translate3d(2.2%,0,0)}}
-.mars-shade,.mars-rim,.mars-dim{position:absolute;inset:0;display:block}
-/* light comes from the upper left: bright cap at the top, falling into the terminator toward the sides and the bottom of the screen */
-.mars-shade{background:
-  linear-gradient(180deg,rgba(7,3,2,0) 0,rgba(7,3,2,0) calc(var(--rise)*.12),rgba(7,3,2,.40) calc(var(--rise)*.62),rgba(5,2,2,.70) calc(var(--rise)*1.02),rgba(5,2,2,.86) 100%),
-  radial-gradient(circle calc(var(--pd)*.66) at 42% 0,rgba(255,196,140,.22) 0,rgba(0,0,0,0) 22%,rgba(10,3,1,.30) 52%,rgba(7,2,1,.70) 80%,rgba(4,1,0,.92) 100%),
-  radial-gradient(circle var(--pr) at 50% var(--pr),rgba(0,0,0,0) 0,rgba(0,0,0,0) 80%,rgba(0,0,0,.32) 94%,rgba(0,0,0,.55) 100%)}
-/* thin atmospheric limb: pale butterscotch line, as in orbital photos of the Martian horizon */
-.mars-rim{background:radial-gradient(circle var(--pr) at 50% var(--pr),rgba(0,0,0,0) 0,rgba(0,0,0,0) 97.2%,rgba(255,176,110,.45) 98.9%,rgba(255,236,208,.95) 99.75%,rgba(255,236,208,0) 100%);
-  -webkit-mask:linear-gradient(90deg,transparent,#000 12%,#000 88%,transparent);mask:linear-gradient(90deg,transparent,#000 12%,#000 88%,transparent)}
-.mars-dim{background:#07030a;opacity:0;transition:opacity 1.4s var(--ease)}
-html:not([data-sec=home]) .mars-dim{opacity:.38}
-/* atmosphere + glow bleeding into the sky: sized to the viewport (not the planet) to keep the layers small */
-.mars-halo,.mars-glow{position:absolute;left:-50vw;width:100vw;pointer-events:none;will-change:opacity}
-.mars-halo{top:calc(var(--pd)*-.17);height:calc(var(--pd)*.17 + var(--rise) + 2px);
-  background:radial-gradient(circle calc(var(--pd)*.67) at 50% calc(var(--pd)*.67),rgba(0,0,0,0) 0,rgba(0,0,0,0) 74.2%,rgba(140,185,240,.26) 74.9%,rgba(255,172,104,.46) 75.7%,rgba(236,92,48,.30) 79%,rgba(226,81,43,.13) 86%,rgba(143,42,20,.05) 94%,rgba(0,0,0,0) 100%);
+.mars-par{position:absolute;inset:0;will-change:transform}
+.mars-wrap{position:absolute;inset:0;overflow:hidden;
+  -webkit-mask-image:linear-gradient(180deg,transparent 0,rgba(0,0,0,.5) 12%,#000 30%);mask-image:linear-gradient(180deg,transparent 0,rgba(0,0,0,.5) 12%,#000 30%)}
+.mars-photo{position:absolute;inset:0;width:100%;height:100%;display:block;object-fit:fill;user-select:none;-webkit-user-drag:none}
+.mars-glow{position:absolute;inset:0;display:block;will-change:opacity;
+  background:radial-gradient(ellipse 52% 22% at 50% 37%,rgba(255,74,46,.30),rgba(217,58,45,.12) 48%,rgba(217,58,45,0) 74%),
+             radial-gradient(ellipse 90% 40% at 50% 40%,rgba(230,50,40,.14),rgba(230,50,40,0) 70%);
   animation:mars-breathe 9s ease-in-out infinite alternate}
-.mars-glow{top:calc(var(--pd)*-.5);height:calc(var(--pd)*.5 + var(--rise));
-  background:radial-gradient(ellipse 85% 100% at 50% 100%,rgba(236,100,50,.20),rgba(190,60,30,.09) 45%,rgba(0,0,0,0) 75%);
-  animation:mars-breathe 13s ease-in-out -4s infinite alternate}
-@keyframes mars-breathe{from{opacity:.72}to{opacity:1}}
-html:not([data-sec=home]) .mars-halo,html:not([data-sec=home]) .mars-glow{opacity:.6}
-.mars-halo,.mars-glow{transition:opacity 1.4s}
-html.bg-paused .mars-tex,html.bg-paused .mars-halo,html.bg-paused .mars-glow{animation-play-state:paused}
-@media (prefers-reduced-motion:reduce){.mars-tex,.mars-halo,.mars-glow{animation:none!important}.mars,.mars-dim{transition:none}}
+@keyframes mars-breathe{from{opacity:.55}to{opacity:1}}
+.mars-dim{position:absolute;inset:0;display:block;background:linear-gradient(180deg,rgba(10,2,4,.0),rgba(10,2,4,.62) 38%,rgba(10,2,4,.78));opacity:0;transition:opacity 1.4s var(--ease)}
+html:not([data-sec=home]) .mars-dim{opacity:.66}
+html:not([data-sec=home]) .mars-glow{opacity:.5;animation-play-state:paused}
+html.bg-paused .mars-glow{animation-play-state:paused}
+@media (prefers-reduced-motion:reduce){.mars-glow{animation:none!important;opacity:.8}.mars,.mars-dim{transition:none}}
 
 /* ===== staggered entrance (class .enter is put on #app by the router for one navigation) ===== */
 .enter .stg{animation:fade-up .55s var(--ease) both;animation-delay:calc(var(--i,0)*45ms + 60ms)}
@@ -98,7 +89,7 @@ html.bg-paused .mars-tex,html.bg-paused .mars-halo,html.bg-paused .mars-glow{ani
 /* ===== tab pill (sliding indicator). Translucent so labels stay readable while it is lifted into a transition group ===== */
 .trv-tabs{position:relative}
 .tab-pill{position:absolute;inset:0;border-radius:10px;z-index:0;pointer-events:none;
-  background:linear-gradient(180deg,rgba(255,122,69,.22),rgba(226,81,43,.12));border:1px solid var(--accent-line);box-shadow:inset 0 1px 0 rgba(255,255,255,.12),0 0 20px var(--accent-soft)}
+  background:linear-gradient(180deg,rgba(255,82,56,.22),rgba(217,58,45,.12));border:1px solid var(--accent-line);box-shadow:inset 0 1px 0 rgba(255,255,255,.12),0 0 20px var(--accent-soft)}
 .tab-pill::after{content:"";position:absolute;left:22%;right:22%;bottom:-1px;height:2px;border-radius:2px;background:linear-gradient(90deg,transparent,var(--ember),transparent);box-shadow:0 0 10px var(--accent-glow)}
 .trv-tab>.tab-lbl{position:relative;z-index:1;display:inline-flex;align-items:center;gap:8px}
 

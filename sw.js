@@ -3,11 +3,11 @@
 // The encrypted feeds (feed/tasks.enc.json, feed/finances.enc.json, feed/destinations.enc.json; anything under feed/) is NEVER precached or served cache-first: it is fetched network-first and the last copy
 // is kept in a separate cache ('aitor-feed') only as an offline fallback.
 // Bump VERSION whenever any file changes so phones pick up the update.
-const VERSION = 'aitor-v12';
+const VERSION = 'aitor-v13';
 const FEED_CACHE = 'aitor-feed';
 const PRECACHE = [
   './', 'index.html', 'manifest.webmanifest',
-  'css/app.css', 'css/motion.css', 'css/glass.css', 'assets/mars-cap.webp', 'sections/finances/finances.css', 'sections/travels/travels.css', 'sections/todo/todo.css',
+  'css/app.css', 'css/motion.css', 'css/glass.css', 'assets/mars-photo.webp', 'sections/finances/finances.css', 'sections/travels/travels.css', 'sections/todo/todo.css',
   'js/app.js', 'js/sections.js', 'js/util.js', 'js/storage.js', 'js/ui.js', 'js/dataio.js', 'js/settings.js', 'js/feedcrypto.js', 'js/bg.js', 'js/nav.js', 'js/glass.js',
   'sections/finances/index.js', 'sections/finances/model.js', 'sections/finances/dashboard.js', 'sections/finances/edit.js', 'sections/finances/chart.js', 'sections/finances/feed.js', 'sections/finances/refreshbar.js',
   'sections/travels/index.js', 'sections/travels/model.js', 'sections/travels/countries.js', 'sections/travels/dest-model.js', 'sections/travels/dest-feed.js', 'sections/travels/dest-ui.js',
@@ -15,7 +15,7 @@ const PRECACHE = [
   'icons/sections/finances-256.png', 'icons/sections/travels-256.png', 'icons/sections/todo-256.png',
   'icons/icon-192.png', 'icons/icon-512.png', 'icons/maskable-192.png', 'icons/maskable-512.png',
   'icons/apple-touch-icon.png', 'icons/favicon-32.png',
-  'fonts/inter-latin.woff2', 'fonts/inter-latin-ext.woff2', 'fonts/jetbrains-mono-latin.woff2', 'fonts/jetbrains-mono-latin-ext.woff2',
+  'fonts/league-spartan-latin.woff2', 'fonts/league-spartan-latin-ext.woff2',
 ];
 
 self.addEventListener('install', (e) => {

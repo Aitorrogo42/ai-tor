@@ -4,8 +4,8 @@ import { isValidISODate, todayISO, addMonthsISO, uid } from '../../js/util.js';
 export const SECTION_ID = 'finances';
 export const VERSION = 1; // schema version of the finances document
 export const DEFAULT_GROUPS = ['Stock/Equity', 'Retirement', 'Crypto', 'Cash/Bank', 'Property', 'Other'];
-const FIXED_COLORS = { 'Stock/Equity': '#ff7a45', Retirement: '#7aa7ff', Crypto: '#f2c14e', 'Cash/Bank': '#3ddc84', Property: '#c58a6e', Other: '#8a8a8c' };
-const PALETTE = ['#f08ab4', '#2dd4bf', '#e8a05a', '#a3d65c', '#5cc3f0', '#b9a7ff', '#e9d36a', '#ff6f87'];
+const FIXED_COLORS = { 'Stock/Equity': '#ff5238', Retirement: '#7aa7ff', Crypto: '#f2c14e', 'Cash/Bank': '#3ddc84', Property: '#d4a8ff', Other: '#8a8a8c' };
+const PALETTE = ['#f08ab4', '#2dd4bf', '#d4a8ff', '#a3d65c', '#5cc3f0', '#b9a7ff', '#e9d36a', '#c9d1d9'];
 export const LIMITS = { name: 80, group: 40, note: 500, notes: 5000, items: 500, amount: 1e15 };
 
 export const emptyDoc = () => ({ version: VERSION, example: false, updatedAt: null, accounts: [], monthlyIncome: null, monthlyExpenses: null, debts: [], goals: [], notes: '', feed: null });

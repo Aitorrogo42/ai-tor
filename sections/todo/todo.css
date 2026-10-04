@@ -4,7 +4,7 @@
 .todo-add-input:focus-visible{outline:2px solid var(--blue);outline-offset:1px}
 .todo-add-row{display:flex;gap:10px;align-items:flex-end}
 .todo-due-wrap{display:flex;flex-direction:column;gap:4px;flex:1;min-width:0}
-.todo-due-wrap .fl{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.todo-due-wrap .fl{font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);font-weight:600}
 .todo-due-wrap .hint{display:none}
 .todo-due-input{min-height:54px}
 .todo-add-row .btn{min-height:54px;flex:none;padding:0 22px}
@@ -57,7 +57,7 @@ input[type=password]:focus-visible{outline:2px solid var(--blue);outline-offset:
 
 .todo-cb{accent-color:var(--green)}
 .todo-add-input{background:var(--field)}
-.todo-due-wrap .fl{font-family:var(--mono);font-size:11px;letter-spacing:.1em;font-weight:500}
+.todo-due-wrap .fl{font-family:var(--mono);font-size:11px;letter-spacing:.16em;font-weight:500}
 .todo-chip{font-family:var(--mono);font-size:11px}
 .todo-chip.today{color:var(--amber)}
 .todo-chip.cmt{color:var(--cool)}

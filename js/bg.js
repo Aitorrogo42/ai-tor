@@ -1,4 +1,4 @@
-// Dynamic Mars background: a small starfield / ember-dust canvas (the glow blobs and the rising Mars planet are pure CSS + one WebP, see css/motion.css).
+// Dynamic Mars background: a small starfield / ember-dust canvas (the glow blobs and the rising Mars photo are pure CSS + one WebP, see css/motion.css).
 // Lightweight by design: ~70 particles, 30fps, DPR capped at 2, paused while the page is hidden, never touches input.
 // Reacts gently to scroll (parallax) and to device tilt where the browser allows it without a permission prompt.
 // prefers-reduced-motion: draws one static frame and nothing moves.
@@ -36,7 +36,7 @@ function draw(t) {
     let y = p.y * H - (still ? 0 : p.vy * s) - curY * p.z * 0.12;
     x = ((x % W) + W) % W; y = ((y % H) + H) % H;
     const a = still ? 0.55 * p.z : (0.35 + 0.65 * (0.5 + 0.5 * Math.sin(p.tw + s * p.ts))) * (0.35 + 0.65 * p.z);
-    ctx2d.fillStyle = p.dust ? `rgba(255,${130 + (p.z * 60) | 0},${80 + (p.z * 30) | 0},${(a * 0.7).toFixed(3)})` : `rgba(235,225,220,${(a * 0.75).toFixed(3)})`;
+    ctx2d.fillStyle = p.dust ? `rgba(255,${84 + (p.z * 40) | 0},${70 + (p.z * 34) | 0},${(a * 0.7).toFixed(3)})` : `rgba(244,226,226,${(a * 0.75).toFixed(3)})`;
     ctx2d.beginPath(); ctx2d.arc(x, y, p.r, 0, 6.2832); ctx2d.fill();
   }
 }
