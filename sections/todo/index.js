@@ -8,6 +8,7 @@ import { toast, confirmDialog } from '../../js/ui.js';
 import * as storage from '../../js/storage.js';
 import { validate, summary, emptyDoc, isEmptyDoc, newTask, openTasks, doneTasks, inList, listOf, LISTS, LIST_LABEL, LIMITS } from './model.js';
 import * as sync from './sync.js';
+import { parsePaste, MAX_TASKS } from './paste.js';
 
 export { validate, summary, emptyDoc };
 export const storageId = 'todo';
@@ -55,6 +56,7 @@ export async function render(root, ctx) {
     list = l; editingTask = null; editingComment = null;
     try { uiCfg.set({ list }); } catch { /* remembering the tab is best effort */ }
     addTitle.value = ''; addDueInput.value = ''; addDue = '';
+    pasteTa.value = ''; paste = { mode: 'edit', items: [], info: null };
     draw();
   };
   let addDue = '';
@@ -78,6 +80,69 @@ export async function render(root, ctx) {
     h('div', { class: 'todo-add-row' },
       h('label', { class: 'todo-due-wrap' }, h('span', { class: 'fl' }, 'Due'), addDueInput, h('span', { class: 'hint' }, 'optional')),
       h('button', { type: 'submit', class: 'btn primary big', id: 'todo-add-btn' }, 'Add task')));
+
+  // ------------------------------------------------------------ "Paste a list" (v20)
+  // A collapsed row under the add-task form. Paste bullets / numbered lines / messy notes, tap "Add tasks": the text is cleaned and split
+  // (sections/todo/paste.js), a short preview lists the tasks (each can be removed with an x), and "Add N tasks" puts them at the top of the
+  // CURRENT list (Work or Personal) in paste order. One task is added straight away. Nothing is kept anywhere except the normal To-Do document.
+  let paste = { mode: 'edit', items: [], info: null };   // mode: 'edit' | 'preview'
+  const pasteTa = h('textarea', { id: 'todo-paste-text', class: 'todo-paste-ta', rows: '8', placeholder: '- first task\n- second task\n- third task', 'aria-label': 'Paste a list of tasks', autocomplete: 'off', autocapitalize: 'off', spellcheck: 'false', maxlength: '20000' });
+  const pasteBody = h('div', { class: 'todo-paste-body' });
+  const pastePanel = h('details', { class: 'group todo-paste', id: 'todo-paste' },
+    h('summary', { id: 'todo-paste-summary' }, h('span', { class: 'trv-gname' }, [icon('plus'), 'Paste a list']), h('span', { class: 'trv-gcount' }, icon('chevD'))), pasteBody);
+  const openTitles = () => openTasks(load(), list).map((t) => t.title);
+  const room = () => Math.max(0, LIMITS.tasks - inList(load(), list).length);
+  function commitPaste(titles) {
+    const target = list, now = new Date().toISOString(), cur = new Set(load().tasks.map((t) => t.id));
+    const fresh = titles.map((title, i) => { let id; do { id = (target === 'work' ? 'w-' : 'm-') + uid() + i.toString(36); } while (cur.has(id)); cur.add(id); return newTask({ title, list: target, id }, now); });
+    if (mutate((d) => { d.tasks = [...fresh, ...d.tasks]; })) {
+      pasteTa.value = ''; paste = { mode: 'edit', items: [], info: null };
+      drawPaste(); pastePanel.open = false;
+      toast(`${fresh.length} task${fresh.length === 1 ? '' : 's'} added to ${LIST_LABEL[target]}`);
+    }
+  }
+  function submitPaste() {
+    const r = parsePaste(pasteTa.value, openTitles(), room());
+    if (!r.tasks.length) {
+      paste.info = { cls: 'err', text: pasteTa.value.trim() ? (r.existing || r.duplicates ? 'Nothing new: those tasks are already in this list.' : 'No tasks found in that text.') : 'Paste some text first.' };
+      drawPaste(); pasteTa.focus(); return;
+    }
+    if (r.tasks.length === 1 && !r.capped) { commitPaste(r.tasks); return; }
+    paste = { mode: 'preview', items: r.tasks, info: r };
+    drawPaste();
+  }
+  function noteFor(r) {
+    if (!r) return '';
+    const bits = [];
+    if (r.duplicates) bits.push(`${r.duplicates} repeated`);
+    if (r.existing) bits.push(`${r.existing} already in ${LIST_LABEL[list]}`);
+    if (r.capped) bits.push(`${r.capped} over the limit of ${MAX_TASKS} per paste`);
+    if (r.truncated) bits.push(`${r.truncated} shortened to 200 characters`);
+    return bits.length ? 'Skipped: ' + bits.join(', ') + '.' : '';
+  }
+  function drawPaste(fromDraw) {
+    if (fromDraw && paste.mode === 'edit' && document.activeElement === pasteTa) return;   // never steal focus while typing
+    pastePanel.querySelector('.trv-gname').replaceChildren(icon('plus'), 'Paste a list');
+    if (paste.mode === 'preview') {
+      const n = paste.items.length;
+      pasteBody.replaceChildren(
+        h('p', { class: 'todo-paste-count', id: 'todo-paste-count', role: 'status' }, `${n} task${n === 1 ? '' : 's'} found for ${LIST_LABEL[list]}`),
+        h('ul', { class: 'todo-paste-list', id: 'todo-paste-list' }, paste.items.map((t, i) =>
+          h('li', { class: 'todo-paste-item', 'data-i': String(i) },
+            h('span', { class: 'todo-paste-t' }, t),
+            h('button', { type: 'button', class: 'todo-paste-x', 'aria-label': 'Remove: ' + t, onclick: () => { paste.items.splice(i, 1); if (!paste.items.length) { paste = { mode: 'edit', items: [], info: { cls: 'err', text: 'All tasks removed.' } }; } drawPaste(); } }, icon('close'))))),
+        ...(noteFor(paste.info) ? [h('p', { class: 'note', id: 'todo-paste-skip' }, noteFor(paste.info))] : []),
+        h('div', { class: 'btnrow' },
+          h('button', { type: 'button', class: 'btn primary small', id: 'todo-paste-confirm', onclick: () => commitPaste(paste.items.slice()) }, `Add ${n} task${n === 1 ? '' : 's'}`),
+          h('button', { type: 'button', class: 'btn ghost small', id: 'todo-paste-back', onclick: () => { paste.mode = 'edit'; paste.info = null; drawPaste(); pasteTa.focus(); } }, 'Edit text')));
+    } else {
+      const msg = paste.info && paste.info.text;
+      pasteBody.replaceChildren(
+        pasteTa,
+        h('p', { class: 'note todo-paste-hint' + (msg ? ' err' : ''), id: 'todo-paste-msg', role: 'status' }, msg || 'One task per line. Bullets, numbers and checkboxes are cleaned up for you.'),
+        h('div', { class: 'btnrow' }, h('button', { type: 'button', class: 'btn primary small', id: 'todo-paste-btn', onclick: submitPaste }, 'Add tasks')));
+    }
+  }
 
   const tabsEl = h('div', { class: 'trv-tabs todo-tabs', id: 'todo-tabs', role: 'tablist', 'aria-label': 'To-Do lists' });
   const syncBar = h('div', { class: 'todo-syncbar', id: 'todo-syncbar' });
@@ -277,6 +342,7 @@ export async function render(root, ctx) {
 
     lists.replaceChildren(openCard, doneDet);
     drawSync();
+    drawPaste(true);
   }
 
   const onSynced = () => { if (root.isConnected) draw(); };
@@ -286,7 +352,7 @@ export async function render(root, ctx) {
 
   root.append(
     h('div', { class: 'topbar' }, h('a', { class: 'back', href: '#/' }, icon('chevL'), 'Home')),
-    head, tabsEl, addForm, syncBar, lists, syncPanel,
+    head, tabsEl, addForm, pastePanel, syncBar, lists, syncPanel,
     footNote);
   draw();
   if (sync.isConfigured() && sync.shouldAutoSync()) { sync.maybeAutoSync().then(() => { /* view refreshes via event */ }); }

@@ -72,3 +72,22 @@ input[type=password]:focus-visible{outline:2px solid var(--blue);outline-offset:
 .todo-tabs .trv-tab{appearance:none;-webkit-appearance:none;border:0;margin:0;font:inherit;font-weight:600;font-size:15px;letter-spacing:.04em;color:var(--text);cursor:pointer;-webkit-tap-highlight-color:transparent}
 .todo-tabs .trv-tab.on{color:#fff}
 .todo-tabn{min-width:24px;height:22px;padding:0 6px;font-size:12px;font-weight:500;letter-spacing:0;line-height:20px;text-align:center;font-variant-numeric:tabular-nums;color:var(--text)}
+
+/* ---- v20: "Paste a list" (collapsed row under the add-task form; flat translucent, sharp icons, >=12px text) ---- */
+.todo-paste>summary{display:flex;justify-content:space-between;align-items:center;min-height:56px}
+.todo-paste>summary .trv-gname{display:inline-flex;align-items:center;gap:10px}
+.todo-paste>summary .trv-gcount{display:inline-flex;align-items:center}
+.todo-paste>summary .ico{width:20px;height:20px}
+.todo-paste[open]>summary .trv-gcount .ico{transform:rotate(180deg)}
+.todo-paste-body{padding:0 16px 16px;display:flex;flex-direction:column;gap:10px}
+.todo-paste-ta{width:100%;min-height:132px;max-height:50vh;line-height:1.4;font-size:16px}
+.todo-paste-hint{margin:0;font-size:13px;color:var(--muted)}
+.todo-paste-hint.err{color:var(--text)}
+.todo-paste-count{margin:0;font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.todo-paste-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px;max-height:46vh;overflow:auto}
+.todo-paste-item{display:flex;align-items:stretch;gap:4px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.35);border-radius:2px}
+.todo-paste-t{flex:1;min-width:0;padding:10px 12px;font-size:15px;line-height:1.3;overflow-wrap:anywhere;align-self:center}
+.todo-paste-x{flex:none;width:48px;min-height:48px;display:grid;place-items:center;background:none;border:0;color:var(--text);cursor:pointer;-webkit-tap-highlight-color:transparent}
+.todo-paste-x .ico{width:18px;height:18px}
+.todo-paste-x:active{background:rgba(255,82,56,.18)}
+.todo-paste-x:focus-visible,.todo-paste>summary:focus-visible{outline:2px solid var(--ember);outline-offset:-2px}

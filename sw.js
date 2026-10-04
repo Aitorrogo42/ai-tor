@@ -2,9 +2,9 @@
 // The bundle contains NO user data: each user's finances live only in their own browser storage (localStorage).
 // The encrypted feeds (feed/tasks.enc.json, feed/finances.enc.json, feed/destinations.enc.json; anything under feed/) is NEVER precached or served cache-first: it is fetched network-first and the last copy
 // is kept in a separate cache ('aitor-feed') only as an offline fallback.
-// v15: flat style (css/flat.css replaces css/glass.css + js/glass.js), A logo + lockup. v16: To-Do split into Personal / Work lists (no new files). v17: wheel centre = icon + Mars down arrow only (no text). v18: the arrow becomes a bold solid Ember down triangle; section icons = inline Set A solid SVGs (icons/sections/*.png no longer precached, kept in the repo).
+// v20: To-Do 'Paste a list' (sections/todo/paste.js). v15: flat style (css/flat.css replaces css/glass.css + js/glass.js), A logo + lockup. v16: To-Do split into Personal / Work lists (no new files). v17: wheel centre = icon + Mars down arrow only (no text). v18: the arrow becomes a bold solid Ember down triangle; section icons = inline Set A solid SVGs (icons/sections/*.png no longer precached, kept in the repo).
 // Bump VERSION whenever any file changes so phones pick up the update.
-const VERSION = 'aitor-v19';
+const VERSION = 'aitor-v20';
 const FEED_CACHE = 'aitor-feed';
 const PRECACHE = [
   './', 'index.html', 'manifest.webmanifest',
@@ -12,7 +12,7 @@ const PRECACHE = [
   'js/app.js', 'js/sections.js', 'js/util.js', 'js/storage.js', 'js/ui.js', 'js/dataio.js', 'js/settings.js', 'js/feedcrypto.js', 'js/bg.js', 'js/nav.js', 'js/brand.js', 'js/splash.js', 'js/wheel.js', 'js/icons.js',
   'sections/finances/index.js', 'sections/finances/model.js', 'sections/finances/dashboard.js', 'sections/finances/edit.js', 'sections/finances/chart.js', 'sections/finances/feed.js', 'sections/finances/refreshbar.js',
   'sections/travels/index.js', 'sections/travels/model.js', 'sections/travels/countries.js', 'sections/travels/dest-model.js', 'sections/travels/dest-feed.js', 'sections/travels/dest-ui.js',
-  'sections/todo/index.js', 'sections/todo/model.js', 'sections/todo/sync.js',
+  'sections/todo/index.js', 'sections/todo/model.js', 'sections/todo/sync.js', 'sections/todo/paste.js',
   'icons/icon-192.png', 'icons/icon-512.png', 'icons/maskable-192.png', 'icons/maskable-512.png',
   'icons/apple-touch-icon.png', 'icons/favicon-32.png', 'icons/favicon.svg', 'icons/favicon.ico',
   'fonts/league-spartan-latin.woff2', 'fonts/league-spartan-latin-ext.woff2',

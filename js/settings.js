@@ -6,7 +6,7 @@ import * as storage from './storage.js';
 import { buildExport, validateImport, applyImport, MAX_IMPORT_BYTES } from './dataio.js';
 import { sections } from './sections.js';
 
-export const APP_VERSION = '2.5.3 (v19)';
+export const APP_VERSION = '2.6.0 (v20)';
 
 export async function renderSettings(root, ctx) {
   document.title = 'Settings · AI-TOR';
