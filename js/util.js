@@ -63,3 +63,7 @@ export function isValidISODate(s) {
 export function fmtDate(iso) {
   return new Date(iso + 'T00:00:00Z').toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric', timeZone: 'UTC' });
 }
+
+/** Section logo (square PNG from icons/sections). Same rendered size everywhere it is used. */
+export const sectionIcon = (id, size = 40) =>
+  h('img', { class: 'sec-ico', src: `icons/sections/${id}-256.png`, width: String(size), height: String(size), alt: '', 'aria-hidden': 'true', decoding: 'async', style: `width:${size}px;height:${size}px` });

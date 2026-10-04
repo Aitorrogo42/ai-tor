@@ -4,7 +4,7 @@ import * as storage from './storage.js';
 import { buildExport, validateImport, applyImport, MAX_IMPORT_BYTES } from './dataio.js';
 import { sections } from './sections.js';
 
-export const APP_VERSION = '2.1.0';
+export const APP_VERSION = '2.2.0';
 
 export async function renderSettings(root, ctx) {
   document.title = 'Settings · AI-TOR';
@@ -73,7 +73,7 @@ export async function renderSettings(root, ctx) {
 
   // ---- erase
   const eraseBtn = h('button', { type: 'button', class: 'btn danger', id: 'erase-btn', onclick: async () => {
-    const ok = await confirmDialog({ title: 'Erase all data?', message: 'This permanently deletes your profile and everything you entered on this device. Export a backup first if you might want it back.', okLabel: 'Erase everything', danger: true });
+    const ok = await confirmDialog({ title: 'Erase all data?', message: 'This permanently deletes your profile and everything you entered on this device, including saved To-Do sync settings. Export a backup first if you might want it back.', okLabel: 'Erase everything', danger: true });
     if (!ok) return;
     storage.eraseAll(); setCurrency('USD');
     toast('All data erased');
@@ -103,6 +103,6 @@ export async function renderSettings(root, ctx) {
     h('h2', { class: 'sec' }, 'About'),
     h('div', { class: 'card' },
       h('div', { class: 'row' }, h('div', { class: 'l' }, 'AI-TOR version'), h('div', { class: 'r' }, APP_VERSION)),
-      h('div', { class: 'row' }, h('div', { class: 'l' }, 'Data format'), h('div', { class: 'r' }, 'schema 2')),
-      h('p', { class: 'note', style: 'margin-top:8px' }, 'No accounts, no servers, no analytics. The app makes no network requests and works offline once opened.')));
+      h('div', { class: 'row' }, h('div', { class: 'l' }, 'Data format'), h('div', { class: 'r' }, 'schema 3')),
+      h('p', { class: 'note', style: 'margin-top:8px' }, 'No accounts, no servers, no analytics. The app makes no network requests and works offline once opened. The only exception is the optional To-Do task sync, which (once you set it up) reads one file from api.github.com.')));
 }

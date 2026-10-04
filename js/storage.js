@@ -27,12 +27,22 @@ export function section(id) {
   return { key, get: () => read(key), set: (doc) => write(key, doc), clear: () => localStorage.removeItem(key) };
 }
 
+/** Per-section device settings (e.g. the To-Do sync repo/token). Stored under "aitor:cfg:<id>"; NEVER part of export files,
+ *  kept across Import, and wiped by "Erase all data". */
+export function config(id) {
+  if (!/^[a-z][a-z0-9-]*$/.test(id)) throw new Error('Bad section id: ' + id);
+  const key = `${PREFIX}cfg:${id}`;
+  return { key, get: () => read(key), set: (v) => write(key, v), clear: () => localStorage.removeItem(key) };
+}
+
 export function listKeys() {
   const out = [];
   try { for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (k && k.startsWith(PREFIX)) out.push(k); } } catch { /* ignore */ }
   return out;
 }
 export function eraseAll() { listKeys().forEach((k) => localStorage.removeItem(k)); }
+/** Wipe profile + section documents but keep device settings (aitor:cfg:*), used by Import. */
+export function eraseDocuments() { listKeys().filter((k) => !k.startsWith(PREFIX + 'cfg:')).forEach((k) => localStorage.removeItem(k)); }
 
 /** Ask the browser not to evict our data (best effort; no network involved). */
 export async function requestPersistence() {

@@ -1,11 +1,12 @@
 // Export / import of all app data in one versioned JSON file.
-// Format: { app:'ai-tor', schema:2, exportedAt, profile:{name,currency}, sections:{ <sectionId>: <section document> } }
+// Format: { app:'ai-tor', schema:3, exportedAt, profile:{name,currency}, sections:{ <sectionId>: <section document> } }
 import { sections } from './sections.js';
 import * as storage from './storage.js';
 import { CURRENCIES, formatMoney } from './util.js';
 
-// schema 2 adds the Travels section. Schema 1 files (finances only) still import; every section is optional.
-export const SCHEMA = 2;
+// schema 2 added Travels, schema 3 adds To-Do. Older files (finances only, finances+travels) still import; every section is optional.
+// Sync settings/token are device settings and are never exported.
+export const SCHEMA = 3;
 export const MAX_IMPORT_BYTES = 5 * 1024 * 1024;
 
 export async function buildExport() {
@@ -54,7 +55,7 @@ export async function validateImport(obj) {
 
 /** Replace everything on this device with a validated import result. */
 export function applyImport(result) {
-  storage.eraseAll();
+  storage.eraseDocuments(); // device settings (sync token) are not part of exports and are kept
   storage.setCore({ version: storage.CORE_VERSION, profile: result.profile });
   for (const [id, doc] of Object.entries(result.sections)) storage.section(id).set(doc);
 }

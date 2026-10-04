@@ -1,5 +1,5 @@
 // Travels section: countries you have visited. Route: #/travels
-import { h } from '../../js/util.js';
+import { h, sectionIcon } from '../../js/util.js';
 import { toast, confirmDialog } from '../../js/ui.js';
 import { COUNTRIES, CONTINENTS } from './countries.js';
 import { validate, summary, emptyDoc, isEmptyDoc, TOTAL, LIMITS, norm } from './model.js';
@@ -149,7 +149,7 @@ export async function render(root, ctx) {
 
   root.append(
     h('div', { class: 'topbar' }, h('a', { class: 'back', href: '#/' }, '‹ Home')),
-    h('div', { class: 'fin-head' }, h('h1', null, 'Travels'), h('p', { class: 'asof' }, 'Countries you have visited')),
+    h('div', { class: 'fin-head' }, h('h1', { class: 'with-ico' }, sectionIcon('travels'), 'Travels'), h('p', { class: 'asof' }, 'Countries you have visited')),
     h('div', { class: 'card trv-top' }, countText, progress,
       h('p', { class: 'note' }, '🔒 Stored only on this device. Include it in backups via Settings → Export.')),
     h('div', { class: 'trv-searchrow' }, search, clearSearch),

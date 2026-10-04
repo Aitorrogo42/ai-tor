@@ -1,4 +1,4 @@
-import { h, money, pct, fmtDate, todayISO } from '../../js/util.js';
+import { h, sectionIcon, money, pct, fmtDate, todayISO } from '../../js/util.js';
 import { compute, alerts, projectableGoals } from './model.js';
 import { projectionChart } from './chart.js';
 
@@ -66,7 +66,7 @@ export function renderDashboard(root, doc, ctx) {
   root.append(
     h('div', { class: 'topbar' }, h('a', { class: 'back', href: '#/' }, '‹ Home'),
       h('a', { class: 'btn ghost small', href: '#/finances/edit', id: 'edit-btn' }, '✎ Edit')),
-    h('div', { class: 'fin-head' }, h('h1', null, 'Finances'),
+    h('div', { class: 'fin-head' }, h('h1', { class: 'with-ico' }, sectionIcon('finances'), 'Finances'),
       doc.updatedAt ? h('div', { class: 'asof' }, 'Last updated ' + new Date(doc.updatedAt).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })) : null));
 
   if (doc.example) {

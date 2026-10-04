@@ -17,13 +17,13 @@ function renderHome() {
   const list = h('nav', { class: 'section-list', 'aria-label': 'Sections' },
     sections.map((s) =>
       h('a', { class: 'section-btn', href: s.route, 'data-section': s.id },
-        h('span', { class: 'section-icon', 'aria-hidden': 'true' }, s.icon),
+        h('span', { class: 'section-icon', 'aria-hidden': 'true' }, h('img', { src: s.icon, width: '56', height: '56', alt: '', decoding: 'async' })),
         h('span', { class: 'section-text' },
           h('span', { class: 'section-title' }, s.title),
           s.subtitle ? h('span', { class: 'section-sub' }, s.subtitle) : null),
         h('span', { class: 'chev', 'aria-hidden': 'true' }, '›'))));
   const foot = h('footer', { class: 'home-foot' },
-    h('p', null, '🔒 Your data stays on this device. No accounts, no tracking, no network calls.'));
+    h('p', null, '🔒 Your data stays on this device. No accounts, no tracking.'));
   if (!isStandalone()) {
     if (deferredInstall) {
       foot.append(h('button', { class: 'ghost', onclick: async () => { deferredInstall.prompt(); deferredInstall = null; route(); } }, 'Install AI-TOR'));
@@ -73,6 +73,18 @@ async function route() {
 window.addEventListener('hashchange', route);
 route();
 storage.requestPersistence();
+
+// Optional To-Do task sync: does nothing (and loads nothing) unless the user configured it in To-Do. At most once every few hours.
+async function autoSync() {
+  try {
+    const c = storage.config('todo').get();
+    if (!c || !c.repo || !c.token) return;
+    const m = await import('../sections/todo/sync.js');
+    await m.maybeAutoSync();
+  } catch (e) { console.warn('auto-sync skipped', e); }
+}
+autoSync();
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') autoSync(); });
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {

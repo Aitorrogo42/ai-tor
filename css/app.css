@@ -21,7 +21,10 @@ h1,h2,h3,p{margin:0}
   background:linear-gradient(180deg,var(--card2),var(--card));box-shadow:0 6px 20px rgba(0,0,0,.25);transition:transform .08s,border-color .15s}
 .section-btn:active{transform:scale(.985);border-color:var(--purple)}
 .section-btn:focus-visible,.back:focus-visible,summary:focus-visible,button:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
-.section-icon{font-size:36px;width:56px;height:56px;display:grid;place-items:center;border-radius:16px;background:#0f1830;border:1px solid var(--line);flex:none}
+.section-icon{width:56px;height:56px;display:block;border-radius:16px;background:#0f1830;border:1px solid var(--line);flex:none;overflow:hidden}
+.section-icon img{display:block;width:56px;height:56px;object-fit:contain}
+.sec-ico{display:block;flex:none;border-radius:11px;object-fit:contain;background:#0f1830;border:1px solid var(--line)}
+h1.with-ico{display:flex;align-items:center;gap:12px}
 .section-text{display:flex;flex-direction:column;flex:1;min-width:0}
 .section-title{font-size:24px;font-weight:700;letter-spacing:-.02em}
 .section-sub{color:var(--muted);font-size:13px;margin-top:2px}
