@@ -70,7 +70,7 @@ screenshots/                 fake-data screenshots only
     "feed": { "updated": "…", "asOf": "…", "refreshedAt": "…", "notes": "…" } },
     "travels": { "version": 2, "updatedAt": "…",
       "visited": [{ "code": "FR", "years": "2019, 2022", "note": "" }],
-      "destinations": [{ "id": "kyoto-japan", "name": "…", "kind": "city", "region": "…", "summary": "…", "recommended_on": "2026-10-04",
+      "destinations": [{ "id": "example-place", "name": "…", "kind": "city", "region": "…", "summary": "…", "recommended_on": "2026-10-04",
         "best_window": "…", "things_to_do": [{ "title": "…", "details": "…", "url": "https://…" }], "logistics": ["…"], "downsides": ["…"],
         "links": [{ "label": "…", "url": "https://…" }], "favorite": false, "note": "", "seen": true, "arrivedAt": "…" }] },
     "todo": { "version": 1, "updatedAt": "…", "dismissed": ["ids you deleted that came from sync"],
