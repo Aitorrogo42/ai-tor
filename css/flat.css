@@ -18,8 +18,8 @@
 .dst-row:active,.btn:active{border-color:var(--ember)}
 
 /* ===== footer text sits over the planet: a flat dark scrim block ===== */
-.home-foot{position:relative;padding:14px 16px;background:rgba(10,3,5,.62);border:1px solid var(--surf-line-lo);border-radius:var(--r-md)}
-.home-foot p,.home-foot .muted{color:#e3e3e4}
+.app-foot{position:relative;padding:14px 16px;background:rgba(10,3,5,.62);border:1px solid var(--surf-line-lo);border-radius:var(--r-md)}
+.app-foot p,.app-foot .muted{color:#e3e3e4}
 
 /* the home header is not a surface */
 .home-head{background:transparent;border:0}
@@ -49,13 +49,13 @@ summary .ico{margin-right:6px}
 /* one flat material in three tonal steps: --surf (cards, tabs) / --surf-dim (fields, footer scrim) / --surf-over (sticky strip, dialog, toast) */
 .trv-searchrow{top:calc(var(--safe-t) + 6px);background:var(--surf-over);border:1px solid var(--surf-line)}
 .trv-search,input[type=text],input[type=date],input[type=password],input[type=search],select,textarea,.todo-add-input,.feed-formrow input{background:var(--surf-dim);border:1px solid var(--surf-line)}
-.home-foot{background:var(--surf-dim);border:1px solid var(--surf-line)}
+.app-foot{background:var(--surf-dim);border:1px solid var(--surf-line)}
 .dialog,.toast{border:1px solid var(--surf-line)}
 .toast{border-color:var(--surf-line)}
-/* home footer: one line + collapsed install hint */
-.home-foot{margin-top:18px;padding:10px 14px;gap:6px}
-.home-foot .priv{display:flex;align-items:center;justify-content:center;gap:6px;font-size:13px;line-height:1.35}
-.home-foot .priv .ico{margin:0}
+/* v18: footer (one-line privacy + collapsed install hint) now at the bottom of Settings, not on the home screen */
+.app-foot{margin-top:18px;padding:10px 14px;gap:6px}
+.app-foot .priv{display:flex;align-items:center;justify-content:center;gap:6px;font-size:13px;line-height:1.35}
+.app-foot .priv .ico{margin:0}
 .install-hint{width:100%;font-size:13px}
 .install-hint summary{cursor:pointer;min-height:44px;display:flex;align-items:center;justify-content:center;color:#fff;text-decoration:underline;text-underline-offset:3px;font-weight:600;list-style:none}
 .install-hint summary::-webkit-details-marker{display:none}
@@ -103,10 +103,10 @@ html.kbd-nav .wheel:focus-visible{outline:2px solid var(--focus);outline-offset:
   opacity:0;visibility:hidden;pointer-events:none;transition:opacity .16s ease,visibility 0s .16s}
 .section-btn.wheel-open.sel{opacity:1;visibility:inherit;pointer-events:auto;transition:opacity .16s ease}
 .section-btn.wheel-open .section-icon{width:clamp(44px,calc(var(--wheel)*.2),64px);height:clamp(44px,calc(var(--wheel)*.2),64px);display:grid;place-items:center}
-.section-btn.wheel-open .section-icon img{width:100%;height:100%}
+.section-btn.wheel-open .section-icon .sec-ico{width:100%;height:100%;fill:currentColor;transform:none}   /* v18: Set A solid glyph, white via currentColor, viewBox cropped to the mark */
 .section-btn.wheel-open .section-icon .ico{width:68%;height:68%}
-.wheel-arrow{display:grid;place-items:center;color:var(--ember);line-height:0;animation:wheel-nudge 2.6s ease-in-out infinite}   /* v17: small Mars/Ember down arrow, subtle idle nudge */
-.wheel-arrow .ico{width:clamp(16px,calc(var(--wheel)*.062),22px);height:clamp(16px,calc(var(--wheel)*.062),22px);margin:0;stroke:currentColor}
+.wheel-arrow{display:grid;place-items:center;color:var(--ember);line-height:0;animation:wheel-nudge 2.6s ease-in-out infinite}   /* v18: bold solid Ember down-pointing triangle (was a thin v17 arrow), same subtle idle nudge */
+.wheel-arrow .ico{width:clamp(19px,calc(var(--wheel)*.07),22px);height:clamp(19px,calc(var(--wheel)*.07),22px);margin:0;fill:currentColor;stroke:currentColor;stroke-linejoin:round}   /* triangle spans 17/24 of the box = 14-16px wide */
 @keyframes wheel-nudge{0%,100%{transform:translateY(-1px);opacity:.75}50%{transform:translateY(3px);opacity:1}}
 .section-btn.wheel-open:active .section-icon{transform:scale(.94)}
 .section-btn.wheel-open:focus,.section-btn.wheel-open:focus-visible{outline:none}

@@ -4,7 +4,7 @@ const NS = 'http://www.w3.org/2000/svg';
 const P = {
   lock: ['M5 11h14v9H5z', 'M8 11V8a4 4 0 0 1 8 0v3'],
   chevR: ['M9 5l7 7-7 7'],
-  arrowDown: ['M12 5v13', 'M7 13.5l5 5 5-5'],
+  triangleDown: ['M3.5 6.5h17L12 19z'],   // v18: bold solid down-pointing triangle (a '>' play-triangle turned to face down); filled via opts.filled
   chevL: ['M15 5l-7 7 7 7'],
   download: ['M12 4v11', 'M7.5 11l4.5 4.5 4.5-4.5', 'M5 20h14'],
   upload: ['M12 15V4', 'M7.5 8L12 3.5 16.5 8', 'M5 20h14'],
@@ -18,6 +18,29 @@ const P = {
   star: ['M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z'],
   external: ['M7 17L17 7', 'M8.5 7H17v8.5'],
 };
+// v18: section glyphs = the approved "Set A (Solid)" from the Graphic Designer (flat, straight-edged, solid, transparent). Inline SVG filled with currentColor (white),
+// original 1024 geometry untouched; the viewBox is cropped to the mark (160 160 704 704) so it reads larger at 24-32px. Replaces icons/sections/*.png in the UI.
+const SECTION_GLYPHS = {
+  finances: 'M243.81 647.51 L571.57 319.75 L780.19 319.75 L780.19 223.75 L531.81 223.75 L243.81 511.75 Z M243.81 800.25 L576.54 467.51 L644.43 535.4 L780.19 399.63 L712.31 331.75 L644.43 399.63 L576.54 331.75 L243.81 664.49 Z',
+  travels: 'M196 506 L506 506 L506 196 Z M828 506 L518 196 L518 506 Z M822 518 L202 518 L512 828 Z',
+  todo: 'M832.32 341.05 L764.44 273.17 L422.54 615.07 L422.54 750.83 Z M259.56 464.09 L191.68 531.97 L410.54 750.83 L410.54 615.07 Z',
+};
+export const hasSectionGlyph = (id) => Object.prototype.hasOwnProperty.call(SECTION_GLYPHS, id);
+/** sectionGlyph('finances', 40) -> <svg class="sec-ico"> (solid, currentColor). size omitted = sized by CSS. */
+export function sectionGlyph(id, size) {
+  const svg = document.createElementNS(NS, 'svg');
+  svg.setAttribute('viewBox', '160 160 704 704');
+  svg.setAttribute('class', 'sec-ico sec-glyph sec-glyph-' + id);
+  svg.setAttribute('aria-hidden', 'true');
+  svg.setAttribute('focusable', 'false');
+  svg.setAttribute('fill', 'currentColor');
+  if (size) { svg.setAttribute('width', String(size)); svg.setAttribute('height', String(size)); svg.style.width = size + 'px'; svg.style.height = size + 'px'; }
+  const p = document.createElementNS(NS, 'path');
+  p.setAttribute('d', SECTION_GLYPHS[id] || '');
+  p.setAttribute('fill-rule', 'evenodd');
+  svg.append(p);
+  return svg;
+}
 /** icon('lock') -> <svg class="ico"> ; opts.filled fills the shape (used for a set favourite star). */
 export function icon(name, cls = 'ico', opts = {}) {
   const svg = document.createElementNS(NS, 'svg');

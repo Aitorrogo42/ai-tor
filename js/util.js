@@ -1,4 +1,5 @@
 // Tiny DOM helpers. Text is always set via textContent (never innerHTML) so user data can't inject markup.
+import { sectionGlyph } from './icons.js';
 export function h(tag, attrs, ...children) {
   const el = document.createElement(tag);
   if (attrs) for (const [k, v] of Object.entries(attrs)) {
@@ -64,9 +65,8 @@ export function fmtDate(iso) {
   return new Date(iso + 'T00:00:00Z').toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric', timeZone: 'UTC' });
 }
 
-/** Section logo (square PNG from icons/sections). Same rendered size everywhere it is used. */
-export const sectionIcon = (id, size = 40) =>
-  h('img', { class: 'sec-ico', src: `icons/sections/${id}-256.png`, width: String(size), height: String(size), alt: '', 'aria-hidden': 'true', decoding: 'async', style: `width:${size}px;height:${size}px` });
+/** Section glyph (v18: inline solid SVG "Set A", currentColor). Same rendered size everywhere it is used. */
+export const sectionIcon = (id, size = 40) => sectionGlyph(id, size);
 
 /** Page title for a section header: line-art icon + title. The icon and the title are shared elements in page transitions. */
 export const pageTitle = (id, text, size = 40) => h('h1', { class: 'with-ico' }, sectionIcon(id, size), h('span', { class: 'ph-title' }, text));

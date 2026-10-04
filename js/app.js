@@ -13,7 +13,7 @@ const app = document.getElementById('app');
 const splashOn = splashWanted();   // launch splash (see js/splash.js): the first render must not start its entrance animation behind it
 initBackground();
 let deferredInstall = null;
-window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); deferredInstall = e; if (!location.hash || location.hash === '#/') route(); });
+window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); deferredInstall = e; const f = document.getElementById('app-foot'); if (f) f.replaceWith(buildFoot()); });
 
 function isStandalone() {
   return window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
@@ -26,28 +26,33 @@ function greetingText(name) {
   return name ? `${part}, ${name}` : part;
 }
 
-function renderHome() {
-  document.title = 'AI-TOR';
-  const name = storage.getCore().profile.name;
-  // the home selection wheel (js/wheel.js): one entry per section + Settings
-  const wheelItems = [...sections.map((x) => ({ id: x.id, title: x.title, route: x.route, iconSrc: x.icon })), { id: 'settings', title: 'Settings', route: '#/settings', iconName: 'gear' }];
-  const list = createWheel(wheelItems);
-  const foot = h('footer', { class: 'home-foot' },
+/** Privacy line + install hint (v18: moved from the home screen to the bottom of Settings). */
+function buildFoot() {
+  const foot = h('footer', { class: 'app-foot', id: 'app-foot' },
     h('p', { class: 'priv' }, icon('lock'), 'Your data stays on this device. No tracking.'));
   if (!isStandalone()) {
     if (deferredInstall) {
-      foot.append(h('button', { class: 'ghost', onclick: async () => { deferredInstall.prompt(); deferredInstall = null; route(); } }, 'Install AI-TOR'));
+      foot.append(h('button', { class: 'ghost', onclick: async () => { deferredInstall.prompt(); deferredInstall = null; const f = document.getElementById('app-foot'); if (f) f.replaceWith(buildFoot()); } }, 'Install AI-TOR'));
     } else {
       foot.append(h('details', { class: 'install-hint' }, h('summary', null, 'Install on your phone'),
         h('p', null, 'iPhone: Share, then Add to Home Screen. Android: browser menu, then Install app.')));
     }
   }
+  return foot;
+}
+
+function renderHome() {
+  document.title = 'AI-TOR';
+  const name = storage.getCore().profile.name;
+  // the home selection wheel (js/wheel.js): one entry per section + Settings
+  const wheelItems = [...sections.map((x) => ({ id: x.id, title: x.title, route: x.route })), { id: 'settings', title: 'Settings', route: '#/settings', iconName: 'gear' }];
+  const list = createWheel(wheelItems);
   app.replaceChildren(
     h('header', { class: 'home-head' },
       h('h1', { class: 'lockup-h1', 'aria-label': 'ai-tor' }, lockup('lockup lockup-hero')),
       h('p', { class: 'greeting', id: 'greeting' }, greetingText(name)),
       h('p', { class: 'tagline' }, name ? 'Your finances, travels and to-do list in one place.' : 'Your finances, travels and to-do list in one place. Add your name in Settings.')),
-    list, foot);
+    list);   // v18: no footer on the home screen; the privacy line + install hint now live at the bottom of Settings (buildFoot)
 }
 
 let shownHash = null;     // hash of the page currently on screen (null before the first render)
@@ -83,6 +88,7 @@ async function route(opts = {}) {
       const box = h('div', { class: 'section-root fin', 'data-section': 'settings' });
       app.replaceChildren(box);
       await renderSettings(box, { rerender: route });
+      box.append(buildFoot());
     };
   } else {
     const section = sections.find((s) => hash === s.route || hash.startsWith(s.route + '/'));

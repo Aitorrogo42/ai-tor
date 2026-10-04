@@ -33,7 +33,7 @@ const homeCard = (app, id) => app.querySelector(`a.section-btn[data-section="${i
 function nameHomeCard(app, id) {
   const c = homeCard(app, id); if (!c) return false;
   setName(c, 'sec-card');
-  setName(c.querySelector('.section-icon img'), 'sec-icon');
+  setName(c.querySelector('.section-icon .sec-ico'), 'sec-icon');
   return true;
 }
 function namePageHead(app) {
@@ -114,7 +114,7 @@ export async function transition(opts, commit) {
 
   // ---------- fallback path (WAAPI) ----------
   const rect = (el) => (el ? el.getBoundingClientRect() : null);
-  const oldIcon = kind === 'dive' ? (homeCard(app, opts.secId) || document).querySelector('.section-icon img') : kind === 'surface' ? app.querySelector('.fin-head .sec-ico') : null;
+  const oldIcon = kind === 'dive' ? (homeCard(app, opts.secId) || document).querySelector('.section-icon .sec-ico') : kind === 'surface' ? app.querySelector('.fin-head .sec-ico') : null;
   const oldRect = morph ? rect(oldIcon) : null;
   const oldPill = kind === 'tab' ? rect(app.querySelector('.tab-pill')) : null;
   const ease = 'cubic-bezier(.22,1,.36,1)';
@@ -126,7 +126,7 @@ export async function transition(opts, commit) {
   if (reduced()) { try { app.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 160 }); } catch { /* ignore */ } return; }
   try { app.getAnimations().forEach((a) => { if (a.effect && a.effect.target === app) a.cancel(); }); } catch { /* ignore */ }
   if (morph && oldRect) {
-    const ni = kind === 'dive' ? app.querySelector('.fin-head .sec-ico') : (homeCard(app, opts.prevSecId) || document).querySelector('.section-icon img');
+    const ni = kind === 'dive' ? app.querySelector('.fin-head .sec-ico') : (homeCard(app, opts.prevSecId) || document).querySelector('.section-icon .sec-ico');
     const nr = rect(ni);
     if (ni && nr && nr.width) {
       const dx = oldRect.left - nr.left, dy = oldRect.top - nr.top, s = oldRect.width / nr.width;
