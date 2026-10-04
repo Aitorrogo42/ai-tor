@@ -1,10 +1,11 @@
 import { h, CURRENCIES, setCurrency, formatMoney } from './util.js';
+import { brandMark } from './brand.js';
 import { field, confirmDialog, toast } from './ui.js';
 import * as storage from './storage.js';
 import { buildExport, validateImport, applyImport, MAX_IMPORT_BYTES } from './dataio.js';
 import { sections } from './sections.js';
 
-export const APP_VERSION = '2.2.0';
+export const APP_VERSION = '2.3.0';
 
 export async function renderSettings(root, ctx) {
   document.title = 'Settings · AI-TOR';
@@ -102,6 +103,7 @@ export async function renderSettings(root, ctx) {
     h('div', { class: 'card stackc' }, eraseBtn),
     h('h2', { class: 'sec' }, 'About'),
     h('div', { class: 'card' },
+      h('div', { class: 'about-lockup' }, brandMark(), h('span', { class: 'wordmark' }, 'AI-TOR')),
       h('div', { class: 'row' }, h('div', { class: 'l' }, 'AI-TOR version'), h('div', { class: 'r' }, APP_VERSION)),
       h('div', { class: 'row' }, h('div', { class: 'l' }, 'Data format'), h('div', { class: 'r' }, 'schema 4')),
       h('p', { class: 'note', style: 'margin-top:8px' }, 'No accounts, no servers, no analytics. The app makes no network requests and works offline once opened. The only exception is the optional To-Do task sync, which (once you enter a passphrase) reads one encrypted file from this same site.')));

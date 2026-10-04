@@ -99,6 +99,18 @@
 html.lg-refract .section-btn{-webkit-backdrop-filter:url(#lg-bend) blur(10px) saturate(1.7) brightness(1.08);backdrop-filter:url(#lg-bend) blur(10px) saturate(1.7) brightness(1.08)}
 #lg-defs{position:absolute;width:0;height:0;overflow:hidden;pointer-events:none}
 
+/* ===== v14 rim glow: the thin crimson Mars-rim light (--rim #ff4a2e) used the same way everywhere =====
+   logo mark + lockup, active tab, primary buttons, focus rings, pressed cards. Colours are the existing tokens, only the glow is new. */
+:root{--rim-a:rgba(255,74,46,.58);--rim-b:rgba(255,74,46,.32);--rim-c:rgba(255,74,46,.16)}
+.brand-mark{filter:drop-shadow(0 0 4px var(--rim-a)) drop-shadow(0 0 14px var(--rim-b))}
+.wordmark{text-shadow:0 0 14px var(--rim-b)}
+.tab-pill{border-color:rgba(255,120,98,.5);box-shadow:inset 0 1px 0 rgba(255,255,255,.65),inset 0 -1px 0 rgba(255,255,255,.12),inset 0 0 18px rgba(255,120,110,.18),0 0 14px var(--rim-b),0 6px 18px -6px rgba(217,58,45,.5)}
+.btn.primary{border-color:rgba(255,120,98,.6);box-shadow:inset 0 1px 0 rgba(255,255,255,.3),0 0 16px var(--rim-b),0 4px 18px var(--accent-soft)}
+.btn.primary:active{box-shadow:inset 0 1px 0 rgba(255,255,255,.28),0 0 30px var(--rim-a),0 2px 8px var(--accent-soft);border-color:rgba(255,170,160,.7)}
+.section-btn:focus-visible,.back:focus-visible,summary:focus-visible,button:focus-visible,a:focus-visible,.trv-tab:focus-visible,.dst-main:focus-visible,.dst-star:focus-visible{outline:2px solid var(--rim);outline-offset:2px;box-shadow:0 0 0 5px var(--rim-c),0 0 20px var(--rim-b)}
+.section-btn:active{box-shadow:inset 0 1px 0 rgba(255,255,255,.8),inset 1px 0 0 rgba(255,255,255,.34),inset 0 -1px 0 rgba(255,255,255,.14),inset 0 0 36px rgba(255,120,110,.16),0 6px 18px -8px rgba(0,0,0,.5),0 0 34px var(--rim-b),0 0 0 1px var(--rim-c)}
+.dst-row:active,.btn:active{border-color:rgba(255,110,90,.55)}
+
 @media (prefers-reduced-motion:reduce){
   .section-btn,.gear,.btn,.dst-chip,.chev{transition:none}
   .section-btn:active,.gear:active,.btn:active,.dst-chip:active{transform:none}

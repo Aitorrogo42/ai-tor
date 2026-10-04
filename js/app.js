@@ -1,4 +1,5 @@
 import { sections } from './sections.js';
+import { brandMark } from './brand.js';
 import { h, setCurrency } from './util.js';
 import * as storage from './storage.js';
 import { renderSettings } from './settings.js';
@@ -57,7 +58,7 @@ function renderHome() {
   app.replaceChildren(
     h('header', { class: 'home-head' },
       h('div', { class: 'brand-row' },
-        h('div', { class: 'brand' }, h('div', { class: 'logo', 'aria-hidden': 'true' }, 'AI'), h('h1', { class: 'wordmark' }, 'AI-TOR')),
+        h('div', { class: 'brand' }, brandMark(), h('h1', { class: 'wordmark' }, 'AI-TOR')),
         h('a', { class: 'gear', href: '#/settings', id: 'settings-link', 'aria-label': 'Settings' }, gearIcon())),
       h('p', { class: 'greeting', id: 'greeting' }, greetingText(name)),
       h('p', { class: 'tagline' }, name ? 'Your life, in one place.' : 'Your life, in one place. Add your name in Settings.')),

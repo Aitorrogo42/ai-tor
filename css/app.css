@@ -47,7 +47,10 @@ body{margin:0;min-height:100vh;min-height:100dvh;font-family:var(--font);font-si
 @supports not (overflow:clip){html{overflow-x:hidden}}
 a{color:inherit;text-decoration:none}
 h1,h2,h3,p{margin:0}
-.loading{color:var(--muted);padding:40px 0;text-align:center}
+.loading{color:var(--muted);padding:56px 0;display:flex;flex-direction:column;align-items:center;gap:18px;font-size:12px;font-weight:500;letter-spacing:.34em;text-transform:uppercase}
+.loading .brand-mark{height:34px;color:#fff;filter:drop-shadow(0 0 12px var(--accent-glow));animation:mark-breathe 2.4s ease-in-out infinite}
+@keyframes mark-breathe{50%{opacity:.55}}
+@media (prefers-reduced-motion:reduce){.loading .brand-mark{animation:none}}
 .muted{color:var(--muted)}
 ::selection{background:var(--accent-soft);color:var(--text-hi)}
 
@@ -57,13 +60,15 @@ h1,h2,h3,p{margin:0}
 /* ---- home ---- */
 .home-head{position:relative;text-align:left;padding:10px 0 22px}
 .brand-row{display:flex;align-items:center;justify-content:space-between;min-height:48px}
-.brand{display:flex;align-items:center;gap:10px}
-.logo{width:30px;height:30px;border-radius:9px;display:grid;place-items:center;font-weight:600;font-size:12px;letter-spacing:.015em;color:#fff;
-  background:linear-gradient(150deg,var(--ember),var(--mars) 55%,var(--rust));box-shadow:0 0 18px var(--accent-glow),inset 0 1px 0 rgba(255,255,255,.35)}
-.wordmark{font-family:var(--font);font-size:13px;font-weight:500;letter-spacing:var(--track-brand);text-transform:uppercase;color:var(--text-hi)}
-.greeting{font-size:30px;line-height:1.1;font-weight:400;margin-top:26px;letter-spacing:.04em;color:var(--text-hi);
+.brand{display:flex;align-items:center;gap:14px}
+.brand-mark{display:block;height:28px;width:auto;aspect-ratio:560/516;flex:none;color:#fff;filter:drop-shadow(0 0 10px var(--accent-glow))}
+.brand .brand-mark{margin-top:-1px}
+.wordmark{font-family:var(--font);font-size:19px;line-height:1;font-weight:600;letter-spacing:.34em;margin-right:-.34em;text-transform:uppercase;color:var(--text-hi)}
+.about-lockup{display:flex;align-items:center;gap:12px;padding:6px 0 16px;margin-bottom:4px;border-bottom:1px solid var(--hair)}
+.about-lockup .brand-mark{height:24px}.about-lockup .wordmark{font-size:16px}
+.greeting{font-size:23px;line-height:1.25;font-weight:500;margin-top:26px;letter-spacing:.14em;text-transform:uppercase;color:var(--text-hi);
   background:linear-gradient(180deg,#fff 30%,#a9a9ab);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
-.tagline{color:var(--muted);margin-top:8px;font-size:15px}
+.tagline{color:var(--muted);margin-top:10px;font-size:12px;font-weight:500;letter-spacing:.24em;text-transform:uppercase;line-height:1.7}
 .section-list{display:flex;flex-direction:column;gap:12px;margin-top:4px}
 
 .section-icon{width:56px;height:56px;display:block;background:transparent;border:0;flex:none;overflow:visible}
