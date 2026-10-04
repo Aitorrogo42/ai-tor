@@ -1,10 +1,10 @@
 # AI-TOR
 
-An installable personal-life app (PWA). Plain HTML/CSS/JS: **no build step, no CDNs, no analytics, no backend, no accounts, and no network requests of its own.** (The only possible exceptions are the optional, off-by-default encrypted feeds, which each read one encrypted file from the app's own site: [To-Do sync](#to-do-and-optional-task-sync) and the [Finances Refresh](#finances-refresh-optional-encrypted-feed).)
+An installable personal-life app (PWA). Plain HTML/CSS/JS: **no build step, no CDNs, no analytics, no backend, no accounts, and no network requests of its own.** (The only possible exceptions are the optional, off-by-default encrypted feeds, which each read one encrypted file from the app's own site: [To-Do sync](#to-do-and-optional-task-sync) and the [Finances Refresh](#finances-refresh-optional-encrypted-feed) and the [Travels Destinations feed](#travels-destinations-optional-encrypted-feed).)
 
 **Local-first:** every person who installs AI-TOR enters *their own* data. It is stored only in that device's browser storage (`localStorage`), never sent anywhere, and the app works fully offline once opened. **The app bundle contains no personal data**: only code, icons, and clearly-fake example data.
 
-Today: **Finances** (accounts, debts, income/expenses, goals, notes, dashboard, and an optional ↻ Refresh from your assistant) and **Travels** (tick the countries you have visited out of a bundled offline list of 195, with search, per-continent counts, and optional year(s)/note per country). **To-Do** (a clear task list with a Done pile, comments per task, and an optional daily feed from your assistant). The home screen is a registry of sections, so more can be added later. Section logos live in `icons/sections/`.
+Today: **Finances** (accounts, debts, income/expenses, goals, notes, dashboard, and an optional ↻ Refresh from your assistant) and **Travels** with two tabs: **Visited** (tick the countries you have visited out of a bundled offline list of 195, with search, per-continent counts, and optional year(s)/note per country) and **Destinations** (places your Travel Guide bot proposes, from an optional encrypted feed). **To-Do** (a clear task list with a Done pile, comments per task, and an optional daily feed from your assistant). The home screen is a registry of sections, so more can be added later. Section logos live in `icons/sections/`.
 
 ## Using it
 1. Open the hosted URL, add to home screen (iPhone: Share → *Add to Home Screen*; Android: ⋮ → *Install app*).
@@ -35,7 +35,8 @@ js/ui.js, js/util.js         confirm dialog, toast, DOM + currency + date helper
 sections/todo/
   index.js (UI), model.js (schema, validation, feed parse + merge), sync.js (optional encrypted feed), todo.css
 sections/travels/
-  index.js, model.js, countries.js (bundled list: code, name, flag, continent), travels.css
+  index.js (tabs + Visited), model.js (document v2), countries.js (bundled list: code, name, flag, continent), travels.css
+  dest-model.js (place schema, sanitizing, https-only links, merge), dest-feed.js (fetch + decrypt + merge, auto-refresh), dest-ui.js (list + detail + refresh bar)
 sections/finances/
   index.js                   entry: empty state / dashboard / editor routing
   model.js                   schema v1, validation, calculations, example data
@@ -43,6 +44,7 @@ sections/finances/
   feed.js (Refresh: parse + merge + fetch), refreshbar.js (button / spinner / status / passphrase prompt)
 feed/tasks.enc.json          (published copy only) the ENCRYPTED to-do feed, written by the assistant's publish script
 feed/finances.enc.json       (published copy only) the ENCRYPTED finance snapshot, same format and passphrase
+feed/destinations.enc.json   (published copy only) the ENCRYPTED Travel Guide proposals, same format and passphrase
 icons/                       192/512, maskable, apple-touch-icon, favicon (the PWA app icon)
 icons/sections/              finances|travels|todo .png (512 master) and -256.png (used in the UI)
 screenshots/                 fake-data screenshots only
@@ -54,9 +56,9 @@ screenshots/                 fake-data screenshots only
 - `aitor:sec:<sectionId>` – that section's own document (e.g. `aitor:sec:finances`). A section only ever receives its own store (`ctx.store`), so future sections can't collide.
 - `aitor:cfg:<sectionId>` – device settings of a section (`aitor:cfg:feed`: the ONE passphrase shared by the To-Do and Finances feeds, mirrored into `aitor:cfg:todo` together with the To-Do last-sync info; `aitor:cfg:finances`: last refresh attempt/error). **Never exported**, kept when you Import, wiped by *Erase all data*.
 
-**Export file** (`schema` 3; schema 1 and 2 files still import. Every section is optional):
+**Export file** (`schema` 4; schema 1, 2 and 3 files still import. Every section is optional):
 ```json
-{ "app": "ai-tor", "schema": 3, "exportedAt": "…",
+{ "app": "ai-tor", "schema": 4, "exportedAt": "…",
   "profile": { "name": "…", "currency": "USD" },
   "sections": { "finances": {
     "version": 1, "example": false, "updatedAt": "…",
@@ -66,8 +68,11 @@ screenshots/                 fake-data screenshots only
     "goals": [{ "id": "…", "name": "…", "target": 0, "date": "YYYY-MM-DD" }],
     "notes": "",
     "feed": { "updated": "…", "asOf": "…", "refreshedAt": "…", "notes": "…" } },
-    "travels": { "version": 1, "updatedAt": "…",
-      "visited": [{ "code": "FR", "years": "2019, 2022", "note": "" }] },
+    "travels": { "version": 2, "updatedAt": "…",
+      "visited": [{ "code": "FR", "years": "2019, 2022", "note": "" }],
+      "destinations": [{ "id": "kyoto-japan", "name": "…", "kind": "city", "region": "…", "summary": "…", "recommended_on": "2026-10-04",
+        "best_window": "…", "things_to_do": [{ "title": "…", "details": "…", "url": "https://…" }], "logistics": ["…"], "downsides": ["…"],
+        "links": [{ "label": "…", "url": "https://…" }], "favorite": false, "note": "", "seen": true, "arrivedAt": "…" }] },
     "todo": { "version": 1, "updatedAt": "…", "dismissed": ["ids you deleted that came from sync"],
       "tasks": [{ "id": "m-abc123", "title": "Book flights", "due": "2026-10-20", "notes": "(sync only)",
         "source": "manual", "done": false, "doneAt": null, "createdAt": "…",
@@ -145,6 +150,17 @@ A **↻ Refresh** button on the Finances dashboard pulls the latest snapshot you
 - **Caching.** The feed is never precached or served cache-first: network-first (`cache: 'no-store'`), falling back to the last copy (cache `aitor-feed`) only if the network fails.
 - **Security.** The file is public but encrypted; the same passphrase protects your tasks *and* your account balances, so use a long unique one (see the To-Do security notes). Rotating it means republishing both feeds.
 - **Publishing (on the assistant's side):** `/workspace/tools/aitor_publish_finance_feed.sh` (encrypt + leak check + commit only `feed/finances.enc.json`).
+
+## Travels Destinations (optional encrypted feed)
+**Travels → Destinations** lists places your Travel Guide bot proposes (countries, states, cities, activities, museums), newest recommendation first. Each row shows the name, a kind chip, the region, a one-line summary, a **NEW** badge until you open it, and a ★ to favorite. Search, filter by kind, or show only favorites. Tap a place for its detail page: summary, best time, **Things to do** (with tappable links that open in a new tab), logistics, honest downsides, links, the recommendation date, a favorite toggle, your own note, and for a country in the bundled list a **Mark as visited** shortcut. Off by default: **with no passphrase stored the app never makes the request.**
+
+- **Where:** one same-origin file, `./feed/destinations.enc.json`, same encrypted format and **same shared passphrase** as To-Do and Finances (`js/feedcrypto.js`). If none is stored, tapping Refresh opens an inline prompt; it is saved only after it successfully decrypts the feed.
+- **Plaintext schema (version 1)** and the publishing tools: `/workspace/tools/README-destinations-feed.md`.
+- **Merge rules (by place `id`).** Feed fields overwrite; your favorite, note and seen state are never overwritten (the feed's `favorite` only applies when a place first arrives). Places that disappear from the feed stay; only `"removed": true` deletes one. An empty feed changes nothing and shows “No destinations yet” when there are none.
+- **Safety.** All feed text is shown with `textContent` (no HTML is ever interpreted). A URL becomes a link only if it is a plain `https://` URL; anything else (`javascript:`, `data:`, `http:`…) is dropped. Links open with `target="_blank" rel="noopener noreferrer"`.
+- **When.** On demand with ↻ Refresh, and automatically when you open the app or come back to it, **at most once every 15 minutes** (every attempt counts), only with a stored passphrase. Clear messages for: no passphrase, wrong passphrase, 404 / not published yet, offline, server problems, unreadable file; your last places stay on screen.
+- **Storage.** Places and your own state live in the Travels document (`aitor:sec:travels`, `destinations`), so they are included in Export/Import and wiped by *Erase all data*. Last refresh info is a device setting (`aitor:cfg:destinations`, never exported). “Clear all travels” on the Visited tab clears only visited countries.
+- **Caching.** Network-first, never precached; last copy kept in cache `aitor-feed` only as an offline fallback.
 
 ## Privacy notes
 - CSP in `index.html` restricts everything to same-origin (`connect-src 'self'`, no third-party hosts). The optional To-Do sync and Finances Refresh each only read one same-origin file; nothing is ever sent anywhere.

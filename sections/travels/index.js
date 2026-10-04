@@ -1,8 +1,10 @@
-// Travels section: countries you have visited. Route: #/travels
+// Travels section: two tabs. Visited = countries you have been to (#/travels); Destinations = places your Travel Guide proposes
+// (#/travels/destinations, #/travels/destinations/<id>; see dest-ui.js). Both live in the one document aitor:sec:travels.
 import { h, sectionIcon } from '../../js/util.js';
 import { toast, confirmDialog } from '../../js/ui.js';
 import { COUNTRIES, CONTINENTS } from './countries.js';
 import { validate, summary, emptyDoc, isEmptyDoc, TOTAL, LIMITS, norm } from './model.js';
+import { renderList, renderDetail, LIST_HASH } from './dest-ui.js';
 
 export { validate, summary, emptyDoc };
 export const storageId = 'travels';
@@ -27,9 +29,19 @@ export async function render(root, ctx) {
   }
 
   const visitedMap = () => new Map(doc.visited.map((v) => [v.code, v]));
+  // Only `visited` is ours here: re-read the stored document first so destinations changed meanwhile (a background feed refresh,
+  // favorites) are never overwritten by this page's older in-memory copy.
   const persist = () => {
-    doc.updatedAt = new Date().toISOString();
-    try { store.set(doc); return true; } catch (e) { console.warn(e); toast('Could not save: storage is full or blocked'); return false; }
+    try {
+      const cur = store.get();
+      const v = cur ? validate(cur) : null;
+      const fresh = v && v.ok ? v.doc : emptyDoc();
+      fresh.visited = doc.visited;
+      fresh.updatedAt = new Date().toISOString();
+      store.set(fresh);
+      doc = fresh;
+      return true;
+    } catch (e) { console.warn(e); toast('Could not save: storage is full or blocked'); return false; }
   };
 
   let query = '';
@@ -142,14 +154,40 @@ export async function render(root, ctx) {
   }
 
   const clearAll = h('button', { type: 'button', class: 'btn danger small', id: 'trv-clear-all', onclick: async () => {
-    if (isEmptyDoc(doc)) return;
-    if (!(await confirmDialog({ title: 'Clear all visited countries?', message: 'This removes every country, year and note from Travels on this device.', okLabel: 'Clear all', danger: true }))) return;
-    doc = emptyDoc(); editing = null; store.clear(); toast('Travels cleared'); renderLists();
+    if (!doc.visited.length) return;
+    if (!(await confirmDialog({ title: 'Clear all visited countries?', message: 'This removes every visited country, year and note from Travels on this device. Your Destinations are kept.', okLabel: 'Clear all', danger: true }))) return;
+    doc.visited = []; editing = null;
+    if (!(doc.destinations && doc.destinations.length)) store.clear(); else persist();
+    toast('Visited countries cleared'); renderLists();
   } }, 'Clear all travels');
+
+  const tabs = (active) => h('div', { class: 'trv-tabs', role: 'tablist', 'aria-label': 'Travels' },
+    h('a', { class: 'trv-tab' + (active === 'visited' ? ' on' : ''), id: 'tab-visited', role: 'tab', 'aria-selected': String(active === 'visited'), href: '#/travels' }, 'Visited'),
+    h('a', { class: 'trv-tab' + (active === 'dest' ? ' on' : ''), id: 'tab-dest', role: 'tab', 'aria-selected': String(active === 'dest'), href: LIST_HASH }, 'Destinations',
+      newCount() ? h('span', { class: 'trv-tabbadge', id: 'tab-dest-new', 'aria-label': `${newCount()} new` }, String(newCount())) : null));
+  function newCount() { return (doc.destinations || []).filter((p) => !p.seen).length; }
+
+  // ---- Destinations tab (list + detail) ----
+  const m = /^#\/travels\/destinations(?:\/([^/?#]+))?\/?$/.exec(ctx.hash || '');
+  if (m) {
+    if (m[1]) {
+      let id = ''; try { id = decodeURIComponent(m[1]); } catch { /* bad escape: not found */ }
+      renderDetail(root, ctx, id);
+      return;
+    }
+    document.title = 'Destinations · Travels · AI-TOR';
+    root.append(
+      h('div', { class: 'topbar' }, h('a', { class: 'back', href: '#/' }, '‹ Home')),
+      h('div', { class: 'fin-head' }, h('h1', { class: 'with-ico' }, sectionIcon('travels'), 'Travels'), h('p', { class: 'asof' }, 'Places your Travel Guide suggests')),
+      tabs('dest'));
+    renderList(root, ctx);
+    return;
+  }
 
   root.append(
     h('div', { class: 'topbar' }, h('a', { class: 'back', href: '#/' }, '‹ Home')),
     h('div', { class: 'fin-head' }, h('h1', { class: 'with-ico' }, sectionIcon('travels'), 'Travels'), h('p', { class: 'asof' }, 'Countries you have visited')),
+    tabs('visited'),
     h('div', { class: 'card trv-top' }, countText, progress,
       h('p', { class: 'note' }, '🔒 Stored only on this device. Include it in backups via Settings → Export.')),
     h('div', { class: 'trv-searchrow' }, search, clearSearch),

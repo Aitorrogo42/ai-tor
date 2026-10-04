@@ -98,6 +98,18 @@ async function autoRefreshFinances() {
 autoRefreshFinances();
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') autoRefreshFinances(); });
 
+// Optional Travels → Destinations feed (proposals from the Travel Guide): same shared passphrase, at most once per 15 minutes.
+async function autoRefreshDestinations() {
+  try {
+    const f = storage.config('feed').get(), t = storage.config('todo').get();
+    if (!((f && f.passphrase) || (t && t.passphrase))) return;
+    const m = await import('../sections/travels/dest-feed.js');
+    await m.maybeAutoRefresh();
+  } catch (e) { console.warn('destinations auto-refresh skipped', e); }
+}
+autoRefreshDestinations();
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') autoRefreshDestinations(); });
+
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     const had = !!navigator.serviceWorker.controller;

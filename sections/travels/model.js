@@ -1,15 +1,18 @@
-// Travels data model (document version 1). Stored at "aitor:sec:travels".
-// { version:1, updatedAt, visited: [ { code:'FR', years:'2019, 2022', note:'…' } ] }
+// Travels data model (document version 2). Stored at "aitor:sec:travels".
+// { version:2, updatedAt, visited: [ { code:'FR', years:'2019, 2022', note:'…' } ],
+//   destinations: [ place… ] }   // proposals from the Travel Guide feed + your favorite/note/seen state, see dest-model.js
+// Version 1 documents (visited only) are still valid and load with no destinations.
 import { COUNTRIES } from './countries.js';
+import { cleanStored, LIMITS as DLIM } from './dest-model.js';
 
-export const VERSION = 1;
+export const VERSION = 2;
 export const LIMITS = { years: 40, note: 500 };
 export const TOTAL = COUNTRIES.length;
 const BY_CODE = new Map(COUNTRIES.map((c) => [c.code, c]));
 export const countryByCode = (code) => BY_CODE.get(code);
 
-export const emptyDoc = () => ({ version: VERSION, updatedAt: null, visited: [] });
-export const isEmptyDoc = (d) => !d || d.visited.length === 0;
+export const emptyDoc = () => ({ version: VERSION, updatedAt: null, visited: [], destinations: [] });
+export const isEmptyDoc = (d) => !d || (d.visited.length === 0 && (!d.destinations || d.destinations.length === 0));
 
 /** Validate + sanitize a travels document. Returns { ok, errors, doc }. Never throws. */
 export function validate(raw) {
@@ -34,12 +37,22 @@ export function validate(raw) {
       doc.visited.push({ code: v.code, years: (v.years || '').trim(), note: (v.note || '').trim() });
     });
   }
+  if (raw.destinations != null && !Array.isArray(raw.destinations)) err('Travels: "destinations" must be a list.');
+  else if ((raw.destinations || []).length > DLIM.places) err('Travels: too many destinations.');
+  else {
+    const seen = new Set();
+    for (const o of raw.destinations || []) {
+      const p = cleanStored(o);
+      if (!p || seen.has(p.id)) continue;   // unusable entries are dropped
+      seen.add(p.id); doc.destinations.push(p);
+    }
+  }
   return { ok: errors.length === 0, errors, doc };
 }
 
 export function summary(doc) {
-  const n = doc.visited.length;
-  return `${n} of ${TOTAL} countries visited`;
+  const n = doc.visited.length, d = (doc.destinations || []).length;
+  return `${n} of ${TOTAL} countries visited` + (d ? `, ${d} proposed destination${d === 1 ? '' : 's'}` : '');
 }
 
 /** lowercase, accent-free text for searching */

@@ -1,16 +1,16 @@
 // AI-TOR service worker: precache everything (same-origin only) so the whole app works fully offline.
 // The bundle contains NO user data: each user's finances live only in their own browser storage (localStorage).
-// The encrypted feeds (feed/tasks.enc.json, feed/finances.enc.json; anything under feed/) is NEVER precached or served cache-first: it is fetched network-first and the last copy
+// The encrypted feeds (feed/tasks.enc.json, feed/finances.enc.json, feed/destinations.enc.json; anything under feed/) is NEVER precached or served cache-first: it is fetched network-first and the last copy
 // is kept in a separate cache ('aitor-feed') only as an offline fallback.
 // Bump VERSION whenever any file changes so phones pick up the update.
-const VERSION = 'aitor-v7';
+const VERSION = 'aitor-v8';
 const FEED_CACHE = 'aitor-feed';
 const PRECACHE = [
   './', 'index.html', 'manifest.webmanifest',
   'css/app.css', 'sections/finances/finances.css', 'sections/travels/travels.css', 'sections/todo/todo.css',
   'js/app.js', 'js/sections.js', 'js/util.js', 'js/storage.js', 'js/ui.js', 'js/dataio.js', 'js/settings.js', 'js/feedcrypto.js',
   'sections/finances/index.js', 'sections/finances/model.js', 'sections/finances/dashboard.js', 'sections/finances/edit.js', 'sections/finances/chart.js', 'sections/finances/feed.js', 'sections/finances/refreshbar.js',
-  'sections/travels/index.js', 'sections/travels/model.js', 'sections/travels/countries.js',
+  'sections/travels/index.js', 'sections/travels/model.js', 'sections/travels/countries.js', 'sections/travels/dest-model.js', 'sections/travels/dest-feed.js', 'sections/travels/dest-ui.js',
   'sections/todo/index.js', 'sections/todo/model.js', 'sections/todo/sync.js',
   'icons/sections/finances-256.png', 'icons/sections/travels-256.png', 'icons/sections/todo-256.png',
   'icons/icon-192.png', 'icons/icon-512.png', 'icons/maskable-192.png', 'icons/maskable-512.png',
