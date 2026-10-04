@@ -1,0 +1,76 @@
+:root{--bg:#0b1220;--card:#121a2b;--card2:#152036;--line:#1c2740;--text:#f4f7fb;--muted:#8b9bb4;--green:#3ee07f;--blue:#4aa3ff;--gold:#e6c15a;--purple:#a78bfa;--red:#ff6b7a;--amber:#f5a524;
+  --safe-t:env(safe-area-inset-top,0px);--safe-b:env(safe-area-inset-bottom,0px);--safe-l:env(safe-area-inset-left,0px);--safe-r:env(safe-area-inset-right,0px)}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{color-scheme:dark;background:var(--bg);-webkit-text-size-adjust:100%}
+body{margin:0;min-height:100vh;min-height:100dvh;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;color:var(--text);
+  background:radial-gradient(900px 500px at 10% -10%,#182544 0%,var(--bg) 55%) fixed,var(--bg);line-height:1.4}
+#app{max-width:640px;margin:0 auto;padding:calc(18px + var(--safe-t)) calc(16px + var(--safe-r)) calc(32px + var(--safe-b)) calc(16px + var(--safe-l))}
+a{color:inherit;text-decoration:none}
+h1,h2,h3,p{margin:0}
+.loading{color:var(--muted);padding:40px 0;text-align:center}
+.muted{color:var(--muted)}
+
+/* home */
+.home-head{text-align:center;padding:28px 0 22px}
+.logo{width:68px;height:68px;margin:0 auto 14px;border-radius:20px;display:grid;place-items:center;font-weight:800;font-size:28px;letter-spacing:-.04em;
+  background:linear-gradient(145deg,#6d5ef5,#2fb6ff);box-shadow:0 8px 28px rgba(80,110,255,.35)}
+.home-head h1{font-size:34px;letter-spacing:-.04em}
+.tagline{color:var(--muted);margin-top:4px;font-size:15px}
+.section-list{display:flex;flex-direction:column;gap:12px;margin-top:8px}
+.section-btn{display:flex;align-items:center;gap:16px;padding:22px 18px;min-height:96px;border-radius:20px;border:1px solid var(--line);
+  background:linear-gradient(180deg,var(--card2),var(--card));box-shadow:0 6px 20px rgba(0,0,0,.25);transition:transform .08s,border-color .15s}
+.section-btn:active{transform:scale(.985);border-color:var(--purple)}
+.section-btn:focus-visible,.back:focus-visible,summary:focus-visible,button:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+.section-icon{font-size:36px;width:56px;height:56px;display:grid;place-items:center;border-radius:16px;background:#0f1830;border:1px solid var(--line);flex:none}
+.section-text{display:flex;flex-direction:column;flex:1;min-width:0}
+.section-title{font-size:24px;font-weight:700;letter-spacing:-.02em}
+.section-sub{color:var(--muted);font-size:13px;margin-top:2px}
+.chev{font-size:32px;color:var(--muted);line-height:1}
+.home-foot{margin-top:28px;text-align:center;color:var(--muted);font-size:12.5px;display:flex;flex-direction:column;gap:12px;align-items:center}
+.ghost{background:transparent;color:var(--text);border:1px solid var(--line);border-radius:12px;padding:12px 18px;font-size:15px;min-height:44px}
+
+/* shared */
+.back{display:inline-flex;align-items:center;min-height:44px;color:var(--blue);font-size:16px;margin-left:-4px;padding:0 4px}
+.card{background:linear-gradient(180deg,var(--card2),var(--card));border:1px solid var(--line);border-radius:16px;padding:16px}
+.card.error{border-color:var(--red)}
+
+/* ---- v2: home extras, forms, dialogs ---- */
+[hidden]{display:none!important}
+.home-head{position:relative}
+.gear{position:absolute;right:0;top:0;width:48px;height:48px;display:grid;place-items:center;font-size:24px;border-radius:14px;border:1px solid var(--line);background:var(--card)}
+.greeting{font-size:22px;font-weight:600;margin-top:8px;letter-spacing:-.02em}
+.topbar{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.center{text-align:center}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:46px;padding:0 18px;border-radius:12px;border:1px solid var(--line);background:transparent;color:var(--text);font:inherit;font-size:15px;font-weight:600;cursor:pointer;text-align:center}
+.btn.primary{background:linear-gradient(145deg,#6d5ef5,#2fb6ff);border-color:transparent;color:#fff}
+.btn.danger{background:#3a1219;border-color:#7a2432;color:#ffb3bc}
+.btn.ghost{background:transparent}
+.btn.small{min-height:44px;padding:0 14px;font-size:14px}
+.btn.big{min-height:54px;font-size:17px}
+.btn.add{width:100%;margin-top:2px}
+.danger-txt{color:var(--red)}
+.btnrow{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+.btnrow.col{flex-direction:column;align-items:stretch}
+.btnrow.col .note{text-align:center}
+.stackc{display:flex;flex-direction:column;gap:12px}
+.stackc .btn{width:100%}
+.filebtn{position:relative;overflow:hidden}
+.file-input{position:absolute;inset:0;opacity:0;width:100%;height:100%;cursor:pointer;font-size:0}
+.fld{display:flex;flex-direction:column;gap:6px;margin-top:12px}
+.fld .fl{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.fld .hint{font-size:12px;color:var(--muted)}
+input[type=text],input[type=date],select,textarea{width:100%;min-height:46px;padding:10px 12px;border-radius:12px;border:1px solid #26365a;background:#0d1628;color:var(--text);font:inherit;font-size:16px}
+textarea{resize:vertical}
+input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid var(--blue);outline-offset:1px}
+.form h3{font-size:17px}
+.form-err{margin-top:12px;padding:10px 12px;border-radius:12px;border:1px solid #7a2432;background:#2a1016;color:#ffb3bc;font-size:13.5px}
+.form-err ul{margin:6px 0 0;padding-left:18px}
+.note.ok{color:var(--green)}
+.overlay{position:fixed;inset:0;z-index:50;background:rgba(3,6,14,.72);display:grid;place-items:center;padding:20px}
+.dialog{width:100%;max-width:420px;background:var(--card2);border:1px solid var(--line);border-radius:18px;padding:20px;box-shadow:0 20px 60px rgba(0,0,0,.5)}
+.dialog h2{font-size:19px;margin-bottom:8px}
+.dialog p{color:#c8d3e6;font-size:14.5px}
+.dlg-details{margin:12px 0 0;padding-left:18px;color:#c8d3e6;font-size:13.5px}
+.dlg-actions{display:flex;gap:10px;margin-top:18px}
+.dlg-actions .btn{flex:1}
+.toast{position:fixed;left:50%;bottom:calc(24px + var(--safe-b));transform:translateX(-50%);z-index:60;background:#1b2a4a;border:1px solid #2d4373;padding:10px 16px;border-radius:99px;font-size:14px}
