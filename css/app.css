@@ -21,7 +21,7 @@ h1,h2,h3,p{margin:0}
   background:linear-gradient(180deg,var(--card2),var(--card));box-shadow:0 6px 20px rgba(0,0,0,.25);transition:transform .08s,border-color .15s}
 .section-btn:active{transform:scale(.985);border-color:var(--purple)}
 .section-btn:focus-visible,.back:focus-visible,summary:focus-visible,button:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
-.section-icon{width:56px;height:56px;display:block;border-radius:16px;background:#0f1830;border:1px solid var(--line);flex:none;overflow:hidden}
+.section-icon{width:56px;height:56px;display:block;background:transparent;border:0;flex:none;overflow:visible}
 .section-icon img{display:block;width:56px;height:56px;object-fit:contain}
 .sec-ico{display:block;flex:none;border-radius:11px;object-fit:contain;background:#0f1830;border:1px solid var(--line)}
 h1.with-ico{display:flex;align-items:center;gap:12px}

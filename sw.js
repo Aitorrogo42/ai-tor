@@ -3,7 +3,7 @@
 // The encrypted feeds (feed/tasks.enc.json, feed/finances.enc.json, feed/destinations.enc.json; anything under feed/) is NEVER precached or served cache-first: it is fetched network-first and the last copy
 // is kept in a separate cache ('aitor-feed') only as an offline fallback.
 // Bump VERSION whenever any file changes so phones pick up the update.
-const VERSION = 'aitor-v9';
+const VERSION = 'aitor-v10';
 const FEED_CACHE = 'aitor-feed';
 const PRECACHE = [
   './', 'index.html', 'manifest.webmanifest',
