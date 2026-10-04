@@ -1,7 +1,7 @@
 // AI-TOR service worker: precache everything (same-origin only) so the whole app works fully offline.
 // The bundle contains NO user data: each user's finances live only in their own browser storage (localStorage).
 // Bump VERSION whenever any file changes so phones pick up the update.
-const VERSION = 'aitor-v3';
+const VERSION = 'aitor-v4';
 const PRECACHE = [
   './', 'index.html', 'manifest.webmanifest',
   'css/app.css', 'sections/finances/finances.css', 'sections/travels/travels.css',
@@ -13,7 +13,7 @@ const PRECACHE = [
 ];
 
 self.addEventListener('install', (e) => {
-  e.waitUntil(caches.open(VERSION).then((c) => c.addAll(PRECACHE)).then(() => self.skipWaiting()));
+  e.waitUntil(caches.open(VERSION).then((c) => Promise.all(PRECACHE.map((u) => fetch(new Request(u, { cache: 'reload' })).then((r) => { if (!r.ok) throw new Error(u + ' ' + r.status); return c.put(u, r); })))).then(() => self.skipWaiting()));
 });
 self.addEventListener('activate', (e) => {
   e.waitUntil(caches.keys().then((ks) => Promise.all(ks.filter((k) => k !== VERSION).map((k) => caches.delete(k)))).then(() => self.clients.claim()));
