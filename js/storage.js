@@ -27,7 +27,7 @@ export function section(id) {
   return { key, get: () => read(key), set: (doc) => write(key, doc), clear: () => localStorage.removeItem(key) };
 }
 
-/** Per-section device settings (e.g. the To-Do sync repo/token). Stored under "aitor:cfg:<id>"; NEVER part of export files,
+/** Per-section device settings (e.g. the To-Do sync passphrase). Stored under "aitor:cfg:<id>"; NEVER part of export files,
  *  kept across Import, and wiped by "Erase all data". */
 export function config(id) {
   if (!/^[a-z][a-z0-9-]*$/.test(id)) throw new Error('Bad section id: ' + id);

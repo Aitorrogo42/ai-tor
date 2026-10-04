@@ -1,7 +1,10 @@
 // AI-TOR service worker: precache everything (same-origin only) so the whole app works fully offline.
 // The bundle contains NO user data: each user's finances live only in their own browser storage (localStorage).
+// The encrypted task feed (feed/*) is NEVER precached or served cache-first: it is fetched network-first and the last copy
+// is kept in a separate cache ('aitor-feed') only as an offline fallback.
 // Bump VERSION whenever any file changes so phones pick up the update.
-const VERSION = 'aitor-v5';
+const VERSION = 'aitor-v6';
+const FEED_CACHE = 'aitor-feed';
 const PRECACHE = [
   './', 'index.html', 'manifest.webmanifest',
   'css/app.css', 'sections/finances/finances.css', 'sections/travels/travels.css', 'sections/todo/todo.css',
@@ -18,12 +21,19 @@ self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(VERSION).then((c) => Promise.all(PRECACHE.map((u) => fetch(new Request(u, { cache: 'reload' })).then((r) => { if (!r.ok) throw new Error(u + ' ' + r.status); return c.put(u, r); })))).then(() => self.skipWaiting()));
 });
 self.addEventListener('activate', (e) => {
-  e.waitUntil(caches.keys().then((ks) => Promise.all(ks.filter((k) => k !== VERSION).map((k) => caches.delete(k)))).then(() => self.clients.claim()));
+  e.waitUntil(caches.keys().then((ks) => Promise.all(ks.filter((k) => k !== VERSION && k !== FEED_CACHE).map((k) => caches.delete(k)))).then(() => self.clients.claim()));
 });
 self.addEventListener('fetch', (e) => {
   const req = e.request;
   const url = new URL(req.url);
   if (req.method !== 'GET' || url.origin !== self.location.origin) return; // never touch cross-origin
+  if (url.pathname.includes('/feed/')) {   // network-first, offline fallback = last good copy
+    e.respondWith(fetch(new Request(req, { cache: 'no-store' })).then((res) => {
+      if (res.ok) { const copy = res.clone(); caches.open(FEED_CACHE).then((c) => c.put(url.pathname, copy)); }
+      return res;
+    }).catch(() => caches.open(FEED_CACHE).then((c) => c.match(url.pathname)).then((r) => r || Response.error())));
+    return;
+  }
   if (req.mode === 'navigate') {
     e.respondWith(caches.match('index.html').then((r) => r || fetch(req)));
     return;

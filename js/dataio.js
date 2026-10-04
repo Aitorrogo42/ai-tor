@@ -5,7 +5,7 @@ import * as storage from './storage.js';
 import { CURRENCIES, formatMoney } from './util.js';
 
 // schema 2 added Travels, schema 3 adds To-Do. Older files (finances only, finances+travels) still import; every section is optional.
-// Sync settings/token are device settings and are never exported.
+// Sync settings (passphrase) are device settings and are never exported.
 export const SCHEMA = 3;
 export const MAX_IMPORT_BYTES = 5 * 1024 * 1024;
 
@@ -55,7 +55,7 @@ export async function validateImport(obj) {
 
 /** Replace everything on this device with a validated import result. */
 export function applyImport(result) {
-  storage.eraseDocuments(); // device settings (sync token) are not part of exports and are kept
+  storage.eraseDocuments(); // device settings (sync passphrase) are not part of exports and are kept
   storage.setCore({ version: storage.CORE_VERSION, profile: result.profile });
   for (const [id, doc] of Object.entries(result.sections)) storage.section(id).set(doc);
 }

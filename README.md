@@ -1,6 +1,6 @@
 # AI-TOR
 
-An installable personal-life app (PWA). Plain HTML/CSS/JS: **no build step, no CDNs, no analytics, no backend, no accounts, and no network requests of its own.** (The only possible exception is the optional, off-by-default To-Do task sync, which reads one file from `api.github.com`; see [To-Do sync](#to-do-and-optional-task-sync).)
+An installable personal-life app (PWA). Plain HTML/CSS/JS: **no build step, no CDNs, no analytics, no backend, no accounts, and no network requests of its own.** (The only possible exception is the optional, off-by-default To-Do task sync, which reads one encrypted file from the app's own site; see [To-Do sync](#to-do-and-optional-task-sync).)
 
 **Local-first:** every person who installs AI-TOR enters *their own* data. It is stored only in that device's browser storage (`localStorage`), never sent anywhere, and the app works fully offline once opened. **The app bundle contains no personal data**: only code, icons, and clearly-fake example data.
 
@@ -32,13 +32,14 @@ js/dataio.js                 export / validate / import of the whole app
 js/settings.js               Settings screen
 js/ui.js, js/util.js         confirm dialog, toast, DOM + currency + date helpers
 sections/todo/
-  index.js (UI), model.js (schema, validation, feed parse + merge), sync.js (optional GitHub feed), todo.css
+  index.js (UI), model.js (schema, validation, feed parse + merge), sync.js (optional encrypted feed), todo.css
 sections/travels/
   index.js, model.js, countries.js (bundled list: code, name, flag, continent), travels.css
 sections/finances/
   index.js                   entry: empty state / dashboard / editor routing
   model.js                   schema v1, validation, calculations, example data
   dashboard.js, edit.js, chart.js, finances.css
+feed/tasks.enc.json          (published copy only) the ENCRYPTED to-do feed, written by the assistant's publish script
 icons/                       192/512, maskable, apple-touch-icon, favicon (the PWA app icon)
 icons/sections/              finances|travels|todo .png (512 master) and -256.png (used in the UI)
 screenshots/                 fake-data screenshots only
@@ -48,7 +49,7 @@ screenshots/                 fake-data screenshots only
 `localStorage` keys (all prefixed `aitor:`):
 - `aitor:core` – `{version, profile:{name, currency}}`
 - `aitor:sec:<sectionId>` – that section's own document (e.g. `aitor:sec:finances`). A section only ever receives its own store (`ctx.store`), so future sections can't collide.
-- `aitor:cfg:<sectionId>` – device settings of a section (today only `aitor:cfg:todo`: sync repo, path, token, last-sync info). **Never exported**, kept when you Import, wiped by *Erase all data*.
+- `aitor:cfg:<sectionId>` – device settings of a section (today only `aitor:cfg:todo`: sync passphrase, last-sync info). **Never exported**, kept when you Import, wiped by *Erase all data*.
 
 **Export file** (`schema` 3; schema 1 and 2 files still import. Every section is optional):
 ```json
@@ -82,9 +83,9 @@ Import rejects: non-JSON, wrong `app`, missing/newer `schema`, negative account 
 ## To-Do and optional task sync
 **Using it:** type a task (optional due date) and tap *Add task*. New tasks appear at the top. Tick the circle to move a task to the collapsed **Done** pile (with the time you finished it); untick it there to bring it back. Tap a task to open it: add, edit or delete timestamped comments, edit a manual task, or delete it. A 💬 count on the row shows how many comments it has.
 
-**Sync (optional, off by default).** Your General Assistant bot can publish a daily task list as a JSON file in a **private** GitHub repo. AI-TOR reads that one file and merges it into your list.
+**Sync (optional, off by default).** Your General Assistant bot keeps your task list as `tasks.json` in a **private** repo, then publishes an **encrypted** copy next to the app at `feed/tasks.enc.json` (same origin, e.g. `https://<you>.github.io/ai-tor/feed/tasks.enc.json`). AI-TOR downloads that file, decrypts it on your device with a passphrase you type once, and merges it into your list. No account, no GitHub token.
 
-### Feed format (`tasks.json`)
+### Feed format (`tasks.json`, the plaintext, which never goes in the public repo)
 ```json
 { "version": 1, "updated": "2026-10-04T06:00:00Z",
   "tasks": [
@@ -104,20 +105,32 @@ Import rejects: non-JSON, wrong `app`, missing/newer `schema`, negative account 
 - A synced task you delete yourself is remembered and will not come back on the next sync.
 - Manual tasks are never touched by sync.
 
+### Encrypted file format (`feed/tasks.enc.json`)
+```json
+{ "v": 1, "kdf": "PBKDF2-SHA256", "iter": 600000, "salt": "<b64, 16 bytes>", "iv": "<b64, 12 bytes>",
+  "ct": "<b64 AES-GCM ciphertext of the tasks.json UTF-8 bytes, with the 16-byte tag appended>", "updated": "ISO time" }
+```
+Key = PBKDF2-HMAC-SHA256(passphrase as NFC-normalised UTF-8, salt, 600000 iterations) → 256 bits; AES-256-GCM, no additional data. A fresh random salt and IV are used for every encryption. The app decrypts with WebCrypto (`crypto.subtle`, so it needs HTTPS or localhost). The publisher is `/workspace/tools/aitor_encrypt_feed.py` (see `/workspace/tools/README-todo-feed.md`).
+
 ### Set it up
-1. On GitHub create a **private** repository (for example `ai-tor-tasks`) and have your assistant bot commit `tasks.json` to it each day in the format above.
-2. GitHub → *Settings → Developer settings → Personal access tokens → Fine-grained tokens → Generate new token*. Resource owner: you. **Repository access: Only select repositories → your tasks repo.** Permissions: **Repository permissions → Contents: Read-only** (nothing else). Pick an expiry (e.g. 1 year) and copy the token (starts with `github_pat_`).
-3. In AI-TOR open **To-Do → Task sync settings**, enter `owner/name`, the file path (default `tasks.json`) and the token, then *Save & sync*.
-The token is read-only and limited to that one repo, but anyone with access to your unlocked phone/browser profile could read it from local storage. Revoke it on GitHub if the device is lost. *Remove sync* (or *Erase all data*) deletes it from the device.
+1. Choose a long passphrase and give it to your assistant's publishing job (environment variable `AITOR_TODO_PASSPHRASE`, never stored in the repo).
+2. In AI-TOR open **To-Do → Task sync settings**, type the same passphrase and tap *Save & sync*.
+The passphrase is kept in this device's `localStorage` only (not exported, not sent anywhere). *Remove sync* (or *Erase all data*) deletes it.
+
+### Security: read this
+- **The encrypted file is public.** Anyone who knows the URL can download it. Without the passphrase they only see random bytes (plus the `updated` time and the file size, which roughly reveals how long the list is).
+- **Its strength is the strength of your passphrase.** Anyone can try guessing offline, without any rate limit. PBKDF2 with 600,000 iterations slows each guess but does not stop a determined attacker, so use a **long, unique passphrase** (4+ random words or 16+ characters), never a reused password.
+- If you ever think it leaked, change the passphrase (the publisher re-encrypts) and note that old copies of the file stay decryptable with the old one: the old *task text* is exposed, so rotate and don't rely on it for anything very sensitive. Don't put secrets (passwords, account numbers) in task titles or notes.
+- Decryption failures are reported as “Wrong passphrase” (AES-GCM authenticates the data, so a wrong passphrase or a tampered file are both rejected and never merged).
 
 ### When it syncs
 - Automatically when you open the app (and when you return to it), at most once every 4 hours after a successful sync, and not more than every 30 minutes after a failed attempt.
-- Any time with **↻ Sync now**. The To-Do screen shows when it last synced and a clear message if something failed (wrong token, repo or file not found, offline, bad file…).
-- The request is `GET https://api.github.com/repos/{repo}/contents/{path}` with `Accept: application/vnd.github.raw`, `Authorization: Bearer <token>`, `cache: 'no-store'`, no cookies, no referrer. **If sync is not configured, the app makes zero network requests.**
+- Any time with **↻ Sync now**. The To-Do screen shows when it last synced and a clear message if something failed (no passphrase, wrong passphrase, feed not found, bad file, offline…).
+- The request is a plain same-origin `GET ./feed/tasks.enc.json` with `cache: 'no-store'`, no cookies, no referrer. The service worker never precaches it and never serves it cache-first: it is fetched network-first, and only if the network fails does it fall back to the last copy it saw (cache `aitor-feed`), so you can still re-sync from a cached copy when offline. **If sync is not set up, the app makes zero network requests.**
 
 ## Privacy notes
-- CSP in `index.html` restricts everything to same-origin, with exactly one extra allowance: `connect-src 'self' https://api.github.com`, used only by the optional To-Do sync above. Nothing else is contacted, and nothing is ever sent to any server other than GitHub's read-only file API.
-- Data lives only in the browser profile on each device. The service worker caches app code only (it never touches cross-origin requests such as the sync call).
+- CSP in `index.html` restricts everything to same-origin (`connect-src 'self'`, no third-party hosts). The optional To-Do sync only reads one same-origin file; nothing is ever sent anywhere.
+- Data lives only in the browser profile on each device. The service worker caches app code only, plus the last copy of the encrypted feed as an offline fallback (it never touches cross-origin requests).
 - The site can be hosted publicly: it holds no one's data. (Each visitor's data stays in their own browser.)
 
 ## Hosting

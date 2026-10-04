@@ -1,7 +1,7 @@
 // To-Do data model (document version 1). Stored at "aitor:sec:todo" and included in export files.
 // { version:1, updatedAt, tasks:[ Task ], dismissed:[ids] }   (tasks are kept newest-first)
 // Task = { id, title, due?:'YYYY-MM-DD', notes?, source:'manual'|'sync', done, doneAt, comments:[{id,text,at,editedAt?}], createdAt }
-// Sync settings (repo/path/token) are NOT part of this document: they live in "aitor:cfg:todo" and are never exported.
+// Sync settings (passphrase) are NOT part of this document: they live in "aitor:cfg:todo" and are never exported.
 import { isValidISODate, uid } from '../../js/util.js';
 
 export const VERSION = 1;
@@ -82,7 +82,7 @@ export const openTasks = (doc) => doc.tasks.filter((t) => !t.done);
 export const doneTasks = (doc) => doc.tasks.filter((t) => t.done).sort((a, b) => (Date.parse(b.doneAt) || 0) - (Date.parse(a.doneAt) || 0));
 
 // ---------------------------------------------------------------- sync feed
-/** Parse + validate the feed text from GitHub. Returns { ok, error?, feed? }. Bad individual tasks are skipped (counted), not fatal. */
+/** Parse + validate the (decrypted) feed text. Returns { ok, error?, feed? }. Bad individual tasks are skipped (counted), not fatal. */
 export function parseFeed(text) {
   if (typeof text !== 'string' || text.length > LIMITS.feedBytes) return { ok: false, error: 'The task file is too large (max 1 MB).' };
   let obj;

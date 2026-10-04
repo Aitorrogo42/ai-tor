@@ -1,14 +1,17 @@
-// Optional daily task feed. The ONLY network request AI-TOR can make: GET https://api.github.com/repos/{repo}/contents/{path}
-// (read-only, Authorization: Bearer <fine-grained token>, Accept: application/vnd.github.raw, cache: 'no-store').
-// With no sync configured this module makes zero requests. Settings (repo, path, token) live in localStorage
-// ("aitor:cfg:todo") on this device only; they are never exported.
+// Optional task feed. AI-TOR fetches ONE same-origin file, ./feed/tasks.enc.json (an AES-GCM encrypted copy of the task list,
+// published next to the app), and decrypts it on this device with a passphrase using WebCrypto. No third-party requests, no tokens.
+// The passphrase lives only in localStorage ("aitor:cfg:todo") on this device; it is never exported or sent anywhere.
+// With no passphrase set this module makes zero requests.
+//
+// File format: {"v":1,"kdf":"PBKDF2-SHA256","iter":600000,"salt":"<b64>","iv":"<b64>","ct":"<b64 ciphertext+16-byte tag>","updated":"ISO"}
+// Key = PBKDF2-HMAC-SHA256(NFC(passphrase) as UTF-8, salt, iter) -> 256-bit AES-GCM key; 12-byte iv; no AAD.
 import * as storage from '../../js/storage.js';
-import { validate, emptyDoc, parseFeed, mergeFeed, LIMITS } from './model.js';
+import { validate, emptyDoc, parseFeed, mergeFeed } from './model.js';
 
 export const AUTO_SYNC_MS = 4 * 60 * 60 * 1000;   // auto-sync on open at most every 4 hours after a success
 export const RETRY_MS = 30 * 60 * 1000;           // ...and not more than every 30 min after a failed attempt
-export const DEFAULT_PATH = 'tasks.json';
-const API = 'https://api.github.com';
+export const FEED_URL = new URL('../../feed/tasks.enc.json', import.meta.url).href;   // same origin as the app
+export const MAX_ITER = 2000000, MIN_ITER = 100000;
 
 const cfgStore = () => storage.config('todo');
 const store = () => storage.section('todo');
@@ -18,35 +21,51 @@ export function getConfig() {
   const c = cfgStore().get();
   return (c && typeof c === 'object') ? c : {};
 }
-export function isConfigured() { const c = getConfig(); return !!(c.repo && c.token); }
-export function saveConfig({ repo, path, token }) {
+export function isConfigured() { const c = getConfig(); return typeof c.passphrase === 'string' && c.passphrase.length > 0; }
+export function saveConfig({ passphrase }) {
   const prev = getConfig();
-  cfgStore().set({ ...prev, repo: repo.trim(), path: (path || DEFAULT_PATH).trim(), token: token.trim() });
+  const { repo, path, token, ...rest } = prev;   // drop obsolete GitHub settings if an older version stored them
+  cfgStore().set({ ...rest, passphrase });
 }
 export function clearConfig() { cfgStore().clear(); }
-
-export function checkConfig({ repo, path, token }) {
+export function checkConfig({ passphrase }) {
   const errors = [];
-  if (!/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test((repo || '').trim())) errors.push('Repository must look like owner/name (for example yourname/ai-tor-tasks).');
-  const p = (path || DEFAULT_PATH).trim().replace(/^\/+/, '');
-  if (!p || p.length > 200 || p.split('/').some((s) => s === '' || s === '.' || s === '..') || /[\\?#\u0000-\u001f]/.test(p)) errors.push('File path looks invalid (example: tasks.json).');
-  if (!(token || '').trim()) errors.push('Paste your read-only GitHub token.');
-  else if (!/^[\x21-\x7e]+$/.test(token.trim()) || token.trim().length > 255) errors.push('The token has unexpected characters. Paste it again without spaces or line breaks.');
+  if (!passphrase) errors.push('Enter the passphrase.');
+  else if (passphrase.length < 8) errors.push('The passphrase must be at least 8 characters.');
+  else if (passphrase.length > 200) errors.push('That passphrase is too long (max 200 characters).');
   return errors;
 }
 
-export function contentsUrl(repo, path) {
-  const p = (path || DEFAULT_PATH).trim().replace(/^\/+/, '').split('/').map(encodeURIComponent).join('/');
-  return `${API}/repos/${repo.trim()}/contents/${p}`;
+const b64 = (s) => { const bin = atob(s); const out = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i); return out; };
+export class FeedError extends Error { constructor(kind, message) { super(message); this.kind = kind; } }
+
+/** Decrypt the envelope object (already JSON-parsed) -> plaintext string. Throws FeedError(kind: 'format' | 'passphrase' | 'nocrypto'). */
+export async function decryptEnvelope(env, passphrase) {
+  const bad = (m) => new FeedError('format', m || 'The encrypted task file is in an unexpected format.');
+  if (!env || typeof env !== 'object' || Array.isArray(env)) throw bad();
+  if (env.v !== 1) throw bad(env.v > 1 ? 'The encrypted task file is a newer format than this app understands (update AI-TOR).' : null);
+  if (env.kdf !== 'PBKDF2-SHA256' || !Number.isInteger(env.iter) || env.iter < MIN_ITER || env.iter > MAX_ITER) throw bad();
+  if (typeof env.salt !== 'string' || typeof env.iv !== 'string' || typeof env.ct !== 'string') throw bad();
+  let salt, iv, ct;
+  try { salt = b64(env.salt); iv = b64(env.iv); ct = b64(env.ct); } catch { throw bad(); }
+  if (salt.length < 8 || salt.length > 64 || iv.length !== 12 || ct.length < 16 || ct.length > 4 * 1024 * 1024) throw bad();
+  const subtle = globalThis.crypto && globalThis.crypto.subtle;
+  if (!subtle) throw new FeedError('nocrypto', 'This browser cannot do encryption here (it needs HTTPS). Open AI-TOR from its normal https address.');
+  const pw = new TextEncoder().encode(String(passphrase).normalize('NFC'));
+  let plain;
+  try {
+    const base = await subtle.importKey('raw', pw, 'PBKDF2', false, ['deriveKey']);
+    const key = await subtle.deriveKey({ name: 'PBKDF2', hash: 'SHA-256', salt, iterations: env.iter }, base, { name: 'AES-GCM', length: 256 }, false, ['decrypt']);
+    plain = await subtle.decrypt({ name: 'AES-GCM', iv }, key, ct);
+  } catch { throw new FeedError('passphrase', 'Wrong passphrase. It must match the one used to encrypt the task list exactly (check capital letters and spaces). Open sync settings to re-enter it.'); }
+  return new TextDecoder('utf-8', { fatal: true }).decode(plain);
 }
 
 export function describeHttp(status) {
-  if (status === 401) return 'GitHub rejected the token (401). It may be wrong, expired or revoked. Create a new token and paste it in the sync settings.';
-  if (status === 403) return 'GitHub refused the request (403). The token may lack read access to this repository, or the rate limit was hit. Try again later.';
-  if (status === 404) return 'File not found (404). Check the repository name and file path, and that the token has access to that private repository (Contents: Read-only).';
-  if (status === 429) return 'GitHub rate limit reached (429). Try again later.';
-  if (status >= 500) return `GitHub had a problem (${status}). Try again later.`;
-  return `GitHub returned an unexpected response (${status}).`;
+  if (status === 404) return 'No task feed found yet (404). Your assistant has not published the encrypted list, or AI-TOR is not up to date. Try again later.';
+  if (status === 429) return 'The server is busy (429). Try again later.';
+  if (status >= 500) return `The server had a problem (${status}). Try again later.`;
+  return `The task feed returned an unexpected response (${status}).`;
 }
 
 function recordAttempt(patch) { try { cfgStore().set({ ...getConfig(), ...patch }); } catch { /* ignore */ } }
@@ -56,26 +75,28 @@ export function syncNow({ auto = false } = {}) {
   if (inFlight) return inFlight;
   inFlight = (async () => {
     const cfg = getConfig();
-    if (!cfg.repo || !cfg.token) return { ok: false, error: 'Sync is not set up yet.' };
+    if (!isConfigured()) return { ok: false, error: 'Enter your passphrase in the sync settings first.' };
     const attemptAt = new Date().toISOString();
     const fail = (error) => { recordAttempt({ lastAttemptAt: attemptAt, lastError: error }); return { ok: false, error }; };
     if (typeof navigator !== 'undefined' && navigator.onLine === false) return fail('You are offline. Sync will work when you are back online.');
-    let text;
+    let env;
     try {
       const ctl = new AbortController();
       const timer = setTimeout(() => ctl.abort(), 20000);
       let res;
       try {
-        res = await fetch(contentsUrl(cfg.repo, cfg.path), {
-          method: 'GET', cache: 'no-store', credentials: 'omit', referrerPolicy: 'no-referrer', redirect: 'follow', signal: ctl.signal,
-          headers: { Accept: 'application/vnd.github.raw', Authorization: 'Bearer ' + cfg.token },
-        });
+        res = await fetch(FEED_URL, { method: 'GET', cache: 'no-store', credentials: 'omit', referrerPolicy: 'no-referrer', redirect: 'follow', signal: ctl.signal });
       } finally { clearTimeout(timer); }
       if (!res.ok) return fail(describeHttp(res.status));
-      text = await res.text();
+      const text = await res.text();
+      if (text.length > 6 * 1024 * 1024) return fail('The encrypted task file is too large.');
+      try { env = JSON.parse(text); } catch { return fail('The encrypted task file is not valid JSON (it may still be uploading). Try again in a minute.'); }
     } catch (e) {
-      return fail(e && e.name === 'AbortError' ? 'GitHub took too long to answer. Try again.' : 'Could not reach GitHub. Check your connection and try again.');
+      return fail(e && e.name === 'AbortError' ? 'The task feed took too long to answer. Try again.' : 'Could not load the task feed. Check your connection and try again.');
     }
+    let text;
+    try { text = await decryptEnvelope(env, cfg.passphrase); }
+    catch (e) { return fail(e instanceof FeedError ? e.message : 'Could not read the encrypted task file.'); }
     const parsed = parseFeed(text);
     if (!parsed.ok) return fail(parsed.error);
     // read-merge-write synchronously so a concurrent edit in the UI cannot be lost
@@ -84,7 +105,7 @@ export function syncNow({ auto = false } = {}) {
     if (raw) { const v = validate(raw); if (!v.ok) return fail('Saved To-Do data looks damaged, so sync did not change it. Restore a backup or reset the To-Do section.'); doc = v.doc; }
     const stats = mergeFeed(doc, parsed.feed);
     try { store().set(doc); } catch { return fail('Could not save: storage is full or blocked.'); }
-    recordAttempt({ lastAttemptAt: attemptAt, lastSyncAt: new Date().toISOString(), lastError: null, feedUpdated: parsed.feed.updated, lastStats: { added: stats.added, updated: stats.updated, removed: stats.removed, skipped: stats.skipped }, lastAuto: auto });
+    recordAttempt({ lastAttemptAt: attemptAt, lastSyncAt: new Date().toISOString(), lastError: null, feedUpdated: parsed.feed.updated || (env && env.updated) || null, lastStats: { added: stats.added, updated: stats.updated, removed: stats.removed, skipped: stats.skipped }, lastAuto: auto });
     try { window.dispatchEvent(new CustomEvent('aitor:todo-synced', { detail: stats })); } catch { /* ignore */ }
     return { ok: true, ...stats };
   })().finally(() => { inFlight = null; });
@@ -93,7 +114,7 @@ export function syncNow({ auto = false } = {}) {
 
 export function shouldAutoSync(now = Date.now()) {
   const c = getConfig();
-  if (!c.repo || !c.token) return false;
+  if (!isConfigured()) return false;
   const last = Date.parse(c.lastSyncAt || '') || 0;
   const attempt = Date.parse(c.lastAttemptAt || '') || 0;
   return now - last >= AUTO_SYNC_MS && now - attempt >= RETRY_MS;

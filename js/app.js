@@ -78,7 +78,7 @@ storage.requestPersistence();
 async function autoSync() {
   try {
     const c = storage.config('todo').get();
-    if (!c || !c.repo || !c.token) return;
+    if (!c || !c.passphrase) return;
     const m = await import('../sections/todo/sync.js');
     await m.maybeAutoSync();
   } catch (e) { console.warn('auto-sync skipped', e); }

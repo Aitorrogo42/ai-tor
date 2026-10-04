@@ -196,30 +196,26 @@ export async function render(root, ctx) {
         ? h('div', { class: 'todo-syncrow' },
             h('div', { class: 'todo-synctext' + (st && st.cls ? ' ' + st.cls : ''), id: 'sync-status', role: 'status' }, st ? st.text : ''),
             h('button', { type: 'button', class: 'btn ghost small', id: 'sync-now', disabled: busy, onclick: runSync }, busy ? 'Syncing…' : '↻ Sync now'))
-        : h('p', { class: 'note' }, 'Want your assistant’s daily list here? ', h('button', { type: 'button', class: 'linkbtn', id: 'sync-setup-link', onclick: () => { syncPanel.open = true; syncOpen = true; syncPanel.scrollIntoView({ block: 'center' }); } }, 'Set up task sync')));
+        : h('p', { class: 'note' }, 'Want your assistant’s task list here? ', h('button', { type: 'button', class: 'linkbtn', id: 'sync-setup-link', onclick: () => { syncPanel.open = true; syncOpen = true; syncPanel.scrollIntoView({ block: 'center' }); } }, 'Set up task sync')));
 
-    const repo = h('input', { type: 'text', id: 'sync-repo', value: c.repo || '', placeholder: 'yourname/ai-tor-tasks', autocomplete: 'off', autocapitalize: 'off', spellcheck: 'false', maxlength: '140' });
-    const path = h('input', { type: 'text', id: 'sync-path', value: c.path || sync.DEFAULT_PATH, placeholder: 'tasks.json', autocomplete: 'off', autocapitalize: 'off', spellcheck: 'false', maxlength: '200' });
-    const token = h('input', { type: 'password', id: 'sync-token', value: c.token || '', placeholder: 'github_pat_…', autocomplete: 'off', autocapitalize: 'off', spellcheck: 'false', maxlength: '255' });
+    const pass = h('input', { type: 'password', id: 'sync-pass', value: c.passphrase || '', placeholder: 'Your passphrase', autocomplete: 'off', autocapitalize: 'off', autocorrect: 'off', spellcheck: 'false', maxlength: '200' });
     const msg = h('div', { class: 'note', id: 'sync-form-msg', role: 'status' });
     const form = h('form', { class: 'todo-syncform', id: 'sync-form', onsubmit: async (e) => {
       e.preventDefault();
-      const errs = sync.checkConfig({ repo: repo.value, path: path.value, token: token.value });
+      const errs = sync.checkConfig({ passphrase: pass.value });
       if (errs.length) { msg.className = 'form-err'; msg.replaceChildren(h('ul', null, errs.map((x) => h('li', null, x)))); return; }
-      sync.saveConfig({ repo: repo.value, path: path.value, token: token.value });
-      toast('Sync settings saved');
+      sync.saveConfig({ passphrase: pass.value });
+      toast('Passphrase saved');
       syncMsg = null; drawSync();
       await runSync();
     } },
-      h('label', { class: 'fld' }, h('span', { class: 'fl' }, 'GitHub repository'), repo),
-      h('label', { class: 'fld' }, h('span', { class: 'fl' }, 'File path'), path),
-      h('label', { class: 'fld' }, h('span', { class: 'fl' }, 'Read-only token'), token, h('span', { class: 'hint' }, 'Stored only on this device. Never exported or sent anywhere except to api.github.com when syncing.')),
+      h('label', { class: 'fld' }, h('span', { class: 'fl' }, 'Passphrase'), pass, h('span', { class: 'hint' }, 'Unlocks the encrypted task list published with the app. Stored only on this device, never exported. Typed exactly as you chose it: capitals and spaces count.')),
       msg,
       h('div', { class: 'btnrow' },
         h('button', { type: 'submit', class: 'btn primary small', id: 'sync-save' }, 'Save & sync'),
         configured ? h('button', { type: 'button', class: 'btn danger small', id: 'sync-remove', onclick: async () => {
-          if (!(await confirmDialog({ title: 'Remove sync settings?', message: 'The saved repository and token are deleted from this device. Your tasks stay.', okLabel: 'Remove', danger: true }))) return;
-          sync.clearConfig(); syncMsg = null; toast('Sync settings removed'); draw();
+          if (!(await confirmDialog({ title: 'Remove sync?', message: 'The saved passphrase is deleted from this device. Your tasks stay.', okLabel: 'Remove', danger: true }))) return;
+          sync.clearConfig(); syncMsg = null; toast('Sync removed'); draw();
         } }, 'Remove sync') : null),
       configured && c.feedUpdated ? h('p', { class: 'note' }, 'Feed last updated by your assistant: ' + fmtWhen(c.feedUpdated)) : null);
     syncPanel.replaceChildren(h('summary', { id: 'sync-summary' }, h('span', null, '⚙ Task sync settings'), h('span', { class: 'trv-gcount' }, configured ? 'On' : 'Off')), h('div', { class: 'todo-syncbody' }, form));
