@@ -45,14 +45,15 @@ function renderHome() {
   document.title = 'AI-TOR';
   const name = storage.getCore().profile.name;
   // the home selection wheel (js/wheel.js): one entry per section + Settings
-  const wheelItems = [...sections.map((x) => ({ id: x.id, title: x.title, route: x.route })), { id: 'settings', title: 'Settings', route: '#/settings', iconName: 'gear' }];
+  const wheelItems = [...sections.map((x) => ({ id: x.id, title: x.title, route: x.route })), { id: 'settings', title: 'Settings', route: '#/settings' }];
   const list = createWheel(wheelItems);
   app.replaceChildren(
     h('header', { class: 'home-head' },
-      h('h1', { class: 'lockup-h1', 'aria-label': 'ai-tor' }, lockup('lockup lockup-hero')),
+      h('h1', { class: 'lockup-h1', 'aria-label': 'ai-tor' }, lockup('lockup lockup-hero'))),
+    list,
+    h('div', { class: 'home-greet' },    // v19: greeting block at the very bottom of the screen (fixed, above the safe-area / home indicator)
       h('p', { class: 'greeting', id: 'greeting' }, greetingText(name)),
-      h('p', { class: 'tagline' }, name ? 'Your finances, travels and to-do list in one place.' : 'Your finances, travels and to-do list in one place. Add your name in Settings.')),
-    list);   // v18: no footer on the home screen; the privacy line + install hint now live at the bottom of Settings (buildFoot)
+      h('p', { class: 'tagline' }, name ? 'Your finances, travels and to-do list in one place.' : 'Your finances, travels and to-do list in one place. Add your name in Settings.')));   // v18: no footer on the home screen; the privacy line + install hint now live at the bottom of Settings (buildFoot)
 }
 
 let shownHash = null;     // hash of the page currently on screen (null before the first render)

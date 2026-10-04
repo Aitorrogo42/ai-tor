@@ -69,7 +69,6 @@ h1,h2,h3,p{margin:0}
 
 /* ---- home ---- */
 .home-head{position:relative;text-align:center;padding:14px 0 22px}
-.gear-slot{position:absolute;top:6px;right:0}
 .lockup-h1{margin:0;font-size:inherit;font-weight:inherit}
 .lockup-hero{--lk:104px}
 /* header lockup (brand board v5): the A centred on top, lowercase "ai-tor" directly beneath. --lk = mark width; the wordmark is sized so its
@@ -161,5 +160,5 @@ input:focus-visible,select:focus-visible,textarea:focus-visible{outline:none;bor
   .overlay,.dialog,.toast,.toast.out{animation:none}
   .toast{transform:translateX(-50%)}
   .toast.out{opacity:0}
-  .section-btn,.btn,.back,.gear,.chev{transition:none}
+  .section-btn,.btn,.back,.chev{transition:none}
 }

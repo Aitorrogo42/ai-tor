@@ -48,7 +48,7 @@ export function projectionChart({ series, start, end, goalValue, nowValue }) {
   svg.append(s('text', { x: W - R, y: Y(goalValue) - 5, 'text-anchor': 'end', fill: '#ffffff', 'font-size': '12' }, 'Goal ' + moneyCompact(goalValue)));
   for (const ser of series) {
     const pts = ser.points.map(([d, v]) => `${X(d).toFixed(1)},${Y(v).toFixed(1)}`).join(' ');
-    svg.append(s('polyline', { points: pts, fill: 'none', stroke: ser.color, 'stroke-width': '2.5', 'stroke-linecap': 'round', 'stroke-linejoin': 'round', ...(ser.dash ? { 'stroke-dasharray': ser.dash } : {}) }));
+    svg.append(s('polyline', { points: pts, fill: 'none', stroke: ser.color, 'stroke-width': '2.5', 'stroke-linecap': 'butt', 'stroke-linejoin': 'miter', ...(ser.dash ? { 'stroke-dasharray': ser.dash } : {}) }));
   }
   svg.append(s('circle', { cx: X(start), cy: Y(nowValue), r: 4.5, fill: '#ff5238', stroke: '#0a0305', 'stroke-width': '2' }));
   svg.append(s('circle', { cx: X(end), cy: Y(goalValue), r: 4.5, fill: '#ffffff', stroke: '#0a0305', 'stroke-width': '2' }));

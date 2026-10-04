@@ -3,7 +3,7 @@
 // "Done" pile below. Tap a task to see/add comments. Personal = everything typed in before + the assistant's encrypted feed; Work = typed
 // in by hand, local only, never touched by sync. The selected tab is remembered in a device setting (aitor:cfg:todo-ui).
 import { h, pageTitle, fmtDate, todayISO, uid } from '../../js/util.js';
-import { icon } from '../../js/icons.js';
+import { icon, sectionGlyph } from '../../js/icons.js';
 import { toast, confirmDialog } from '../../js/ui.js';
 import * as storage from '../../js/storage.js';
 import { validate, summary, emptyDoc, isEmptyDoc, newTask, openTasks, doneTasks, inList, listOf, LISTS, LIST_LABEL, LIMITS } from './model.js';
@@ -235,7 +235,7 @@ export async function render(root, ctx) {
           sync.clearConfig(); syncMsg = null; toast('Sync removed'); draw();
         } }, 'Remove sync') : null),
       configured && c.feedUpdated ? h('p', { class: 'note' }, 'Feed last updated by your assistant: ' + fmtWhen(c.feedUpdated)) : null);
-    syncPanel.replaceChildren(h('summary', { id: 'sync-summary' }, h('span', null, [icon('gear'), 'Task sync settings']), h('span', { class: 'trv-gcount' }, configured ? 'On' : 'Off')), h('div', { class: 'todo-syncbody' }, form));
+    syncPanel.replaceChildren(h('summary', { id: 'sync-summary' }, h('span', null, [sectionGlyph('settings', 18), 'Task sync settings']), h('span', { class: 'trv-gcount' }, configured ? 'On' : 'Off')), h('div', { class: 'todo-syncbody' }, form));
     syncPanel.open = syncOpen;
   }
 

@@ -13,7 +13,7 @@
 .trv-vtext{flex:1;min-width:0;display:flex;flex-direction:column}
 .trv-name{font-size:16px}
 .trv-meta{color:var(--muted);font-size:12.5px;overflow-wrap:anywhere}
-.flag{font-size:26px;width:34px;text-align:center;flex:none;font-family:"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif}
+.iso{display:inline-flex;align-items:center;justify-content:center;flex:none;box-sizing:border-box;width:38px;height:28px;border-radius:0;background:rgba(255,255,255,.08);color:var(--text-hi);font-family:inherit;font-size:13px;font-weight:700;letter-spacing:.06em;line-height:1;text-indent:.06em;font-variant-numeric:tabular-nums;user-select:none;-webkit-user-select:none}   /* v19: flat mono ISO-code chip replaces the colour flag emoji */
 .trv-form{padding:0 0 12px}
 .trv-pick{display:flex;align-items:center;gap:10px;min-height:48px;cursor:pointer}
 .trv-cb{width:24px;height:24px;flex:none;accent-color:var(--mars);margin:0}

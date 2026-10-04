@@ -1,4 +1,4 @@
-import { h, CURRENCIES, setCurrency, formatMoney } from './util.js';
+import { h, CURRENCIES, setCurrency, formatMoney, pageTitle } from './util.js';
 import { icon } from './icons.js';
 import { lockup } from './brand.js';
 import { field, confirmDialog, toast } from './ui.js';
@@ -6,7 +6,7 @@ import * as storage from './storage.js';
 import { buildExport, validateImport, applyImport, MAX_IMPORT_BYTES } from './dataio.js';
 import { sections } from './sections.js';
 
-export const APP_VERSION = '2.5.2 (v18)';
+export const APP_VERSION = '2.5.3 (v19)';
 
 export async function renderSettings(root, ctx) {
   document.title = 'Settings · AI-TOR';
@@ -85,7 +85,7 @@ export async function renderSettings(root, ctx) {
 
   root.append(
     h('div', { class: 'topbar' }, h('a', { class: 'back', href: '#/' }, icon('chevL'), 'Home')),
-    h('div', { class: 'fin-head' }, h('h1', { class: 'ph-title' }, 'Settings')),
+    h('div', { class: 'fin-head' }, pageTitle('settings', 'Settings')),
     h('h2', { class: 'sec' }, 'Profile'),
     h('form', { class: 'card form', id: 'profile-form', onsubmit: saveProfile },
       field('Your name', name, 'Used for the greeting on the home screen'),

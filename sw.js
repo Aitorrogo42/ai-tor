@@ -4,7 +4,7 @@
 // is kept in a separate cache ('aitor-feed') only as an offline fallback.
 // v15: flat style (css/flat.css replaces css/glass.css + js/glass.js), A logo + lockup. v16: To-Do split into Personal / Work lists (no new files). v17: wheel centre = icon + Mars down arrow only (no text). v18: the arrow becomes a bold solid Ember down triangle; section icons = inline Set A solid SVGs (icons/sections/*.png no longer precached, kept in the repo).
 // Bump VERSION whenever any file changes so phones pick up the update.
-const VERSION = 'aitor-v18';
+const VERSION = 'aitor-v19';
 const FEED_CACHE = 'aitor-feed';
 const PRECACHE = [
   './', 'index.html', 'manifest.webmanifest',

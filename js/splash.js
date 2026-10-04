@@ -1,6 +1,6 @@
 // Launch splash: on every app launch (page load) that lands on the home screen, show ONLY the white "A" on pure black
 // (no header, no text, no tabs, Mars background hidden). Tap (or Enter/Space on the focused button) and the A glides to the exact spot of the
-// real header logo (FLIP: measured, then one transform animation, so it lands with no jump) while the "ai-tor" wordmark, gear and the
+// real header logo (FLIP: measured, then one transform animation, so it lands with no jump) while the "ai-tor" wordmark and the
 // cards fade/slide in and the Mars background (photo, glow, starfield) fades in. Reduced motion: plain fades, nothing moves.
 // The splash markup (#splash, inline SVG) and the `splash` class on <html> are static in index.html so the first paint is already the splash,
 // independent of how long JS takes. If JS never loads, css/motion.css reveals the app by itself after a few seconds (failsafe animation).

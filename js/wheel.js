@@ -1,4 +1,4 @@
-// Home selection wheel. A flat dial of thin rounded white radial ticks around a hollow centre. The tick at 12 o'clock is the selection
+// Home selection wheel. A flat dial of thin white radial ticks around a hollow centre. The tick at 12 o'clock is the selection
 // (longer, bolder, Ember); each section owns one "major" tick, the rest are minor ticks. Rotate it by dragging (touch / mouse), flicking
 // (inertia + snap), tapping a tick, the arrow keys, Home/End or the mouse wheel; it always snaps so exactly one section is at the top.
 // v17: the hollow centre shows ONLY the selected section's line icon and a Mars-red down marker (no text); v18: the marker is a bold solid down-pointing triangle; the section name stays as a visually
@@ -30,7 +30,7 @@ if (!window.__wheelModality) {
 let lastSel = 0;   // the wheel remembers the last section while the app stays open (coming back from a section)
 
 /**
- * items: [{ id, title, route, iconName?, label? }]  (v18: section ids finances|travels|todo use the inline Set A glyph from icons.js; others iconName)
+ * items: [{ id, title, route, iconName?, label? }]  (v18/v19: section ids finances|travels|todo|settings use the inline Set A glyph from icons.js; others iconName)
  * returns the wheel element (role=slider). `el.wheel` has { select(i, animate), index() }.
  */
 export function createWheel(items) {
@@ -46,7 +46,7 @@ export function createWheel(items) {
   }
 
   const links = items.map((it, i) => h('a', { class: 'section-btn wheel-open' + (i === sel ? ' sel' : ''), 'aria-label': 'Open ' + it.title, href: it.route, 'data-section': it.id, id: it.id === 'settings' ? 'settings-link' : null, tabindex: i === sel ? '0' : '-1', 'aria-hidden': i === sel ? null : 'true' },
-    h('span', { class: 'section-icon', 'aria-hidden': 'true' }, hasSectionGlyph(it.id) ? sectionGlyph(it.id) : icon(it.iconName || 'gear', 'ico ico-lg')),
+    h('span', { class: 'section-icon', 'aria-hidden': 'true' }, hasSectionGlyph(it.id) ? sectionGlyph(it.id) : icon(it.iconName || 'plus', 'ico ico-lg')),
     h('span', { class: 'section-title sr-only' }, it.title),                 // v17: screen-reader name only, nothing visible but the icon + arrow
     h('span', { class: 'wheel-arrow', 'aria-hidden': 'true' }, icon('triangleDown', 'ico', { filled: true }))));
   const centre = h('div', { class: 'wheel-centre' }, links);

@@ -3,7 +3,7 @@
 import { h, pageTitle } from '../../js/util.js';
 import { icon } from '../../js/icons.js';
 import { toast, confirmDialog } from '../../js/ui.js';
-import { COUNTRIES, CONTINENTS } from './countries.js';
+import { COUNTRIES, CONTINENTS, isoLabel } from './countries.js';
 import { validate, summary, emptyDoc, isEmptyDoc, TOTAL, LIMITS, norm } from './model.js';
 import { renderList, renderDetail, LIST_HASH } from './dest-ui.js';
 
@@ -82,7 +82,7 @@ export async function render(root, ctx) {
       onchange: () => toggle(c.code, cb) });
     return h('li', { class: 'trv-row' + (isVisited ? ' on' : ''), 'data-pick': c.code },
       h('label', { class: 'trv-pick', for: id }, cb,
-        h('span', { class: 'flag', 'aria-hidden': 'true' }, c.flag),
+        h('span', { class: 'iso', 'aria-hidden': 'true' }, isoLabel(c)),
         h('span', { class: 'trv-name' }, c.name)));
   }
 
@@ -90,7 +90,7 @@ export async function render(root, ctx) {
     const isOpen = editing === c.code;
     const meta = [v.years, v.note].filter(Boolean).join(' · ');
     const head = h('div', { class: 'trv-vhead' },
-      h('span', { class: 'flag', 'aria-hidden': 'true' }, c.flag),
+      h('span', { class: 'iso', 'aria-hidden': 'true' }, isoLabel(c)),
       h('span', { class: 'trv-vtext' }, h('span', { class: 'trv-name' }, c.name),
         meta ? h('span', { class: 'trv-meta' }, meta) : null),
       h('button', { type: 'button', class: 'btn ghost small trv-edit', 'data-edit': c.code, 'aria-expanded': String(isOpen), 'aria-label': `Edit details for ${c.name}`,
@@ -120,7 +120,7 @@ export async function render(root, ctx) {
     bar.style.width = (n / TOTAL * 100).toFixed(1) + '%';
     clearSearch.hidden = !q;
 
-    // Visited list (top): flag + name (+ years/note), in the order of the world list
+    // Visited list (top): ISO chip + name (+ years/note), in the order of the world list
     const vis = COUNTRIES.filter((c) => m.has(c.code));
     const visCard = h('section', { class: 'card trv-visited', id: 'trv-visited' },
       h('h2', { class: 'trv-h' }, 'Visited ', h('span', { class: 'trv-pill', id: 'trv-visited-count' }, `${n} of ${TOTAL} countries`)),

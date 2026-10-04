@@ -20,7 +20,7 @@
 .stack{display:flex;height:14px;border-radius:var(--r-sm);overflow:hidden;background:rgba(255,255,255,.08);margin:12px 0 4px}
 .stack i{display:block;height:100%;min-width:3px}
 .legend{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:12px;color:var(--muted);margin-top:8px}
-.dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:5px}
+.dot{display:inline-block;width:9px;height:9px;border-radius:0;margin-right:5px}
 .bar{height:6px;background:rgba(255,255,255,.08);border-radius:var(--r-sm);overflow:hidden;margin-top:6px}
 .bar>i{display:block;height:100%;border-radius:var(--r-sm)}
 
@@ -42,7 +42,7 @@ details.group>summary::-webkit-details-marker{display:none}
 .na .big{font-size:20px;font-weight:600;color:var(--muted);margin:4px 0}
 ul.clean{list-style:none;margin:8px 0 0;padding:0;display:flex;flex-direction:column;gap:8px}
 ul.clean li{font-size:14px;line-height:1.4;padding-left:22px;position:relative}
-ul.clean li::before{content:"";position:absolute;left:4px;top:.5em;width:8px;height:8px;border-radius:50%;background:var(--muted)}
+ul.clean li::before{content:"";position:absolute;left:4px;top:.5em;width:8px;height:8px;border-radius:0;background:var(--muted)}
 ul.alerts li::before{background:var(--amber)}
 ul.goals li::before{background:var(--green)}
 details.src-all{border:1px solid var(--surf-line-lo);border-radius:var(--r-md);background:var(--surf)}

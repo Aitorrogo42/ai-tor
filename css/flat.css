@@ -3,7 +3,7 @@
    The Mars photo and the starfield stay visible behind every surface. Active / pressed / focused = Ember #ff5238 border (+ faint Mars fill).
    Mars crimson is only an accent (active tab, primary button, links, focus, chart bars). Tune everything with the --surf* tokens in css/app.css. */
 
-/* ===== page chrome: header strip, tab bar, search strip, gear ===== */
+/* ===== page chrome: header strip, tab bar, search strip ===== */
 .fin-head,.trv-searchrow{background:var(--surf);border:1px solid var(--surf-line)}
 .fin-head{position:relative;padding:14px 16px;border-radius:var(--r-md)}
 .fin-head .asof,.fin-head .sub,.fin-head p{color:var(--text)}
@@ -31,8 +31,8 @@
 
 /* ===== v15.1 design QA ===== */
 /* equal-height home cards */
-/* thin line icons (js/icons.js): 1.25px non-scaling stroke, follow the text colour */
-.ico{width:1.15em;height:1.15em;flex:none;vertical-align:-.2em;overflow:visible}
+/* sharp line icons (js/icons.js, v19): 2px non-scaling stroke, square caps, mitre joins, follow the text colour */
+.ico{width:1.25em;height:1.25em;flex:none;vertical-align:-.2em;overflow:visible}
 .ico-lg{width:24px;height:24px}
 .chev-ico{width:22px;height:22px}
 .chev{display:grid;place-items:center}
@@ -45,7 +45,8 @@
 .empty-icon{display:flex;justify-content:center;margin-bottom:6px}
 .dash-key{display:inline-block;width:20px;height:0;border-top:2px dashed #fff;margin-right:6px;vertical-align:middle}
 .todo-chip .ico{margin-right:4px;width:1em;height:1em}
-summary .ico{margin-right:6px}
+summary .ico,summary .sec-glyph{margin-right:6px}
+summary .sec-glyph{display:inline-block;vertical-align:-.28em}   /* v19: Settings pinwheel next to 'Task sync settings' */
 /* one flat material in three tonal steps: --surf (cards, tabs) / --surf-dim (fields, footer scrim) / --surf-over (sticky strip, dialog, toast) */
 .trv-searchrow{top:calc(var(--safe-t) + 6px);background:var(--surf-over);border:1px solid var(--surf-line)}
 .trv-search,input[type=text],input[type=date],input[type=password],input[type=search],select,textarea,.todo-add-input,.feed-formrow input{background:var(--surf-dim);border:1px solid var(--surf-line)}
@@ -60,13 +61,15 @@ summary .ico{margin-right:6px}
 .install-hint summary{cursor:pointer;min-height:44px;display:flex;align-items:center;justify-content:center;color:#fff;text-decoration:underline;text-underline-offset:3px;font-weight:600;list-style:none}
 .install-hint summary::-webkit-details-marker{display:none}
 .install-hint p{margin-top:6px}
-/* home header: compact, gear centred on the lockup, no rule */
-.home-head{--lk:96px;padding:6px 0 4px}
+/* home (v19): three fixed layers on the full screen: the A + ai-tor lockup at the top, the wheel at the TRUE centre of the viewport (left/top 50% minus half its size, so no
+   transform/margin/flow can push it), and a small greeting block at the very bottom above the safe area. Nothing scrolls, nothing overlaps (the wheel is capped so it always clears both). */
+.home-head{--lk:96px;position:fixed;left:0;right:0;top:calc(var(--safe-t) + 8px);z-index:1;padding:6px 0 4px;text-align:center;background:transparent;border:0}
 .lockup-hero{--lk:96px}
-.greeting{margin-top:14px;font-size:20px}
-.tagline{margin-top:4px;font-size:14px}
 .home-rule{display:none}
-@media (max-height:700px){.home-head,.lockup-hero{--lk:72px}.greeting{margin-top:8px;font-size:18px}.tagline{display:none}}
+.home-greet{position:fixed;left:0;right:0;bottom:calc(var(--safe-b) + 12px);z-index:1;padding:0 20px;text-align:center}
+.home-greet .greeting{margin:0;font-size:14px;line-height:1.3;font-weight:500;letter-spacing:.03em;color:var(--text)}
+.home-greet .tagline{margin:2px auto 0;max-width:34em;font-size:12px;line-height:1.35;font-weight:400;letter-spacing:.03em;color:var(--muted)}
+@media (max-height:700px){.home-head,.lockup-hero{--lk:72px}}
 /* flat checkboxes (Travels + To-Do): square outline box, Ember when checked, tap area stays on the row (48px) */
 .trv-cb,.todo-cb{-webkit-appearance:none;appearance:none;position:relative;flex:none;margin:0;background:var(--surf);border:1px solid var(--surf-line);border-radius:var(--r-sm);cursor:pointer;transition:background .15s,border-color .15s}
 .trv-cb:checked,.todo-cb:checked{background:var(--surf-on);border-color:var(--ember)}
@@ -92,10 +95,10 @@ summary .ico{margin-right:6px}
    Thin rounded white radial ticks around a hollow centre; the tick at 12 o'clock is the selection: longer, bolder, Ember. Drag / flick / tap a
    tick / arrow keys / mouse wheel rotate the dial and it snaps to the next section. The selected section's line icon + name sit in the hollow
    centre (the only text on the wheel) and the centre is the "open" button. Flat: no blur, no glow, no shadow. */
-.wheel{position:relative;width:var(--wheel);height:var(--wheel);margin:6px auto 0;--wheel:clamp(236px,min(80vw,46vh),340px);touch-action:none;user-select:none;-webkit-user-select:none;border-radius:50%;outline:none}
+.wheel{position:fixed;z-index:1;width:var(--wheel);height:var(--wheel);margin:0;left:calc(50% - var(--wheel)/2);top:calc(50% - var(--wheel)/2);--wheel:clamp(220px,min(80vw,calc(100vh - 2*(var(--safe-t) + 160px)),340px),340px);touch-action:none;user-select:none;-webkit-user-select:none;border-radius:50%;outline:none}
 .wheel-dial{position:absolute;inset:0;width:100%;height:100%;overflow:visible;cursor:grab;touch-action:none}
 .wheel.drag .wheel-dial{cursor:grabbing}
-.wheel .tick{stroke-linecap:round;fill:none}   /* stroke colour / width / opacity are set per tick by js/wheel.js */
+.wheel .tick{stroke-linecap:butt;fill:none}   /* stroke colour / width / opacity are set per tick by js/wheel.js */
 .wheel,.wheel:focus,.wheel:focus-visible,.wheel-dial,.wheel .tick{outline:none}   /* v17: never a ring from pointer / touch / scripted focus; the keyboard ring is below (html.kbd-nav only) */
 html.kbd-nav .wheel:focus-visible{outline:2px solid var(--focus);outline-offset:6px;border-radius:50%}
 .wheel-centre{position:absolute;left:50%;top:50%;width:62%;height:62%;transform:translate(-50%,-50%);display:grid;place-items:center;pointer-events:none}

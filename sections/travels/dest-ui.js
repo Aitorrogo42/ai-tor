@@ -4,7 +4,7 @@ import { h, sectionIcon } from '../../js/util.js';
 import { icon } from '../../js/icons.js';
 import { toast } from '../../js/ui.js';
 import { timeAgo } from '../../js/feedcrypto.js';
-import { COUNTRIES } from './countries.js';
+import { COUNTRIES, isoLabel } from './countries.js';
 import { norm } from './model.js';
 import { KINDS, KIND_LABEL, LIMITS, safeUrl, sortPlaces, matchCountry } from './dest-model.js';
 import * as feed from './dest-feed.js';
@@ -197,7 +197,7 @@ export function renderDetail(container, ctx, id) {
     const box = h('div', { class: 'card dst-visit', id: 'dst-visit' });
     const drawVisit = () => {
       const isV = visitedNow().some((v) => v.code === country.code);
-      box.replaceChildren(h('span', { class: 'flag', 'aria-hidden': 'true' }, country.flag),
+      box.replaceChildren(h('span', { class: 'iso', 'aria-hidden': 'true' }, isoLabel(country)),
         h('span', { class: 'dst-visit-t' }, isV ? `${country.name} is on your Visited list` : `Been to ${country.name}?`),
         isV ? h('a', { class: 'btn ghost small', href: '#/travels' }, 'View') : h('button', { type: 'button', class: 'btn primary small', id: 'dst-markvisited', onclick: () => {
           if (feed.mutate((doc) => { if (!doc.visited.some((v) => v.code === country.code)) doc.visited.push({ code: country.code, years: '', note: '' }); })) { toast(`${country.name} added to Visited`); drawVisit(); }
