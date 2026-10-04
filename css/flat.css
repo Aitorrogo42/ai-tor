@@ -96,7 +96,8 @@ summary .ico{margin-right:6px}
 .wheel-dial{position:absolute;inset:0;width:100%;height:100%;overflow:visible;cursor:grab;touch-action:none}
 .wheel.drag .wheel-dial{cursor:grabbing}
 .wheel .tick{stroke-linecap:round;fill:none}   /* stroke colour / width / opacity are set per tick by js/wheel.js */
-.wheel:focus-visible{outline:2px solid var(--focus);outline-offset:6px;border-radius:50%}
+.wheel,.wheel:focus,.wheel:focus-visible,.wheel-dial,.wheel .tick{outline:none}   /* v17: never a ring from pointer / touch / scripted focus; the keyboard ring is below (html.kbd-nav only) */
+html.kbd-nav .wheel:focus-visible{outline:2px solid var(--focus);outline-offset:6px;border-radius:50%}
 .wheel-centre{position:absolute;left:50%;top:50%;width:62%;height:62%;transform:translate(-50%,-50%);display:grid;place-items:center;pointer-events:none}
 .section-btn.wheel-open{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:0;margin:0;background:none;border:0;border-radius:50%;color:#fff;text-align:center;
   opacity:0;visibility:hidden;pointer-events:none;transition:opacity .16s ease,visibility 0s .16s}
@@ -104,9 +105,10 @@ summary .ico{margin-right:6px}
 .section-btn.wheel-open .section-icon{width:clamp(44px,calc(var(--wheel)*.2),64px);height:clamp(44px,calc(var(--wheel)*.2),64px);display:grid;place-items:center}
 .section-btn.wheel-open .section-icon img{width:100%;height:100%}
 .section-btn.wheel-open .section-icon .ico{width:68%;height:68%}
-.section-btn.wheel-open .section-title{font-size:clamp(20px,calc(var(--wheel)*.082),26px);font-weight:500;letter-spacing:.07em;color:#fff;line-height:1.1}
-.wheel-hint{display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:600;letter-spacing:.2em;text-transform:uppercase;color:var(--ember)}
-.wheel-hint .ico{width:14px;height:14px;margin:0}
+.wheel-arrow{display:grid;place-items:center;color:var(--ember);line-height:0;animation:wheel-nudge 2.6s ease-in-out infinite}   /* v17: small Mars/Ember down arrow, subtle idle nudge */
+.wheel-arrow .ico{width:clamp(16px,calc(var(--wheel)*.062),22px);height:clamp(16px,calc(var(--wheel)*.062),22px);margin:0;stroke:currentColor}
+@keyframes wheel-nudge{0%,100%{transform:translateY(-1px);opacity:.75}50%{transform:translateY(3px);opacity:1}}
 .section-btn.wheel-open:active .section-icon{transform:scale(.94)}
-.section-btn.wheel-open:focus-visible{outline:2px solid var(--focus);outline-offset:-6px}
-@media (prefers-reduced-motion:reduce){.section-btn.wheel-open,.section-btn.wheel-open.sel{transition:none}.section-btn.wheel-open:active .section-icon{transform:none}}
+.section-btn.wheel-open:focus,.section-btn.wheel-open:focus-visible{outline:none}
+html.kbd-nav .section-btn.wheel-open:focus-visible{outline:2px solid var(--focus);outline-offset:-6px}
+@media (prefers-reduced-motion:reduce){.wheel-arrow{animation:none}.section-btn.wheel-open,.section-btn.wheel-open.sel{transition:none}.section-btn.wheel-open:active .section-icon{transform:none}}

@@ -2,9 +2,9 @@
 // The bundle contains NO user data: each user's finances live only in their own browser storage (localStorage).
 // The encrypted feeds (feed/tasks.enc.json, feed/finances.enc.json, feed/destinations.enc.json; anything under feed/) is NEVER precached or served cache-first: it is fetched network-first and the last copy
 // is kept in a separate cache ('aitor-feed') only as an offline fallback.
-// v15: flat style (css/flat.css replaces css/glass.css + js/glass.js), A logo + lockup. v16: To-Do split into Personal / Work lists (no new files).
+// v15: flat style (css/flat.css replaces css/glass.css + js/glass.js), A logo + lockup. v16: To-Do split into Personal / Work lists (no new files). v17: wheel centre = icon + Mars down arrow only (no text).
 // Bump VERSION whenever any file changes so phones pick up the update.
-const VERSION = 'aitor-v16';
+const VERSION = 'aitor-v17';
 const FEED_CACHE = 'aitor-feed';
 const PRECACHE = [
   './', 'index.html', 'manifest.webmanifest',

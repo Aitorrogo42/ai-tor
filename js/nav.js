@@ -34,7 +34,6 @@ function nameHomeCard(app, id) {
   const c = homeCard(app, id); if (!c) return false;
   setName(c, 'sec-card');
   setName(c.querySelector('.section-icon img'), 'sec-icon');
-  setName(c.querySelector('.section-title'), 'sec-title');
   return true;
 }
 function namePageHead(app) {

@@ -4,6 +4,7 @@ const NS = 'http://www.w3.org/2000/svg';
 const P = {
   lock: ['M5 11h14v9H5z', 'M8 11V8a4 4 0 0 1 8 0v3'],
   chevR: ['M9 5l7 7-7 7'],
+  arrowDown: ['M12 5v13', 'M7 13.5l5 5 5-5'],
   chevL: ['M15 5l-7 7 7 7'],
   download: ['M12 4v11', 'M7.5 11l4.5 4.5 4.5-4.5', 'M5 20h14'],
   upload: ['M12 15V4', 'M7.5 8L12 3.5 16.5 8', 'M5 20h14'],
