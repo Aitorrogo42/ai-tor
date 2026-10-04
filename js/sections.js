@@ -7,7 +7,7 @@ export const sections = [
   {
     id: 'finances',
     title: 'Finances',
-    subtitle: 'Net worth, accounts, debts & goals',
+    subtitle: 'Net worth & accounts',
     icon: 'icons/sections/finances-256.png',
     route: '#/finances',
     loader: () => import('../sections/finances/index.js'),

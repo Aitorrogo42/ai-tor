@@ -1,11 +1,12 @@
 import { h, CURRENCIES, setCurrency, formatMoney } from './util.js';
-import { brandMark } from './brand.js';
+import { icon } from './icons.js';
+import { lockup } from './brand.js';
 import { field, confirmDialog, toast } from './ui.js';
 import * as storage from './storage.js';
 import { buildExport, validateImport, applyImport, MAX_IMPORT_BYTES } from './dataio.js';
 import { sections } from './sections.js';
 
-export const APP_VERSION = '2.3.0';
+export const APP_VERSION = '2.4.0 (v15)';
 
 export async function renderSettings(root, ctx) {
   document.title = 'Settings · AI-TOR';
@@ -30,7 +31,7 @@ export async function renderSettings(root, ctx) {
     document.body.append(a); a.click(); a.remove();
     setTimeout(() => URL.revokeObjectURL(url), 5000);
     toast('Export downloaded');
-  } }, '⬇ Export data (JSON)');
+  } }, icon('download'), 'Export data (JSON)');
 
   // ---- import
   const importMsg = h('div', { id: 'import-msg', role: 'status', class: 'note' });
@@ -83,7 +84,7 @@ export async function renderSettings(root, ctx) {
   } }, 'Erase all data');
 
   root.append(
-    h('div', { class: 'topbar' }, h('a', { class: 'back', href: '#/' }, '‹ Home')),
+    h('div', { class: 'topbar' }, h('a', { class: 'back', href: '#/' }, icon('chevL'), 'Home')),
     h('div', { class: 'fin-head' }, h('h1', { class: 'ph-title' }, 'Settings')),
     h('h2', { class: 'sec' }, 'Profile'),
     h('form', { class: 'card form', id: 'profile-form', onsubmit: saveProfile },
@@ -95,7 +96,7 @@ export async function renderSettings(root, ctx) {
     h('div', { class: 'card stackc' },
       h('p', { class: 'note' }, 'Your data lives only in this browser on this device. Export a backup to keep it safe or move it to another device.'),
       exportBtn,
-      h('label', { class: 'btn ghost filebtn' }, '⬆ Import data (JSON)', fileInput),
+      h('label', { class: 'btn ghost filebtn' }, icon('upload'), 'Import data (JSON)', fileInput),
       importMsg,
       exampleBtn,
       h('p', { class: 'note' }, 'Example data is fake numbers for previewing the app.')),
@@ -103,7 +104,7 @@ export async function renderSettings(root, ctx) {
     h('div', { class: 'card stackc' }, eraseBtn),
     h('h2', { class: 'sec' }, 'About'),
     h('div', { class: 'card' },
-      h('div', { class: 'about-lockup' }, brandMark(), h('span', { class: 'wordmark' }, 'AI-TOR')),
+      h('div', { class: 'about-lockup' }, lockup()),
       h('div', { class: 'row' }, h('div', { class: 'l' }, 'AI-TOR version'), h('div', { class: 'r' }, APP_VERSION)),
       h('div', { class: 'row' }, h('div', { class: 'l' }, 'Data format'), h('div', { class: 'r' }, 'schema 4')),
       h('p', { class: 'note', style: 'margin-top:8px' }, 'No accounts, no servers, no analytics. The app makes no network requests and works offline once opened. The only exception is the optional To-Do task sync, which (once you enter a passphrase) reads one encrypted file from this same site.')));

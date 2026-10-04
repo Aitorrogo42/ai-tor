@@ -1,15 +1,14 @@
 import { sections } from './sections.js';
-import { brandMark } from './brand.js';
+import { lockup } from './brand.js';
+import { icon } from './icons.js';
 import { h, setCurrency } from './util.js';
 import * as storage from './storage.js';
 import { renderSettings } from './settings.js';
 import { initBackground, setBackdropSection } from './bg.js';
-import { initGlass } from './glass.js';
 import { classify, transition, beginEnter, markEnter } from './nav.js';
 
 const app = document.getElementById('app');
 initBackground();
-initGlass();
 let deferredInstall = null;
 window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); deferredInstall = e; if (!location.hash || location.hash === '#/') route(); });
 
@@ -17,17 +16,8 @@ function isStandalone() {
   return window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
 }
 
-// Settings gear: white line-art SVG (Feather "settings", MIT) to match the section icons
-function gearIcon() {
-  const NS = 'http://www.w3.org/2000/svg';
-  const svg = document.createElementNS(NS, 'svg');
-  for (const [k, v] of Object.entries({ viewBox: '0 0 24 24', width: '24', height: '24', fill: 'none', stroke: 'currentColor', 'stroke-width': '1.6', 'stroke-linecap': 'round', 'stroke-linejoin': 'round', 'aria-hidden': 'true' })) svg.setAttribute(k, v);
-  const c = document.createElementNS(NS, 'circle'); c.setAttribute('cx', '12'); c.setAttribute('cy', '12'); c.setAttribute('r', '3');
-  const p = document.createElementNS(NS, 'path');
-  p.setAttribute('d', 'M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z');
-  svg.append(c, p);
-  return svg;
-}
+// Settings gear: the shared thin line icon (js/icons.js)
+const gearIcon = () => icon('gear', 'ico ico-lg');
 
 function greetingText(name) {
   const hr = new Date().getHours();
@@ -45,35 +35,24 @@ function renderHome() {
         h('span', { class: 'section-text' },
           h('span', { class: 'section-title' }, s.title),
           s.subtitle ? h('span', { class: 'section-sub' }, s.subtitle) : null),
-        h('span', { class: 'chev', 'aria-hidden': 'true' }, '›'))));
+        h('span', { class: 'chev', 'aria-hidden': 'true' }, icon('chevR', 'ico chev-ico')))));
   const foot = h('footer', { class: 'home-foot' },
-    h('p', null, '🔒 Your data stays on this device. No accounts, no tracking.'));
+    h('p', { class: 'priv' }, icon('lock'), 'Your data stays on this device. No tracking.'));
   if (!isStandalone()) {
     if (deferredInstall) {
       foot.append(h('button', { class: 'ghost', onclick: async () => { deferredInstall.prompt(); deferredInstall = null; route(); } }, 'Install AI-TOR'));
     } else {
-      foot.append(h('p', { class: 'muted' }, 'To install: iPhone → Share → Add to Home Screen. Android → ⋮ menu → Install app.'));
+      foot.append(h('details', { class: 'install-hint' }, h('summary', null, 'Install on your phone'),
+        h('p', null, 'iPhone: Share, then Add to Home Screen. Android: browser menu, then Install app.')));
     }
   }
   app.replaceChildren(
     h('header', { class: 'home-head' },
-      h('div', { class: 'brand-row' },
-        h('div', { class: 'brand' }, brandMark(), h('h1', { class: 'wordmark' }, 'AI-TOR')),
-        h('a', { class: 'gear', href: '#/settings', id: 'settings-link', 'aria-label': 'Settings' }, gearIcon())),
+      h('h1', { class: 'lockup-h1', 'aria-label': 'ai-tor' }, lockup('lockup lockup-hero')),
+      h('span', { class: 'gear-slot' }, h('a', { class: 'gear', href: '#/settings', id: 'settings-link', 'aria-label': 'Settings' }, gearIcon())),
       h('p', { class: 'greeting', id: 'greeting' }, greetingText(name)),
-      h('p', { class: 'tagline' }, name ? 'Your life, in one place.' : 'Your life, in one place. Add your name in Settings.')),
+      h('p', { class: 'tagline' }, name ? 'Your finances, travels and to-do list in one place.' : 'Your finances, travels and to-do list in one place. Add your name in Settings.')),
     list, foot);
-}
-
-// Raycast-style spotlight: the Mars glow on a home card follows the finger / pointer.
-document.addEventListener('pointerdown', trackGlow, { passive: true });
-document.addEventListener('pointermove', trackGlow, { passive: true });
-function trackGlow(e) {
-  const c = e.target && e.target.closest && e.target.closest('.section-btn');
-  if (!c) return;
-  const r = c.getBoundingClientRect();
-  c.style.setProperty('--mx', (e.clientX - r.left).toFixed(0) + 'px');
-  c.style.setProperty('--my', (e.clientY - r.top).toFixed(0) + 'px');
 }
 
 let shownHash = null;     // hash of the page currently on screen (null before the first render)
@@ -122,7 +101,7 @@ async function route(opts = {}) {
         const showErr = (err) => {
           console.error(err);
           app.replaceChildren(
-            h('a', { class: 'back', href: '#/' }, '‹ Home'),
+            h('a', { class: 'back', href: '#/' }, icon('chevL'), 'Home'),
             h('div', { class: 'card error' }, h('h2', null, 'Could not load ' + section.title), h('p', null, String(err && err.message || err))));
         };
         if (loadErr) return showErr(loadErr);
@@ -199,6 +178,7 @@ if ('serviceWorker' in navigator) {
     let reloaded = false;
     navigator.serviceWorker.addEventListener('controllerchange', () => { if (had && !reloaded) { reloaded = true; location.reload(); } });
     navigator.serviceWorker.register('./sw.js', { updateViaCache: 'none' }).then((reg) => {
+      if (!reg || typeof reg.update !== 'function') return;   // some embedded/blocked contexts resolve with nothing
       document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') reg.update().catch(() => {}); });
       reg.update().catch(() => {});
     }).catch((e) => console.warn('SW registration failed', e));

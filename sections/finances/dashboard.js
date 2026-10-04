@@ -1,4 +1,5 @@
 import { h, pageTitle, countUp, money, pct, fmtDate, todayISO } from '../../js/util.js';
+import { icon } from '../../js/icons.js';
 import { compute, alerts, projectableGoals } from './model.js';
 import { projectionChart } from './chart.js';
 import { refreshBar } from './refreshbar.js';
@@ -41,17 +42,17 @@ function projectionCard(doc, c, cands) {
         start: today, end: goal.date, goalValue: goal.target, nowValue: c.netWorth,
         series: [
           { label: 'Net worth held flat', color: '#ff5238', points: [[today, c.netWorth], [goal.date, c.netWorth]] },
-          { label: 'Straight line to goal', color: '#3ddc84', dash: '6 5', points: [[today, c.netWorth], [goal.date, goal.target]] },
+          { label: 'Straight line to goal', color: '#ffffff', dash: '6 5', points: [[today, c.netWorth], [goal.date, goal.target]] },
         ] })),
       h('div', { class: 'legend' },
         h('span', null, h('span', { class: 'dot', style: 'background:#ff5238' }), 'Net worth today, held flat'),
-        h('span', null, h('span', { class: 'dot', style: 'background:#3ddc84' }), 'Straight line to goal')),
+        h('span', null, h('span', { class: 'dash-key' }), 'Straight line to goal')),
       h('div', { style: 'margin-top:10px' },
         h('div', { class: 'row' }, h('div', { class: 'l' }, 'Net worth today'), h('div', { class: 'r' }, money(c.netWorth))),
         h('div', { class: 'row' }, h('div', { class: 'l' }, 'Goal (' + fmtDate(goal.date) + ')'), h('div', { class: 'r' }, money(goal.target))),
         h('div', { class: 'row' }, h('div', { class: 'l' }, 'Gap'), h('div', { class: 'r' }, money(goal.target - c.netWorth))),
         h('div', { class: 'row' }, h('div', { class: 'l' }, 'Needed per month, with no growth'),
-          h('div', { class: 'r' }, '≈ ' + money((goal.target - c.netWorth) / Math.max(1, monthsTo(goal.date)))))));
+          h('div', { class: 'r' }, 'About ' + money((goal.target - c.netWorth) / Math.max(1, monthsTo(goal.date)))))));
   };
   draw();
   return card;
@@ -65,8 +66,8 @@ export function renderDashboard(root, doc, ctx) {
   const c = compute(doc);
   document.title = 'Finances · AI-TOR';
   root.append(
-    h('div', { class: 'topbar' }, h('a', { class: 'back', href: '#/' }, '‹ Home'),
-      h('a', { class: 'btn ghost small', href: '#/finances/edit', id: 'edit-btn' }, '✎ Edit')),
+    h('div', { class: 'topbar' }, h('a', { class: 'back', href: '#/' }, icon('chevL'), 'Home'),
+      h('a', { class: 'btn ghost small', href: '#/finances/edit', id: 'edit-btn' }, icon('edit'), 'Edit')),
     h('div', { class: 'fin-head' }, pageTitle('finances', 'Finances'),
       doc.updatedAt && !(doc.feed && doc.feed.refreshedAt) ? h('div', { class: 'asof' }, 'Last updated ' + new Date(doc.updatedAt).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })) : null));
 
@@ -133,7 +134,7 @@ export function renderDashboard(root, doc, ctx) {
     root.append(h('div', { class: 'card', id: 'goals' }, h('ul', { class: 'clean goals' }, doc.goals.map((g) => {
       const p = Math.max(0, Math.min(1, c.netWorth / g.target));
       return h('li', null, h('b', null, g.name), h('div', { class: 'sub' }, 'Target ' + money(g.target) + (g.date ? ' by ' + fmtDate(g.date) : '') + ' · net worth is ' + pct(p, 0) + ' of target'),
-        h('div', { class: 'bar' }, h('i', { style: `width:${(p * 100).toFixed(1)}%;background:var(--green)` })));
+        h('div', { class: 'bar' }, h('i', { style: `width:${(p * 100).toFixed(1)}%;background:var(--mars)` })));
     }))));
   }
 
@@ -150,7 +151,7 @@ export function renderDashboard(root, doc, ctx) {
     root.append(h('h2', { class: 'sec' }, 'Notes'));
     root.append(h('details', { class: 'src-all', id: 'notes' }, h('summary', null, 'Tap to expand your notes'), h('div', { class: 'gbody' }, h('p', { class: 'notes-text' }, doc.notes))));
   }
-  root.append(h('p', { class: 'note center' }, '🔒 Stored only on this device. Export a backup any time in Settings.'));
+  root.append(h('p', { class: 'note center' }, icon('lock'), 'Stored only on this device. Export a backup any time in Settings.'));
   // count the headline numbers up when the page is entered (no-op for reduced motion and for in-place re-renders)
   root.querySelectorAll('[data-count]').forEach((el) => countUp(el, Number(el.dataset.count), money));
 }

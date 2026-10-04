@@ -1,4 +1,5 @@
 import { h, money, parseAmount, uid, fmtDate, isValidISODate } from '../../js/util.js';
+import { icon } from '../../js/icons.js';
 import { field, confirmDialog } from '../../js/ui.js';
 import { DEFAULT_GROUPS, LIMITS, canonicalGroup } from './model.js';
 
@@ -36,7 +37,7 @@ export function renderEdit(root, doc, ctx) {
     const known = [...DEFAULT_GROUPS, ...cg];
     const sel = h('select', { id: 'f-group', onchange: () => { customField.hidden = sel.value !== CUSTOM; if (!customField.hidden) custom.focus(); } },
       known.map((g) => h('option', { value: g, selected: g === initial }, g)),
-      h('option', { value: CUSTOM }, '＋ Custom group…'));
+      h('option', { value: CUSTOM }, '+ Custom group…'));
     const custom = txt('f-custom', '', { maxlength: LIMITS.group, placeholder: 'e.g. Collectibles' });
     const customField = field('Custom group name', custom); customField.hidden = true;
     const note = txt('f-note', item?.note, { maxlength: LIMITS.note, placeholder: 'Optional', autocapitalize: 'sentences' });
@@ -117,9 +118,9 @@ export function renderEdit(root, doc, ctx) {
     root.replaceChildren();
     document.title = 'Edit finances · AI-TOR';
     const formFor = (kind) => (open && open.kind === kind ? ({ account: accountForm, debt: debtForm, goal: goalForm }[kind])(open.id ? ({ account: doc.accounts, debt: doc.debts, goal: doc.goals }[kind]).find((x) => x.id === open.id) : null) : null);
-    const addBtn = (kind, label) => (open && open.kind === kind ? null : h('button', { type: 'button', class: 'btn primary add', id: 'add-' + kind, onclick: () => openForm(kind) }, '＋ ' + label));
+    const addBtn = (kind, label) => (open && open.kind === kind ? null : h('button', { type: 'button', class: 'btn primary add', id: 'add-' + kind, onclick: () => openForm(kind) }, icon('plus'), label));
 
-    root.append(h('div', { class: 'topbar' }, h('a', { class: 'back', href: '#/finances' }, '‹ Dashboard'), h('a', { class: 'btn ghost small', href: '#/finances', id: 'done-btn' }, 'Done')),
+    root.append(h('div', { class: 'topbar' }, h('a', { class: 'back', href: '#/finances' }, icon('chevL'), 'Dashboard'), h('a', { class: 'btn ghost small', href: '#/finances', id: 'done-btn' }, 'Done')),
       h('div', { class: 'fin-head' }, h('h1', { class: 'ph-title' }, 'Your finances'), h('div', { class: 'asof' }, 'Everything is saved on this device as you go.')));
 
     root.append(h('h2', { class: 'sec' }, 'Accounts'));
@@ -150,7 +151,7 @@ export function renderEdit(root, doc, ctx) {
     root.append(h('form', { class: 'card form', id: 'notes-form', onsubmit: (e) => { e.preventDefault(); commit(() => { doc.notes = notes.value; }); } },
       field('Your notes', notes), h('div', { class: 'btnrow' }, h('button', { type: 'submit', class: 'btn primary', 'data-act': 'save' }, 'Save notes'))));
 
-    root.append(h('p', { class: 'note center' }, '🔒 Stored only on this device. Nothing is uploaded.'));
+    root.append(h('p', { class: 'note center' }, icon('lock'), 'Stored only on this device. Nothing is uploaded.'));
     if (open) { const f = root.querySelector('.card.form input'); if (f && !f.value) f.focus({ preventScroll: false }); }
   }
   draw();

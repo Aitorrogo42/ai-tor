@@ -1,0 +1,101 @@
+/* AI-TOR FLAT surfaces (v15, brand board v5). Loaded LAST so it wins over section css. Replaces the v12-v14 Liquid Glass (css/glass.css, js/glass.js: removed).
+   Material: translucent flat colour block, fill rgba(255,255,255,.08), 1px border rgba(255,255,255,.35), NO blur / shadow / gradient, 2px corners.
+   The Mars photo and the starfield stay visible behind every surface. Active / pressed / focused = Ember #ff5238 border (+ faint Mars fill).
+   Mars crimson is only an accent (active tab, primary button, links, focus, chart bars). Tune everything with the --surf* tokens in css/app.css. */
+
+/* ===== home cards ===== */
+.section-btn{position:relative;display:flex;align-items:center;gap:16px;padding:20px 18px;min-height:100px;
+  border-radius:var(--r-md);border:1px solid var(--surf-line);background:var(--surf);
+  transition:transform .18s var(--ease),border-color .18s,background-color .18s}
+.section-btn:active{transform:scale(.985);border-color:var(--ember);background-color:var(--surf-on)}
+@media (hover:hover){.section-btn:hover{border-color:var(--ember)}}
+.section-btn .section-title{color:#fff}
+.section-btn .section-sub{color:#f2f2f3}
+.chev{flex:none;width:24px;text-align:center;font-size:26px;line-height:1;color:#fff;transition:transform .2s var(--ease),color .2s}
+.section-btn:active .chev{transform:translateX(3px);color:var(--ember)}
+
+/* ===== page chrome: header strip, tab bar, search strip, gear ===== */
+.gear,.fin-head,.trv-tabs,.trv-searchrow{background:var(--surf);border:1px solid var(--surf-line)}
+.gear{width:48px;height:48px;display:grid;place-items:center;color:var(--text-hi);border-radius:var(--r-md);transition:transform .18s var(--ease),border-color .18s,background-color .18s}
+.gear:active{transform:scale(.94);border-color:var(--ember);background-color:var(--surf-on)}
+.fin-head{position:relative;padding:14px 16px;border-radius:var(--r-md)}
+.fin-head .asof,.fin-head .sub,.fin-head p{color:var(--text)}
+.trv-tabs{padding:4px;border-radius:var(--r-tab)}
+.trv-tab{border-radius:var(--r-tab);color:var(--text)}
+.trv-tab.on{color:#fff}
+/* sliding selection: a flat outlined rectangle, Ember border + faint Mars fill (translucent: it is captured as a shared view-transition element) */
+.tab-pill{border-radius:var(--r-tab);border:1px solid var(--ember);background:var(--surf-on)}
+.trv-searchrow{top:6px;padding:8px;border-radius:var(--r-md);margin:0 -2px;background:rgba(10,3,5,.72)}
+.trv-search{background:var(--field);border-color:var(--surf-line)}
+/* filter chips */
+.dst-chip{border:1px solid var(--surf-line);background:var(--surf);color:var(--text);border-radius:var(--r-tab);transition:transform .15s var(--ease),background .2s,border-color .2s}
+.dst-chip:active{transform:scale(.96)}
+.dst-chip.on{color:#fff;border-color:var(--ember);background:var(--surf-on)}
+.back{color:var(--ember)}
+
+/* ===== content cards / lists: the same flat material, border a little softer ===== */
+.card,details.group,details.src-all,.dst-row,.dst-bar-card,.dst-sec,.feedbar,#networth{background:var(--surf);border-color:var(--surf-line-lo)}
+.card.error{border-color:var(--red-line)}
+.dst-row:active,.btn:active{border-color:var(--ember)}
+
+/* ===== footer text sits over the planet: a flat dark scrim block ===== */
+.home-foot{position:relative;padding:14px 16px;background:rgba(10,3,5,.62);border:1px solid var(--surf-line-lo);border-radius:var(--r-md)}
+.home-foot p,.home-foot .muted{color:#e3e3e4}
+
+/* the home header is not a surface */
+.home-head{background:transparent;border:0}
+
+@media (prefers-reduced-motion:reduce){
+  .section-btn,.gear,.btn,.dst-chip,.chev{transition:none}
+  .section-btn:active,.gear:active,.btn:active,.dst-chip:active{transform:none}
+}
+
+/* ===== v15.1 design QA ===== */
+/* equal-height home cards */
+.section-btn{height:96px;min-height:96px}
+.section-text{overflow:hidden}
+.section-sub{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* thin line icons (js/icons.js): 1.25px non-scaling stroke, follow the text colour */
+.ico{width:1.15em;height:1.15em;flex:none;vertical-align:-.2em;overflow:visible}
+.ico-lg{width:24px;height:24px}
+.chev-ico{width:22px;height:22px}
+.chev{display:grid;place-items:center}
+.back .ico{width:1.1em;height:1.1em;margin-right:2px}
+.btn .ico,.dst-chip .ico{margin-right:2px}
+.dst-star{color:var(--text)}
+.dst-star.on,.dst-favbtn[aria-pressed=true]{color:var(--ember)}
+.dst-ext{width:.9em;height:.9em;margin-left:3px}
+.note .ico,.priv .ico{margin-right:6px;vertical-align:-.22em}
+.empty-icon{display:flex;justify-content:center;margin-bottom:6px}
+.dash-key{display:inline-block;width:20px;height:0;border-top:2px dashed #fff;margin-right:6px;vertical-align:middle}
+.todo-chip .ico{margin-right:4px;width:1em;height:1em}
+summary .ico{margin-right:6px}
+/* one flat material in three tonal steps: --surf (cards, tabs) / --surf-dim (fields, footer scrim) / --surf-over (sticky strip, dialog, toast) */
+.trv-searchrow{top:calc(var(--safe-t) + 6px);background:var(--surf-over);border:1px solid var(--surf-line)}
+.trv-search,input[type=text],input[type=date],input[type=password],input[type=search],select,textarea,.todo-add-input,.feed-formrow input{background:var(--surf-dim);border:1px solid var(--surf-line)}
+.home-foot{background:var(--surf-dim);border:1px solid var(--surf-line)}
+.dialog,.toast{border:1px solid var(--surf-line)}
+.toast{border-color:var(--surf-line)}
+/* home footer: one line + collapsed install hint */
+.home-foot{margin-top:18px;padding:10px 14px;gap:6px}
+.home-foot .priv{display:flex;align-items:center;justify-content:center;gap:6px;font-size:13px;line-height:1.35}
+.home-foot .priv .ico{margin:0}
+.install-hint{width:100%;font-size:13px}
+.install-hint summary{cursor:pointer;min-height:44px;display:flex;align-items:center;justify-content:center;color:#fff;text-decoration:underline;text-underline-offset:3px;font-weight:600;list-style:none}
+.install-hint summary::-webkit-details-marker{display:none}
+.install-hint p{margin-top:6px}
+/* home header: compact, gear centred on the lockup, no rule */
+.home-head{--lk:96px;padding:6px 0 14px}
+.lockup-hero{--lk:96px}
+.gear-slot{top:calc(6px + var(--lk)*.6078 - 24px)}
+.greeting{margin-top:14px;font-size:20px}
+.tagline{margin-top:4px;font-size:14px}
+.section-list{margin-top:2px}
+.home-rule{display:none}
+@media (max-height:700px){.home-head,.lockup-hero{--lk:80px}.section-btn{height:88px;min-height:88px;padding:14px 16px}.section-list{gap:10px}.greeting{margin-top:10px;font-size:18px}}
+/* flat checkboxes (Travels + To-Do): square outline box, Ember when checked, tap area stays on the row (48px) */
+.trv-cb,.todo-cb{-webkit-appearance:none;appearance:none;position:relative;flex:none;margin:0;background:var(--surf);border:1px solid var(--surf-line);border-radius:var(--r-sm);cursor:pointer;transition:background .15s,border-color .15s}
+.trv-cb:checked,.todo-cb:checked{background:var(--surf-on);border-color:var(--ember)}
+.trv-cb:checked::after,.todo-cb:checked::after{content:"";position:absolute;left:34%;top:14%;width:28%;height:52%;border:solid #fff;border-width:0 1.5px 1.5px 0;transform:rotate(42deg)}
+.trv-cb:focus-visible,.todo-cb:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+.trv-cb:active,.todo-cb:active{border-color:var(--ember)}

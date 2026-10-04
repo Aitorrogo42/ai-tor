@@ -1,6 +1,7 @@
 // To-Do section. Route: #/todo
 // Open tasks on top (newest first), a collapsed "Done" pile below. Tap a task to see/add comments.
 import { h, pageTitle, fmtDate, todayISO, uid } from '../../js/util.js';
+import { icon } from '../../js/icons.js';
 import { toast, confirmDialog } from '../../js/ui.js';
 import { validate, summary, emptyDoc, isEmptyDoc, newTask, openTasks, doneTasks, LIMITS } from './model.js';
 import * as sync from './sync.js';
@@ -18,9 +19,9 @@ export async function render(root, ctx) {
   if (raw) {
     const v = validate(raw);
     if (!v.ok) {
-      root.append(h('a', { class: 'back', href: '#/' }, '‹ Home'),
+      root.append(h('a', { class: 'back', href: '#/' }, icon('chevL'), 'Home'),
         h('div', { class: 'card error', id: 'corrupt' }, h('h2', null, 'Saved To-Do data looks damaged'), h('p', { class: 'note' }, v.errors.join(' ')),
-          h('p', { class: 'note' }, 'You can restore a backup from Settings → Import, or reset this section.'),
+          h('p', { class: 'note' }, 'You can restore a backup from Settings > Import, or reset this section.'),
           h('div', { class: 'btnrow' }, h('a', { class: 'btn ghost', href: '#/settings' }, 'Open Settings'),
             h('button', { class: 'btn danger', onclick: async () => { if (await confirmDialog({ title: 'Reset To-Do data?', message: 'This deletes the saved tasks on this device.', okLabel: 'Reset', danger: true })) { store.clear(); ctx.rerender(); } } }, 'Reset To-Do'))));
       return;
@@ -75,7 +76,7 @@ export async function render(root, ctx) {
     const today = todayISO();
     const cls = t.done ? '' : (t.due < today ? ' overdue' : t.due === today ? ' today' : '');
     const label = t.done ? fmtDate(t.due) : (t.due < today ? 'Overdue · ' : t.due === today ? 'Today · ' : '') + fmtDate(t.due);
-    return h('span', { class: 'todo-chip due' + cls }, '📅 ' + label);
+    return h('span', { class: 'todo-chip due' + cls }, icon('calendar'), label);
   }
 
   function commentBlock(t) {
@@ -142,8 +143,8 @@ export async function render(root, ctx) {
       h('span', { class: 'todo-title' }, t.title),
       h('span', { class: 'todo-meta' },
         dueChip(t),
-        t.done && t.doneAt ? h('span', { class: 'todo-chip' }, '✓ Done ' + fmtWhen(t.doneAt)) : null,
-        n ? h('span', { class: 'todo-chip cmt', 'aria-label': `${n} comment${n === 1 ? '' : 's'}` }, '💬 ' + n) : null,
+        t.done && t.doneAt ? h('span', { class: 'todo-chip' }, icon('check'), 'Done ' + fmtWhen(t.doneAt)) : null,
+        n ? h('span', { class: 'todo-chip cmt', 'aria-label': `${n} comment${n === 1 ? '' : 's'}` }, icon('comment'), String(n)) : null,
         t.source === 'sync' ? h('span', { class: 'todo-chip src' }, 'from assistant') : null));
     const li = h('li', { class: 'todo-row' + (t.done ? ' done' : '') + (isOpen ? ' open' : ''), 'data-task': t.id },
       h('div', { class: 'todo-line' }, h('label', { class: 'todo-check', for: 'cb-' + t.id }, cb), main));
@@ -195,7 +196,7 @@ export async function render(root, ctx) {
       configured
         ? h('div', { class: 'todo-syncrow' },
             h('div', { class: 'todo-synctext' + (st && st.cls ? ' ' + st.cls : ''), id: 'sync-status', role: 'status' }, st ? st.text : ''),
-            h('button', { type: 'button', class: 'btn ghost small', id: 'sync-now', disabled: busy, onclick: runSync }, busy ? 'Syncing…' : '↻ Sync now'))
+            h('button', { type: 'button', class: 'btn ghost small', id: 'sync-now', disabled: busy, onclick: runSync }, busy ? 'Syncing…' : [icon('refresh'), 'Sync now']))
         : h('p', { class: 'note' }, 'Want your assistant’s task list here? ', h('button', { type: 'button', class: 'linkbtn', id: 'sync-setup-link', onclick: () => { syncPanel.open = true; syncOpen = true; syncPanel.scrollIntoView({ block: 'center' }); } }, 'Set up task sync')));
 
     const pass = h('input', { type: 'password', id: 'sync-pass', value: c.passphrase || '', placeholder: 'Your passphrase', autocomplete: 'off', autocapitalize: 'off', autocorrect: 'off', spellcheck: 'false', maxlength: '200' });
@@ -218,7 +219,7 @@ export async function render(root, ctx) {
           sync.clearConfig(); syncMsg = null; toast('Sync removed'); draw();
         } }, 'Remove sync') : null),
       configured && c.feedUpdated ? h('p', { class: 'note' }, 'Feed last updated by your assistant: ' + fmtWhen(c.feedUpdated)) : null);
-    syncPanel.replaceChildren(h('summary', { id: 'sync-summary' }, h('span', null, '⚙ Task sync settings'), h('span', { class: 'trv-gcount' }, configured ? 'On' : 'Off')), h('div', { class: 'todo-syncbody' }, form));
+    syncPanel.replaceChildren(h('summary', { id: 'sync-summary' }, h('span', null, [icon('gear'), 'Task sync settings']), h('span', { class: 'trv-gcount' }, configured ? 'On' : 'Off')), h('div', { class: 'todo-syncbody' }, form));
     syncPanel.open = syncOpen;
   }
 
@@ -233,7 +234,7 @@ export async function render(root, ctx) {
     const openCard = h('section', { class: 'card todo-open', id: 'todo-open' },
       h('h2', { class: 'todo-h' }, 'To do ', h('span', { class: 'trv-pill', id: 'todo-open-count' }, String(open.length))),
       open.length ? h('ul', { class: 'todo-ul', id: 'todo-open-list' }, open.map(row))
-        : h('p', { class: 'note todo-empty', id: 'todo-none' }, done.length ? 'All done. Nothing left to do. 🎉' : 'No tasks yet. Add one above' + (sync.isConfigured() ? ', or tap Sync now.' : '.')));
+        : h('p', { class: 'note todo-empty', id: 'todo-none' }, done.length ? 'All done. Nothing left to do.' : 'No tasks yet. Add one above' + (sync.isConfigured() ? ', or tap Sync now.' : '.')));
 
     const doneDet = h('details', { class: 'group todo-done', id: 'todo-done' },
       h('summary', { id: 'todo-done-summary' }, h('span', { class: 'trv-gname' }, 'Done'), h('span', { class: 'trv-gcount', id: 'todo-done-count' }, String(done.length))),
@@ -256,9 +257,9 @@ export async function render(root, ctx) {
   window.addEventListener('hashchange', cleanup, { once: true });
 
   root.append(
-    h('div', { class: 'topbar' }, h('a', { class: 'back', href: '#/' }, '‹ Home')),
+    h('div', { class: 'topbar' }, h('a', { class: 'back', href: '#/' }, icon('chevL'), 'Home')),
     head, addForm, syncBar, lists, syncPanel,
-    h('p', { class: 'note center' }, '🔒 Stored only on this device. Included in backups via Settings → Export.'));
+    h('p', { class: 'note center' }, icon('lock'), 'Stored only on this device. Included in backups via Settings > Export.'));
   draw();
   if (sync.isConfigured() && sync.shouldAutoSync()) { sync.maybeAutoSync().then(() => { /* view refreshes via event */ }); }
 }

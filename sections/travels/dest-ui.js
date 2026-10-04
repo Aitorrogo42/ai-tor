@@ -1,6 +1,7 @@
 // Travels → Destinations screens. Routes: #/travels/destinations (list) and #/travels/destinations/<id> (detail).
 // Every piece of feed text goes in through textContent (the h() helper); links are created only for https:// URLs (safeUrl).
 import { h, sectionIcon } from '../../js/util.js';
+import { icon } from '../../js/icons.js';
 import { toast } from '../../js/ui.js';
 import { timeAgo } from '../../js/feedcrypto.js';
 import { COUNTRIES } from './countries.js';
@@ -23,7 +24,7 @@ function day(iso) {
 const kindChip = (k) => h('span', { class: 'dst-kind dst-kind-' + k }, KIND_LABEL[k] || 'Other');
 const extLink = (url, label, cls) => {
   const u = safeUrl(url);
-  return u ? h('a', { class: cls || 'dst-link', href: u, target: '_blank', rel: 'noopener noreferrer' }, label, h('span', { class: 'dst-ext', 'aria-hidden': 'true' }, ' ↗')) : null;
+  return u ? h('a', { class: cls || 'dst-link', href: u, target: '_blank', rel: 'noopener noreferrer' }, label, icon('external', 'ico dst-ext')) : null;
 };
 
 // ---------- Refresh bar ("Updated <time> · N places") ----------
@@ -64,7 +65,7 @@ function refreshBar(rerender) {
       : h('div', { class: 'feed-upd', id: 'dst-updated' }, havePass ? `Not refreshed yet · ${n} place${n === 1 ? '' : 's'}` : 'Get your Travel Guide’s latest proposals');
     const btn = h('button', { class: 'btn primary small', id: 'dst-refresh-btn', type: 'button', disabled: busy, 'aria-busy': busy ? 'true' : null,
       onclick: () => { if (!havePass) { askPass = true; error = null; draw(); const i = root.querySelector('#dst-pass'); if (i) i.focus(); } else run(); } },
-      busy ? h('span', { class: 'spinner', id: 'dst-spinner', 'aria-hidden': 'true' }) : h('span', { 'aria-hidden': 'true' }, '↻'), busy ? 'Refreshing…' : 'Refresh');
+      busy ? h('span', { class: 'spinner', id: 'dst-spinner', 'aria-hidden': 'true' }) : icon('refresh'), busy ? 'Refreshing…' : 'Refresh');
     const kids = [h('div', { class: 'feed-row' }, h('div', { class: 'feed-text', role: 'status' }, status), btn)];
     if (error && !busy) kids.push(h('div', { class: 'feed-err', id: 'dst-error', role: 'alert' }, error,
       s.lastRefreshAt ? h('div', { class: 'note' }, 'Still showing the places from ' + when(s.lastRefreshAt) + '.') : null));
@@ -119,13 +120,13 @@ export function renderList(container, ctx) {
         h('span', { class: 'dst-line2' }, kindChip(p.kind), meta ? h('span', { class: 'dst-region' }, meta) : null),
         p.summary ? h('span', { class: 'dst-sum' }, p.summary) : null),
       h('button', { type: 'button', class: 'dst-star' + (p.favorite ? ' on' : ''), 'data-star': p.id, 'aria-pressed': String(p.favorite), 'aria-label': (p.favorite ? 'Remove favorite: ' : 'Favorite: ') + p.name,
-        onclick: () => toggleFav(p.id) }, p.favorite ? '★' : '☆'));
+        onclick: () => toggleFav(p.id) }, icon('star', 'ico ico-lg', { filled: p.favorite })));
   }
 
   function drawList() {
     const doc = feed.readDoc();
     if (!doc.ok) {
-      listBox.replaceChildren(h('div', { class: 'card error', id: 'dst-damaged' }, h('p', { class: 'note' }, 'Saved travels data looks damaged. Restore a backup from Settings → Import, or reset Travels.')));
+      listBox.replaceChildren(h('div', { class: 'card error', id: 'dst-damaged' }, h('p', { class: 'note' }, 'Saved travels data looks damaged. Restore a backup from Settings > Import, or reset Travels.')));
       return;
     }
     const all = sortPlaces(doc.doc.destinations);
@@ -135,7 +136,7 @@ export function renderList(container, ctx) {
     chips.replaceChildren(
       ...[['all', 'All'], ...present.map((k) => [k, (KIND_LABEL[k] || k)])].map(([k, label]) =>
         h('button', { type: 'button', class: 'dst-chip' + (state.kind === k ? ' on' : ''), 'data-kind': k, 'aria-pressed': String(state.kind === k), onclick: () => { state.kind = k; drawList(); } }, label)),
-      h('button', { type: 'button', class: 'dst-chip' + (state.favs ? ' on' : ''), id: 'dst-favs', 'aria-pressed': String(state.favs), onclick: () => { state.favs = !state.favs; drawList(); } }, '★ Favorites'));
+      h('button', { type: 'button', class: 'dst-chip' + (state.favs ? ' on' : ''), id: 'dst-favs', 'aria-pressed': String(state.favs), onclick: () => { state.favs = !state.favs; drawList(); } }, icon('star'), 'Favorites'));
     chips.hidden = all.length === 0;
     search.parentElement && (search.parentElement.hidden = all.length === 0);
 
@@ -163,7 +164,7 @@ export function renderList(container, ctx) {
 // ---------- Detail ----------
 export function renderDetail(container, ctx, id) {
   const cur = feed.readDoc();
-  const back = h('a', { class: 'back', href: LIST_HASH, id: 'dst-back' }, '‹ Destinations');
+  const back = h('a', { class: 'back', href: LIST_HASH, id: 'dst-back' }, icon('chevL'), 'Destinations');
   const place = cur.ok && cur.doc.destinations.find((p) => p.id === id);
   if (!place) {
     container.append(h('div', { class: 'topbar' }, back),
@@ -179,8 +180,8 @@ export function renderDetail(container, ctx, id) {
 
   const star = h('button', { type: 'button', class: 'btn ghost small dst-favbtn', id: 'dst-fav', 'aria-pressed': String(place.favorite), onclick: () => {
     feed.mutate((doc) => { const p = doc.destinations.find((x) => x.id === id); if (p) { p.favorite = !p.favorite; place.favorite = p.favorite; } });
-    star.setAttribute('aria-pressed', String(place.favorite)); star.textContent = place.favorite ? '★ Favorite' : '☆ Favorite';
-  } }, place.favorite ? '★ Favorite' : '☆ Favorite');
+    star.setAttribute('aria-pressed', String(place.favorite)); star.replaceChildren(icon('star', 'ico', { filled: place.favorite }), 'Favorite');
+  } }, icon('star', 'ico', { filled: place.favorite }), 'Favorite');
 
   const head = h('div', { class: 'card dst-head' },
     h('div', { class: 'dst-head-top' }, h('h1', { class: 'dst-title', id: 'dst-title' }, place.name), star),

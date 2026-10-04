@@ -23,7 +23,7 @@ function niceTicks(lo, hi, count = 4) {
 
 /** series: [{label,color,dash,points:[[iso,value],...]}] */
 export function projectionChart({ series, start, end, goalValue, nowValue }) {
-  const W = 360, H = 250, L = 52, R = 14, T = 16, B = 42;
+  const W = 320, H = 270, L = 50, R = 12, T = 16, B = 50;   // viewBox ~ phone column width so the 12px labels render at >= 12px
   const all = [goalValue, nowValue];
   const pad = Math.max(Math.abs(goalValue - nowValue) * 0.15, Math.abs(goalValue) * 0.02, 1);
   const { ticks, min, max } = niceTicks(Math.min(...all) - pad, Math.max(...all) + pad);
@@ -34,25 +34,25 @@ export function projectionChart({ series, start, end, goalValue, nowValue }) {
     'aria-label': 'Illustration only, not a forecast. Dashed line is a straight line from your current net worth to your goal; the other line keeps today\'s net worth flat. No investment returns are assumed.' });
   ticks.forEach((v) => {
     svg.append(s('line', { x1: L, x2: W - R, y1: Y(v), y2: Y(v), stroke: 'rgba(255,255,255,.08)', 'stroke-width': '1' }));
-    svg.append(s('text', { x: L - 6, y: Y(v) + 3, 'text-anchor': 'end', fill: '#9c9c9d', 'font-size': '10' }, moneyCompact(v)));
+    svg.append(s('text', { x: L - 6, y: Y(v) + 4, 'text-anchor': 'end', fill: '#c4c5c6', 'font-size': '12' }, moneyCompact(v)));
   });
   const fmtD = (ms) => new Date(ms).toLocaleDateString(undefined, { month: 'short', year: '2-digit', timeZone: 'UTC' });
   for (let i = 0; i <= 3; i++) {
     const ms = x0 + ((x1 - x0) * i) / 3;
     const x = L + (i / 3) * (W - L - R);
-    svg.append(s('line', { x1: x, x2: x, y1: H - B, y2: H - B + 4, stroke: '#9c9c9d' }));
-    svg.append(s('text', { x, y: H - B + 16, 'text-anchor': i === 0 ? 'start' : i === 3 ? 'end' : 'middle', fill: '#9c9c9d', 'font-size': '10' }, fmtD(ms)));
+    svg.append(s('line', { x1: x, x2: x, y1: H - B, y2: H - B + 4, stroke: '#c4c5c6' }));
+    svg.append(s('text', { x, y: H - B + 18, 'text-anchor': i === 0 ? 'start' : i === 3 ? 'end' : 'middle', fill: '#c4c5c6', 'font-size': '12' }, fmtD(ms)));
   }
   svg.append(s('line', { x1: L, x2: W - R, y1: H - B, y2: H - B, stroke: 'rgba(255,255,255,.18)' }));
-  svg.append(s('line', { x1: L, x2: W - R, y1: Y(goalValue), y2: Y(goalValue), stroke: '#3ddc84', 'stroke-width': '1', 'stroke-dasharray': '2 4', opacity: '.7' }));
-  svg.append(s('text', { x: W - R, y: Y(goalValue) - 5, 'text-anchor': 'end', fill: '#3ddc84', 'font-size': '10' }, 'Goal ' + moneyCompact(goalValue)));
+  svg.append(s('line', { x1: L, x2: W - R, y1: Y(goalValue), y2: Y(goalValue), stroke: '#ffffff', 'stroke-width': '1', 'stroke-dasharray': '2 4', opacity: '.7' }));
+  svg.append(s('text', { x: W - R, y: Y(goalValue) - 5, 'text-anchor': 'end', fill: '#ffffff', 'font-size': '12' }, 'Goal ' + moneyCompact(goalValue)));
   for (const ser of series) {
     const pts = ser.points.map(([d, v]) => `${X(d).toFixed(1)},${Y(v).toFixed(1)}`).join(' ');
     svg.append(s('polyline', { points: pts, fill: 'none', stroke: ser.color, 'stroke-width': '2.5', 'stroke-linecap': 'round', 'stroke-linejoin': 'round', ...(ser.dash ? { 'stroke-dasharray': ser.dash } : {}) }));
   }
-  svg.append(s('circle', { cx: X(start), cy: Y(nowValue), r: 4.5, fill: '#ff5238', stroke: '#0c0d0f', 'stroke-width': '2' }));
-  svg.append(s('circle', { cx: X(end), cy: Y(goalValue), r: 4.5, fill: '#3ddc84', stroke: '#0c0d0f', 'stroke-width': '2' }));
-  svg.append(s('text', { x: X(start) + 8, y: Y(nowValue) + 16, fill: '#ff9a90', 'font-size': '10' }, 'Today ' + moneyCompact(nowValue)));
-  if (min > 0) svg.append(s('text', { x: 6, y: H - 4, fill: '#9c9c9d', 'font-size': '9' }, 'Y-axis starts at ' + moneyCompact(min) + ' (not zero)'));
+  svg.append(s('circle', { cx: X(start), cy: Y(nowValue), r: 4.5, fill: '#ff5238', stroke: '#0a0305', 'stroke-width': '2' }));
+  svg.append(s('circle', { cx: X(end), cy: Y(goalValue), r: 4.5, fill: '#ffffff', stroke: '#0a0305', 'stroke-width': '2' }));
+  svg.append(s('text', { x: X(start) + 8, y: Y(nowValue) + 16, fill: '#ffffff', 'font-size': '12' }, 'Today ' + moneyCompact(nowValue)));
+  if (min > 0) svg.append(s('text', { x: 6, y: H - 6, fill: '#c4c5c6', 'font-size': '12' }, 'Y-axis starts at ' + moneyCompact(min) + ' (not zero)'));
   return svg;
 }

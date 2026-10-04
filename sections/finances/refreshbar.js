@@ -1,6 +1,7 @@
 // The "Refresh" bar shown on the Finances dashboard: button + spinner, "Updated <time> from feed", "as of" text, clear errors,
 // and an inline passphrase prompt (the passphrase is shared with To-Do, see js/feedcrypto.js).
 import { h } from '../../js/util.js';
+import { icon } from '../../js/icons.js';
 import { toast } from '../../js/ui.js';
 import { timeAgo } from '../../js/feedcrypto.js';
 import * as feed from './feed.js';
@@ -52,7 +53,7 @@ export function refreshBar(doc, rerender) {
       : [h('div', { class: 'feed-upd' }, havePass ? 'Not refreshed from your assistant yet' : 'Get the latest numbers from your assistant')];
     const btn = h('button', { class: 'btn primary small', id: 'refresh-btn', type: 'button', disabled: busy, 'aria-busy': busy ? 'true' : null,
       onclick: () => { if (!havePass) { askPass = true; error = null; draw(); const i = root.querySelector('#feed-pass'); if (i) i.focus(); } else run(); } },
-      busy ? h('span', { class: 'spinner', id: 'refresh-spinner', 'aria-hidden': 'true' }) : h('span', { 'aria-hidden': 'true' }, '↻'), busy ? 'Refreshing…' : 'Refresh');
+      busy ? h('span', { class: 'spinner', id: 'refresh-spinner', 'aria-hidden': 'true' }) : icon('refresh'), busy ? 'Refreshing…' : 'Refresh');
     const kids = [h('div', { class: 'feed-row' }, h('div', { class: 'feed-text', role: 'status' }, status), btn)];
     if (error && !busy) kids.push(h('div', { class: 'feed-err', id: 'feed-error', role: 'alert' }, error,
       f && f.refreshedAt ? h('div', { class: 'note' }, 'Still showing the numbers from ' + when(f.refreshedAt) + '.') : null));

@@ -4,8 +4,8 @@ import { isValidISODate, todayISO, addMonthsISO, uid } from '../../js/util.js';
 export const SECTION_ID = 'finances';
 export const VERSION = 1; // schema version of the finances document
 export const DEFAULT_GROUPS = ['Stock/Equity', 'Retirement', 'Crypto', 'Cash/Bank', 'Property', 'Other'];
-const FIXED_COLORS = { 'Stock/Equity': '#ff5238', Retirement: '#7aa7ff', Crypto: '#f2c14e', 'Cash/Bank': '#3ddc84', Property: '#d4a8ff', Other: '#8a8a8c' };
-const PALETTE = ['#f08ab4', '#2dd4bf', '#d4a8ff', '#a3d65c', '#5cc3f0', '#b9a7ff', '#e9d36a', '#c9d1d9'];
+const FIXED_COLORS = { 'Stock/Equity': '#ff5238', Retirement: '#ffffff', Crypto: '#c4c5c6', 'Cash/Bank': '#d93a2d', Property: '#8a8a8c', Other: '#5a5a5c' };   // brand tones only: Ember / white / greys / Mars
+const PALETTE = ['#8f1a1c', '#e2e3e3', '#ffb3a8', '#a3a4a5', '#b3261e', '#6f7071', '#ff7a66', '#d0d1d2'];   // custom groups: brand tone steps
 export const LIMITS = { name: 80, group: 40, note: 500, notes: 5000, items: 500, amount: 1e15 };
 
 export const emptyDoc = () => ({ version: VERSION, example: false, updatedAt: null, accounts: [], monthlyIncome: null, monthlyExpenses: null, debts: [], goals: [], notes: '', feed: null });
@@ -71,7 +71,7 @@ export function validate(raw) {
     const w = `Debt #${i + 1}`;
     if (!d || typeof d !== 'object') { err(`${w}: must be an object.`); return; }
     const n = name(d, w);
-    if (!isAmt(d.amount) || d.amount < 0) err(`${w}: "amount" must be a number ≥ 0.`);
+    if (!isAmt(d.amount) || d.amount < 0) err(`${w}: "amount" must be a number >= 0.`);
     const nt = note(d, w);
     if (n && isAmt(d.amount) && d.amount >= 0) doc.debts.push({ id: takeId(d.id), name: n, amount: d.amount, note: nt, ...fk(d) });
   });
@@ -87,7 +87,7 @@ export function validate(raw) {
   for (const key of ['monthlyIncome', 'monthlyExpenses']) {
     const v = raw[key];
     if (v == null) doc[key] = null;
-    else if (!isAmt(v) || v < 0) err(`Finances: "${key}" must be a number ≥ 0 or null.`);
+    else if (!isAmt(v) || v < 0) err(`Finances: "${key}" must be a number >= 0 or null.`);
     else doc[key] = v;
   }
   if (raw.notes == null) doc.notes = '';

@@ -1,6 +1,7 @@
 // Travels section: two tabs. Visited = countries you have been to (#/travels); Destinations = places your Travel Guide proposes
 // (#/travels/destinations, #/travels/destinations/<id>; see dest-ui.js). Both live in the one document aitor:sec:travels.
 import { h, pageTitle } from '../../js/util.js';
+import { icon } from '../../js/icons.js';
 import { toast, confirmDialog } from '../../js/ui.js';
 import { COUNTRIES, CONTINENTS } from './countries.js';
 import { validate, summary, emptyDoc, isEmptyDoc, TOTAL, LIMITS, norm } from './model.js';
@@ -18,9 +19,9 @@ export async function render(root, ctx) {
   if (raw) {
     const v = validate(raw);
     if (!v.ok) {
-      root.append(h('a', { class: 'back', href: '#/' }, '‹ Home'),
+      root.append(h('a', { class: 'back', href: '#/' }, icon('chevL'), 'Home'),
         h('div', { class: 'card error', id: 'corrupt' }, h('h2', null, 'Saved travels data looks damaged'), h('p', { class: 'note' }, v.errors.join(' ')),
-          h('p', { class: 'note' }, 'You can restore a backup from Settings → Import, or reset this section.'),
+          h('p', { class: 'note' }, 'You can restore a backup from Settings > Import, or reset this section.'),
           h('div', { class: 'btnrow' }, h('a', { class: 'btn ghost', href: '#/settings' }, 'Open Settings'),
             h('button', { class: 'btn danger', onclick: async () => { if (await confirmDialog({ title: 'Reset Travels data?', message: 'This deletes the saved travels on this device.', okLabel: 'Reset', danger: true })) { store.clear(); ctx.rerender(); } } }, 'Reset Travels'))));
       return;
@@ -180,7 +181,7 @@ export async function render(root, ctx) {
     }
     document.title = 'Destinations · Travels · AI-TOR';
     root.append(
-      h('div', { class: 'topbar' }, h('a', { class: 'back', href: '#/' }, '‹ Home')),
+      h('div', { class: 'topbar' }, h('a', { class: 'back', href: '#/' }, icon('chevL'), 'Home')),
       h('div', { class: 'fin-head' }, pageTitle('travels', 'Travels'), h('p', { class: 'asof' }, 'Places your Travel Guide suggests')),
       tabs('dest'));
     renderList(root, ctx);
@@ -188,11 +189,11 @@ export async function render(root, ctx) {
   }
 
   root.append(
-    h('div', { class: 'topbar' }, h('a', { class: 'back', href: '#/' }, '‹ Home')),
+    h('div', { class: 'topbar' }, h('a', { class: 'back', href: '#/' }, icon('chevL'), 'Home')),
     h('div', { class: 'fin-head' }, pageTitle('travels', 'Travels'), h('p', { class: 'asof' }, 'Countries you have visited')),
     tabs('visited'),
     h('div', { class: 'card trv-top' }, countText, progress,
-      h('p', { class: 'note' }, '🔒 Stored only on this device. Include it in backups via Settings → Export.')),
+      h('p', { class: 'note' }, icon('lock'), 'Stored only on this device. Include it in backups via Settings > Export.')),
     h('div', { class: 'trv-searchrow' }, search, clearSearch),
     lists,
     h('div', { class: 'btnrow' }, clearAll));

@@ -1,5 +1,5 @@
-/* AI-TOR shell: Raycast-style glass UI with a Mars red-orange accent.
-   Every colour, radius and easing lives in :root, so the whole look is tweaked here. */
+/* AI-TOR shell (v15 FLAT style): translucent flat surfaces (white 8 % fill, 1px white 35 % border), no blur / shadow / gradient, sharp 2px corners,
+   Mars crimson only as accent. Every colour, radius and easing lives in :root, so the whole look is tweaked here. */
 
 /* ---- self-hosted font (SIL OFL, see fonts/OFL-LeagueSpartan.txt): League Spartan variable, weights 200-700 ----
    Picked by measuring the "MARS" lettering of the reference photo against 13 candidates (see tools/font_match.py). */
@@ -10,31 +10,37 @@
 
 :root{
   /* surfaces (Raycast near-black) */
-  --bg:#0a0305;--panel:#0c0d0f;--panel-2:#111214;
-  --glass:rgba(17,18,20,.78);--glass-2:rgba(24,25,28,.62);--field:#0a0b0d;
-  --hair:rgba(255,255,255,.08);--hair-2:rgba(255,255,255,.14);--hl:rgba(255,255,255,.06);
+  --bg:#0a0305;
+  /* FLAT translucent surface material (brand board v5): the Mars photo and stars stay visible behind it */
+  --surf:rgba(255,255,255,.08);--surf-hi:rgba(255,255,255,.14);--surf-line:rgba(255,255,255,.35);--surf-line-lo:rgba(255,255,255,.2);
+  --surf-dim:rgba(10,3,5,.5);                          /* tonal step 2: inputs, footer scrim (background still reads through) */
+  --surf-over:rgba(14,5,8,.88);                        /* tonal step 3: layers that sit over scrolling content: sticky strip, dialog, toast */
+  --surf-on:rgba(217,58,45,.18);                       /* active tab / selected: faint Mars fill + Ember border */
+  --panel:var(--surf);--panel-2:var(--surf);--field:var(--surf-dim);
+  --hair:rgba(255,255,255,.14);--hair-2:rgba(255,255,255,.3);--hl:transparent;
   /* text */
-  --text:#cdcece;--text-hi:#f4f4f5;--muted:#adaeaf;--text-soft:#b8b9ba;
+  --text:#e2e3e3;--text-hi:#f7f7f8;--muted:#c4c5c6;--text-soft:#cfd0d1;
   /* MARS accent, sampled from the reference photo (crimson limb #d7423b..#e57461, deep maroon shadows #260707..#5a0f0f).
      Change these and everything follows: --mars = accent, --ember = bright rim / text accent, --rust = deep maroon, --blood = mid crimson */
   --mars:#d93a2d;--ember:#ff5238;--rust:#5a0f0f;--blood:#8f1a1c;--rim:#ff4a2e;--sky-top:#0a0305;--sky-mid:#2a0810;
   --accent:var(--mars);--accent-2:var(--ember);--accent-deep:var(--rust);
-  --accent-glow:rgba(217,58,45,.38);--accent-soft:rgba(217,58,45,.16);--accent-line:rgba(255,82,56,.45);
-  --btn-top:#cf2f27;--btn-bot:#a51c1a;           /* primary button fill: white text on it is >= 4.5:1 */
+  --accent-glow:rgba(217,58,45,.38);        /* only used by the background layer now */--accent-soft:rgba(217,58,45,.16);--accent-line:rgba(255,82,56,.45);
+  --btn:#c8322a;                                   /* flat primary button fill: white text on it is >= 4.5:1 */
   --focus:#ff6a52;
   /* semantic colours (kept distinct from the accent) */
-  --green:#3ddc84;--red:#ff6fb5;--amber:#f2c14e;--gold:#f2c14e;--cool:#8ab4ff;--lav:#b9a7ff;
-  --green-line:rgba(61,220,132,.38);--red-line:rgba(255,111,181,.45);--amber-line:rgba(242,193,78,.4);
+  /* brand palette only: white, greys and Mars tones. Gains are white (read as plain amounts), losses/warnings Ember; they are told apart by sign, label and icon, never by hue */
+  --green:#ffffff;--red:#ff5238;--amber:#ff5238;--gold:#ff5238;--cool:#e2e3e3;--lav:#c4c5c6;
+  --green-line:rgba(255,255,255,.4);--red-line:rgba(255,82,56,.55);--amber-line:rgba(255,82,56,.55);
   /* legacy aliases used by section css */
   --card:var(--panel-2);--card2:var(--panel-2);--line:var(--hair);--blue:var(--accent-2);--purple:var(--lav);
   /* shape + motion */
-  --r-lg:20px;--r-md:14px;--r-sm:10px;
+  --r-lg:2px;--r-md:2px;--r-sm:2px;--r-tab:2px;
   --ease:cubic-bezier(.22,1,.36,1);--ease-io:cubic-bezier(.65,0,.35,1);--t-fast:.14s;--t-mid:.32s;
   --font:"League Spartan","Avenir Next",Avenir,"Century Gothic",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
   --mono:var(--font);                       /* labels used to be monospace; now the same family, upper-case with wide tracking */
   --track-label:.16em;--track-title:.06em;--track-brand:.28em;
-  --panel-bg:linear-gradient(180deg,rgba(21,22,25,.86),rgba(12,13,15,.86));
-  --panel-shadow:inset 0 1px 0 var(--hl),0 8px 24px rgba(0,0,0,.32);
+  --panel-bg:var(--surf);
+  --panel-shadow:none;
   --safe-t:env(safe-area-inset-top,0px);--safe-b:env(safe-area-inset-bottom,0px);--safe-l:env(safe-area-inset-left,0px);--safe-r:env(safe-area-inset-right,0px)}
 
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -47,64 +53,66 @@ body{margin:0;min-height:100vh;min-height:100dvh;font-family:var(--font);font-si
 @supports not (overflow:clip){html{overflow-x:hidden}}
 a{color:inherit;text-decoration:none}
 h1,h2,h3,p{margin:0}
-.loading{color:var(--muted);padding:56px 0;display:flex;flex-direction:column;align-items:center;gap:18px;font-size:12px;font-weight:500;letter-spacing:.34em;text-transform:uppercase}
-.loading .brand-mark{height:34px;color:#fff;filter:drop-shadow(0 0 12px var(--accent-glow));animation:mark-breathe 2.4s ease-in-out infinite}
+/* ---- loading splash: the lockup (A over lowercase ai-tor) ---- */
+.loading{color:var(--muted);padding:15vh 0 56px;display:flex;flex-direction:column;align-items:center;gap:18px}
+.loading .lockup{--lk:84px;animation:mark-breathe 2.4s ease-in-out infinite}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 @keyframes mark-breathe{50%{opacity:.55}}
-@media (prefers-reduced-motion:reduce){.loading .brand-mark{animation:none}}
+@media (prefers-reduced-motion:reduce){.loading .lockup{animation:none}}
 .muted{color:var(--muted)}
 ::selection{background:var(--accent-soft);color:var(--text-hi)}
 
-/* ---- focus: visible everywhere ---- */
-.section-btn:focus-visible,.back:focus-visible,summary:focus-visible,button:focus-visible,a:focus-visible{outline:2px solid var(--focus);outline-offset:2px;box-shadow:0 0 0 5px var(--accent-soft)}
+/* ---- focus: visible everywhere (flat: a solid Ember outline, no glow) ---- */
+.section-btn:focus-visible,.back:focus-visible,summary:focus-visible,button:focus-visible,a:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
 
 /* ---- home ---- */
-.home-head{position:relative;text-align:left;padding:10px 0 22px}
-.brand-row{display:flex;align-items:center;justify-content:space-between;min-height:48px}
-.brand{display:flex;align-items:center;gap:14px}
-.brand-mark{display:block;height:28px;width:auto;aspect-ratio:560/516;flex:none;color:#fff;filter:drop-shadow(0 0 10px var(--accent-glow))}
-.brand .brand-mark{margin-top:-1px}
-.wordmark{font-family:var(--font);font-size:19px;line-height:1;font-weight:600;letter-spacing:.34em;margin-right:-.34em;text-transform:uppercase;color:var(--text-hi)}
-.about-lockup{display:flex;align-items:center;gap:12px;padding:6px 0 16px;margin-bottom:4px;border-bottom:1px solid var(--hair)}
-.about-lockup .brand-mark{height:24px}.about-lockup .wordmark{font-size:16px}
-.greeting{font-size:23px;line-height:1.25;font-weight:500;margin-top:26px;letter-spacing:.14em;text-transform:uppercase;color:var(--text-hi);
-  background:linear-gradient(180deg,#fff 30%,#a9a9ab);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
-.tagline{color:var(--muted);margin-top:10px;font-size:12px;font-weight:500;letter-spacing:.24em;text-transform:uppercase;line-height:1.7}
+.home-head{position:relative;text-align:center;padding:14px 0 22px}
+.gear-slot{position:absolute;top:6px;right:0}
+.lockup-h1{margin:0;font-size:inherit;font-weight:inherit}
+.lockup-hero{--lk:104px}
+/* header lockup (brand board v5): the A centred on top, lowercase "ai-tor" directly beneath. --lk = mark width; the wordmark is sized so its
+   ink spans the mark's width (League Spartan Bold, .26em tracking; same ratios as lockup-header.svg: font-size = .2656 x mark width, gap = .156 x mark width) */
+.lockup{--lk:96px;display:flex;flex-direction:column;align-items:center;width:var(--lk);margin:0 auto;color:#fff}
+.brand-mark{display:block;width:var(--lk,28px);height:auto;aspect-ratio:640/544;flex:none;color:#fff}
+.wordmark{display:block;margin-top:calc(var(--lk)*.1);font-family:var(--font);font-size:calc(var(--lk)*.2656);line-height:1;font-weight:700;letter-spacing:.26em;margin-right:-.26em;white-space:nowrap;text-transform:none;color:#fff;font-size-adjust:none}
+.about-lockup{display:flex;justify-content:center;padding:6px 0 16px;margin-bottom:4px;border-bottom:1px solid var(--hair)}
+.about-lockup .lockup{--lk:56px}
+.home-rule{display:block;width:36px;height:2px;background:var(--mars);margin:20px auto 14px}
+.greeting{font-size:21px;line-height:1.25;font-weight:500;letter-spacing:.03em;color:var(--text-hi)}
+.tagline{color:var(--text);margin-top:6px;font-size:14px;font-weight:500;letter-spacing:.03em;line-height:1.45}
 .section-list{display:flex;flex-direction:column;gap:12px;margin-top:4px}
 
 .section-icon{width:56px;height:56px;display:block;background:transparent;border:0;flex:none;overflow:visible}
-.section-icon img{display:block;width:56px;height:56px;object-fit:contain;transition:filter .3s,transform .3s var(--ease)}
-.section-btn:active .section-icon img{filter:drop-shadow(0 0 10px var(--accent-glow));transform:scale(1.04)}
-.sec-ico{display:block;flex:none;border-radius:0;object-fit:contain;background:transparent;border:0;filter:drop-shadow(0 0 8px var(--accent-soft))}
+.section-icon img{display:block;width:56px;height:56px;object-fit:contain;transition:transform .3s var(--ease)}
+.section-btn:active .section-icon img{transform:scale(1.04)}
+.sec-ico{display:block;flex:none;border-radius:0;object-fit:contain;background:transparent;border:0}
 h1.with-ico{display:flex;align-items:center;gap:12px}
 .section-text{display:flex;flex-direction:column;flex:1;min-width:0}
 .section-title{font-size:22px;font-weight:500;letter-spacing:.07em;color:var(--text-hi)}
 .section-sub{color:var(--muted);font-size:13px;margin-top:2px}
 .home-foot{margin-top:28px;text-align:center;color:var(--muted);font-size:12.5px;display:flex;flex-direction:column;gap:12px;align-items:center}
-.ghost{background:transparent;color:var(--text);border:1px solid var(--hair-2);border-radius:var(--r-md);padding:12px 18px;font-size:15px;min-height:44px}
+.ghost{background:transparent;color:var(--text);border:1px solid var(--surf-line);border-radius:var(--r-md);padding:12px 18px;font-size:15px;min-height:44px}
 
 /* ---- shared ---- */
-.back{display:inline-flex;align-items:center;gap:2px;min-height:44px;color:var(--accent-2);font-size:15px;font-weight:500;margin-left:-6px;padding:0 10px 0 6px;border-radius:12px;transition:transform var(--t-fast),background var(--t-fast)}
-.back:active{transform:translateX(-2px) scale(.97);background:var(--accent-soft)}
-.card{position:relative;background:var(--panel-bg);border:1px solid var(--hair);border-radius:var(--r-md);padding:16px;box-shadow:var(--panel-shadow)}
+.back{display:inline-flex;align-items:center;gap:2px;min-height:44px;color:var(--accent-2);font-size:15px;font-weight:500;margin-left:-6px;padding:0 10px 0 6px;border-radius:var(--r-sm);transition:transform var(--t-fast),background var(--t-fast)}
+.back:active{transform:translateX(-2px);background:var(--surf-hi)}
+.card{position:relative;background:var(--surf);border:1px solid var(--surf-line-lo);border-radius:var(--r-md);padding:16px}
 .card.error{border-color:var(--red-line)}
 [hidden]{display:none!important}
 
-/* page header: glass panel with the section line-art icon */
-.fin-head::after{content:"";position:absolute;right:-40px;top:-60px;width:180px;height:140px;background:radial-gradient(closest-side,var(--accent-soft),transparent);pointer-events:none}
 .ph-title{font-weight:500;letter-spacing:.07em;color:var(--text-hi)}
 
 .topbar{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:4px}
 .center{text-align:center}
 
-/* ---- buttons ---- */
-.btn{position:relative;display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:46px;padding:0 18px;border-radius:var(--r-md);border:1px solid var(--hair-2);background:rgba(255,255,255,.03);color:var(--text-hi);font:inherit;font-size:15px;font-weight:600;cursor:pointer;text-align:center;
-  box-shadow:inset 0 1px 0 var(--hl);transition:transform var(--t-fast) var(--ease),box-shadow var(--t-mid),border-color var(--t-fast),background var(--t-fast)}
-.btn:active{transform:scale(.96);border-color:var(--accent-line);box-shadow:inset 0 1px 0 var(--hl),0 0 20px var(--accent-soft)}
-.btn.primary{background:linear-gradient(180deg,var(--btn-top),var(--btn-bot));border-color:rgba(255,110,100,.35);color:#fff;
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.28),0 4px 18px var(--accent-soft),0 0 0 0 var(--accent-glow)}
-.btn.primary:active{box-shadow:inset 0 1px 0 rgba(255,255,255,.28),0 2px 8px var(--accent-soft),0 0 26px var(--accent-glow);border-color:rgba(255,170,160,.6)}
-.btn.danger{background:rgba(255,111,181,.1);border-color:var(--red-line);color:#ffc6e0}
-.btn.ghost{background:rgba(255,255,255,.03)}
+/* ---- buttons: flat, outlined; primary = solid Mars ---- */
+.btn{position:relative;display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:46px;padding:0 18px;border-radius:var(--r-md);border:1px solid var(--surf-line);background:var(--surf);color:var(--text-hi);font:inherit;font-size:15px;font-weight:600;cursor:pointer;text-align:center;
+  transition:transform var(--t-fast) var(--ease),border-color var(--t-fast),background var(--t-fast)}
+.btn:active{transform:scale(.97);border-color:var(--ember);background:var(--surf-hi)}
+.btn.primary{background:var(--btn);border-color:var(--mars);color:#fff}
+.btn.primary:active{background:#dc4034;border-color:var(--ember)}
+.btn.danger{background:rgba(217,58,45,.14);border-color:var(--ember);color:#fff}
+.btn.ghost{background:var(--surf)}
 .btn.small{min-height:44px;padding:0 14px;font-size:14px}
 .btn.big{min-height:54px;font-size:17px}
 .btn.add{width:100%;margin-top:2px}
@@ -120,32 +128,32 @@ h1.with-ico{display:flex;align-items:center;gap:12px}
 
 /* ---- forms ---- */
 .fld{display:flex;flex-direction:column;gap:6px;margin-top:12px}
-.fld .fl{font-family:var(--mono);font-size:11px;letter-spacing:var(--track-label);text-transform:uppercase;color:var(--muted);font-weight:500}
+.fld .fl{font-family:var(--mono);font-size:12px;letter-spacing:var(--track-label);text-transform:uppercase;color:var(--muted);font-weight:500}
 .fld .hint{font-size:12px;color:var(--muted)}
-input[type=text],input[type=date],input[type=password],input[type=search],select,textarea{width:100%;min-height:46px;padding:10px 12px;border-radius:var(--r-md);border:1px solid var(--hair-2);background:var(--field);color:var(--text-hi);font:inherit;font-size:16px;
-  box-shadow:inset 0 1px 2px rgba(0,0,0,.4);transition:border-color var(--t-fast),box-shadow var(--t-mid)}
+input[type=text],input[type=date],input[type=password],input[type=search],select,textarea{width:100%;min-height:46px;padding:10px 12px;border-radius:var(--r-md);border:1px solid var(--surf-line);background:var(--field);color:var(--text-hi);font:inherit;font-size:16px;
+  transition:border-color var(--t-fast)}
 textarea{resize:vertical}
-input:focus-visible,select:focus-visible,textarea:focus-visible{outline:none;border-color:var(--accent-line);box-shadow:0 0 0 3px var(--accent-soft),0 0 18px var(--accent-soft)}
+input:focus-visible,select:focus-visible,textarea:focus-visible{outline:none;border-color:var(--ember)}
 .form h3{font-size:17px}
-.form-err{margin-top:12px;padding:10px 12px;border-radius:var(--r-md);border:1px solid var(--red-line);background:rgba(255,111,181,.08);color:#ffc6e0;font-size:13.5px}
+.form-err{margin-top:12px;padding:10px 12px;border-radius:var(--r-md);border:1px solid var(--ember);background:rgba(217,58,45,.12);color:var(--text-hi);font-size:13.5px}
 .form-err ul{margin:6px 0 0;padding-left:18px}
 .note.ok{color:var(--green)}
 
-/* ---- dialogs + toast ---- */
-.overlay{position:fixed;inset:0;z-index:50;background:rgba(3,4,5,.7);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);display:grid;place-items:center;padding:20px;animation:fade-in .22s ease both}
-.dialog{width:100%;max-width:420px;background:linear-gradient(180deg,#17181b,#0f1012);border:1px solid var(--hair-2);border-radius:var(--r-lg);padding:20px;box-shadow:inset 0 1px 0 var(--hl),0 24px 70px rgba(0,0,0,.6),0 0 60px var(--accent-soft);animation:dialog-in .32s var(--ease) both}
+/* ---- dialogs + toast: flat, no blur; the dimmer is a plain translucent sheet ---- */
+.overlay{position:fixed;inset:0;z-index:50;background:rgba(5,2,3,.6);display:grid;place-items:center;padding:20px;animation:fade-in .22s ease both}
+.dialog{width:100%;max-width:420px;background:var(--surf-over);border:1px solid var(--surf-line);border-radius:var(--r-lg);padding:20px;animation:dialog-in .32s var(--ease) both}
 .dialog h2{font-size:19px;margin-bottom:8px;color:var(--text-hi)}
 .dialog p{color:var(--text);font-size:14.5px}
 .dlg-details{margin:12px 0 0;padding-left:18px;color:var(--text-soft);font-size:13.5px}
 .dlg-actions{display:flex;gap:10px;margin-top:18px}
 .dlg-actions .btn{flex:1}
-.toast{position:fixed;left:50%;bottom:calc(24px + var(--safe-b));z-index:60;background:rgba(24,25,28,.92);border:1px solid var(--accent-line);color:var(--text-hi);padding:11px 18px;border-radius:99px;font-size:14px;font-weight:500;
-  -webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);box-shadow:0 10px 30px rgba(0,0,0,.5),0 0 24px var(--accent-soft);animation:toast-in .38s var(--ease) both;transform:translateX(-50%)}
+.toast{position:fixed;left:50%;bottom:calc(24px + var(--safe-b));z-index:60;background:var(--surf-over);border:1px solid var(--surf-line);color:var(--text-hi);padding:11px 18px;border-radius:var(--r-md);font-size:14px;font-weight:500;
+  animation:toast-in .38s var(--ease) both;transform:translateX(-50%)}
 .toast.out{animation:toast-out .24s ease-in both}
-@keyframes toast-in{from{opacity:0;transform:translateX(-50%) translateY(16px) scale(.96)}to{opacity:1;transform:translateX(-50%)}}
-@keyframes toast-out{to{opacity:0;transform:translateX(-50%) translateY(10px) scale(.97)}}
+@keyframes toast-in{from{opacity:0;transform:translateX(-50%) translateY(16px)}to{opacity:1;transform:translateX(-50%)}}
+@keyframes toast-out{to{opacity:0;transform:translateX(-50%) translateY(10px)}}
 @keyframes fade-in{from{opacity:0}to{opacity:1}}
-@keyframes dialog-in{from{opacity:0;transform:translateY(14px) scale(.96)}to{opacity:1;transform:none}}
+@keyframes dialog-in{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
 
 @media (prefers-reduced-motion:reduce){
   .overlay,.dialog,.toast,.toast.out{animation:none}
