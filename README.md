@@ -4,7 +4,7 @@ An installable personal-life app (PWA). Plain HTML/CSS/JS: **no build step, no C
 
 **Local-first:** every person who installs AI-TOR enters *their own* data. It is stored only in that device's browser storage (`localStorage`), never sent anywhere, and the app works fully offline once opened. **The app bundle contains no personal data**: only code, icons, and clearly-fake example data.
 
-Today: **Finances** (accounts, debts, income/expenses, goals, notes, dashboard). The home screen is a registry of sections, so more (e.g. Travel) can be added later.
+Today: **Finances** (accounts, debts, income/expenses, goals, notes, dashboard) and **Travels** (tick the countries you have visited out of a bundled offline list of 195, with search, per-continent counts, and optional year(s)/note per country). The home screen is a registry of sections, so more can be added later.
 
 ## Using it
 1. Open the hosted URL, add to home screen (iPhone: Share → *Add to Home Screen*; Android: ⋮ → *Install app*).
@@ -31,6 +31,8 @@ js/storage.js                namespaced localStorage (core + one key per section
 js/dataio.js                 export / validate / import of the whole app
 js/settings.js               Settings screen
 js/ui.js, js/util.js         confirm dialog, toast, DOM + currency + date helpers
+sections/travels/
+  index.js, model.js, countries.js (bundled list: code, name, flag, continent), travels.css
 sections/finances/
   index.js                   entry: empty state / dashboard / editor routing
   model.js                   schema v1, validation, calculations, example data
@@ -44,9 +46,9 @@ screenshots/                 fake-data screenshots only
 - `aitor:core` – `{version, profile:{name, currency}}`
 - `aitor:sec:<sectionId>` – that section's own document (e.g. `aitor:sec:finances`). A section only ever receives its own store (`ctx.store`), so future sections can't collide.
 
-**Export file** (`schema` 1):
+**Export file** (`schema` 2; schema 1 files, e.g. finances only, still import. Every section is optional):
 ```json
-{ "app": "ai-tor", "schema": 1, "exportedAt": "…",
+{ "app": "ai-tor", "schema": 2, "exportedAt": "…",
   "profile": { "name": "…", "currency": "USD" },
   "sections": { "finances": {
     "version": 1, "example": false, "updatedAt": "…",
@@ -54,7 +56,9 @@ screenshots/                 fake-data screenshots only
     "monthlyIncome": null, "monthlyExpenses": null,
     "debts": [{ "id": "…", "name": "…", "amount": 0, "note": "" }],
     "goals": [{ "id": "…", "name": "…", "target": 0, "date": "YYYY-MM-DD" }],
-    "notes": "" } } }
+    "notes": "" },
+    "travels": { "version": 1, "updatedAt": "…",
+      "visited": [{ "code": "FR", "years": "2019, 2022", "note": "" }] } } }
 ```
 Groups: Stock/Equity, Retirement, Crypto, Cash/Bank, Property, Other, or any custom name. Net worth = assets − debts. The projection is an *illustration only*: a straight line from your net worth today to a goal's target on its date (no returns, contributions or market moves assumed).
 

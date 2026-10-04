@@ -12,6 +12,12 @@ export const sections = [
     route: '#/finances',
     loader: () => import('../sections/finances/index.js'),
   },
-  // { id: 'travel', title: 'Travel', subtitle: '…', icon: '✈️', route: '#/travel',
-  //   loader: () => import('../sections/travel/index.js') },
+  {
+    id: 'travels',
+    title: 'Travels',
+    subtitle: 'Countries you have visited',
+    icon: '🌍',
+    route: '#/travels',
+    loader: () => import('../sections/travels/index.js'),
+  },
 ];

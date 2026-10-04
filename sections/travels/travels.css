@@ -1,0 +1,24 @@
+.trv-top{display:flex;flex-direction:column;gap:6px}
+.trv-count{font-size:28px;font-weight:700;letter-spacing:-.03em;font-variant-numeric:tabular-nums}
+.trv-searchrow{display:flex;gap:8px;position:sticky;top:0;z-index:5;padding:8px 0;background:var(--bg)}
+.trv-search{flex:1;min-width:0;min-height:46px;padding:10px 12px;border-radius:12px;border:1px solid #26365a;background:#0d1628;color:var(--text);font:inherit;font-size:16px;-webkit-appearance:none;appearance:none}
+.trv-search:focus-visible{outline:2px solid var(--blue);outline-offset:1px}
+.trv-lists{display:flex;flex-direction:column;gap:12px}
+.trv-h{font-size:18px;display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:6px}
+.trv-pill{font-size:12px;font-weight:600;color:var(--green);border:1px solid #1d4d33;border-radius:99px;padding:3px 10px}
+.trv-ul{list-style:none;margin:0;padding:0}
+.trv-vrow,.trv-row{border-bottom:1px solid #18233a}
+.trv-vrow:last-child,.trv-row:last-child{border-bottom:0}
+.trv-vhead{display:flex;align-items:center;gap:10px;min-height:52px}
+.trv-vtext{flex:1;min-width:0;display:flex;flex-direction:column}
+.trv-name{font-size:16px}
+.trv-meta{color:var(--muted);font-size:12.5px;overflow-wrap:anywhere}
+.flag{font-size:26px;width:34px;text-align:center;flex:none;font-family:"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif}
+.trv-form{padding:0 0 12px}
+.trv-pick{display:flex;align-items:center;gap:10px;min-height:48px;cursor:pointer}
+.trv-cb{width:24px;height:24px;flex:none;accent-color:#3ee07f;margin:0}
+.trv-row.on .trv-name{color:var(--green)}
+.trv-group>summary{display:flex;justify-content:space-between;align-items:center}
+.trv-gname{font-size:16px;font-weight:600}
+.trv-gcount{font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums}
+.trv-group .trv-ul{padding:0 16px 8px}

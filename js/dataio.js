@@ -1,10 +1,11 @@
 // Export / import of all app data in one versioned JSON file.
-// Format: { app:'ai-tor', schema:1, exportedAt, profile:{name,currency}, sections:{ <sectionId>: <section document> } }
+// Format: { app:'ai-tor', schema:2, exportedAt, profile:{name,currency}, sections:{ <sectionId>: <section document> } }
 import { sections } from './sections.js';
 import * as storage from './storage.js';
 import { CURRENCIES, formatMoney } from './util.js';
 
-export const SCHEMA = 1;
+// schema 2 adds the Travels section. Schema 1 files (finances only) still import; every section is optional.
+export const SCHEMA = 2;
 export const MAX_IMPORT_BYTES = 5 * 1024 * 1024;
 
 export async function buildExport() {
