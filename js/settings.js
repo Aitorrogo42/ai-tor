@@ -7,7 +7,7 @@ import { buildExport, validateImport, applyImport, MAX_IMPORT_BYTES } from './da
 import { sections } from './sections.js';
 import { isDynamicBackground, setDynamicBackground } from './bg.js';
 
-export const APP_VERSION = '2.7.0 (v21)';
+export const APP_VERSION = '2.7.1 (v22)';
 
 export async function renderSettings(root, ctx) {
   document.title = 'Settings · AI-TOR';
@@ -100,7 +100,7 @@ export async function renderSettings(root, ctx) {
     h('div', { class: 'card' },
       h('label', { class: 'set-toggle', for: 'set-dynbg' }, dyn,
         h('span', { class: 'set-toggle-txt' }, h('span', { class: 'set-toggle-t' }, 'Dynamic sunrise background'),
-          h('span', { class: 'note' }, 'On the home screen the Mars planet moves through sunrise, day, sunset and night as you turn the wheel (one turn = one Martian day). Off keeps the still planet.')))),
+          h('span', { class: 'note' }, 'On the home screen the Mars planet moves through sunrise, day, sunset and night as you turn the wheel (one turn = one Martian day). Inside a section the scene you opened stays still behind it. Off keeps the still planet.')))),
     h('h2', { class: 'sec' }, 'Your data'),
     h('div', { class: 'card stackc' },
       h('p', { class: 'note' }, 'Your data lives only in this browser on this device. Export a backup to keep it safe or move it to another device.'),

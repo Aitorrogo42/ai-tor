@@ -1,11 +1,11 @@
-import { sections } from './sections.js';
+import { sections, wheelEntries, sectionIdOf } from './sections.js';
 import { lockup } from './brand.js';
 import { icon } from './icons.js';
 import { h, setCurrency } from './util.js';
 import * as storage from './storage.js';
 import { renderSettings } from './settings.js';
 import { initBackground, setBackdropSection } from './bg.js';
-import { createWheel } from './wheel.js';
+import { createWheel, rememberSelection } from './wheel.js';
 import { classify, transition, beginEnter, markEnter } from './nav.js';
 import { splashWanted, armSplash, skipNextSplash } from './splash.js';
 
@@ -45,7 +45,7 @@ function renderHome() {
   document.title = 'AI-TOR';
   const name = storage.getCore().profile.name;
   // the home selection wheel (js/wheel.js): one entry per section + Settings
-  const wheelItems = [...sections.map((x) => ({ id: x.id, title: x.title, route: x.route })), { id: 'settings', title: 'Settings', route: '#/settings' }];
+  const wheelItems = wheelEntries().map((x) => ({ id: x.id, title: x.title, route: x.route }));
   const list = createWheel(wheelItems);
   app.replaceChildren(
     h('header', { class: 'home-head' },
@@ -59,12 +59,7 @@ function renderHome() {
 let shownHash = null;     // hash of the page currently on screen (null before the first render)
 let shownSec = 'home';    // home | settings | <section id>
 
-const secOf = (hash) => {
-  if (!hash || hash === '#/') return 'home';
-  if (hash === '#/settings') return 'settings';
-  const s = sections.find((x) => hash === x.route || hash.startsWith(x.route + '/'));
-  return s ? s.id : 'home';
-};
+const secOf = sectionIdOf;
 
 /**
  * Render the page for location.hash. `animate` is true only for real navigations (hashchange / first load);
@@ -121,6 +116,7 @@ async function route(opts = {}) {
     if (seq !== navSeq) return;
     window.scrollTo(0, 0);
     if (animateIn) beginEnter(app, info.dir || 'fwd');
+    if (target !== 'home') rememberSelection(wheelEntries().findIndex((x) => x.id === target));   // coming back home the wheel rests on this section
     setBackdropSection(target);
     await build();
     if (animateIn && seq === navSeq) markEnter(app, info.dir || 'fwd', { skipHead: !!info.skipHead });

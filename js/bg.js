@@ -4,9 +4,14 @@
 // prefers-reduced-motion: draws one static frame and nothing moves.
 // v21: DYNAMIC SUNRISE. The home wheel drives a sun angle ("sol", one full wheel turn = one Martian day, see README) and a WebGL shader (js/sunrise.js)
 // draws the lit Mars sphere, atmosphere, sun and stars behind the home screen. Falls back to the CSS layers (a glow + a night veil, moved by transform/opacity only) when
-// WebGL is missing / lost, and to the plain static photo when the Settings toggle "Dynamic sunrise background" is off. Sections keep the (dimmed) photo look.
+// WebGL is missing / lost, and to the plain static photo when the Settings toggle "Dynamic sunrise background" is off.
+// v22: FREEZE. Opening a section stops the loop and renders ONE final frame at the sun angle of that section (the angle its wheel position showed; see js/sol.js and
+// js/sections.js sectionSunAngle), under a flat dark veil (.sol-veil) so text keeps AA contrast. Going home resumes from the very same angle (no jump). Deep links /
+// cold starts use the section's default angle. Toggle off = the old dimmed photo. No-WebGL: the CSS fallback layers are frozen at the same angle.
 import { createSunrise, solarState } from './sunrise.js';
 import * as storage from './storage.js';
+import { sunAnchors, sectionSunAngle } from './sections.js';
+import { solFromWheelAngle, nearestEquivalent, norm360, SOL_ORIGIN } from './sol.js';
 const reduce = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 let root, par, marsPar, cv, ctx2d, W = 0, H = 0, dpr = 1;
@@ -77,12 +82,12 @@ export function setBackdropSection(id) {
 }
 
 // ===================== v21 dynamic sunrise =====================
-const SOL_OFFSET = 90;                       // sol (deg) = 90 - wheel angle (deg): with the wheel at rest on the first section (Finances) the sun is rising at the limb
-export const solFromWheel = (angleDeg) => SOL_OFFSET - angleDeg;      // linear, unwrapped: any number of turns loops seamlessly
-const norm360 = (d) => ((d % 360) + 360) % 360;
+const SOL_OFFSET = SOL_ORIGIN;               // sol (deg) = 90 - wheel angle (deg) with the default even spread: with the wheel at rest on the first section (Finances) the sun is rising at the limb
+export const solFromWheel = (angleDeg) => solFromWheelAngle(angleDeg, sunAnchors());      // v22: piecewise linear through the section anchors (js/sol.js); unwrapped, so any number of turns loops seamlessly
 const cfg = () => storage.config('display');
 export const isDynamicBackground = () => { try { const c = cfg().get(); return !(c && c.dynbg === false); } catch { return true; } };
-const sun = { mode: 'off', renderer: null, canvas: null, cur: SOL_OFFSET, tgt: SOL_OFFSET, first: true, raf: 0, last: 0, lastDraw: 0, texImg: null, ready: false, scale: 0, slow: 0, cost: 0, timer: 0, glow: null, night: null, dirty: true, frames: 0 };
+const sun = { mode: 'off', renderer: null, canvas: null, cur: SOL_OFFSET, tgt: SOL_OFFSET, first: true, raf: 0, last: 0, lastDraw: 0, texImg: null, ready: false, scale: 0, slow: 0, cost: 0, timer: 0, glow: null, night: null, dirty: true, frames: 0, frozen: false, t: 0 };
+const cdiff360 = (a, b) => Math.abs((((a - b) % 360) + 540) % 360 - 180);   // distance between two angles on the circle (degrees)
 const isHome = () => { const s = document.documentElement.dataset.sec; return !s || s === 'home'; };
 
 function sunLayout() {
@@ -117,6 +122,7 @@ function applyCss(st) {                                      // fallback layers:
 }
 
 function sunRender(t) {
+  sun.t = t;                                                  // the time of the last frame: a frozen frame reuses it, so the planet does not shift when it freezes
   const still = reduce();
   const t0 = performance.now();
   const st = sun.renderer.draw(norm360(sun.cur) * Math.PI / 180, still ? 0 : t / 1000, still);
@@ -147,15 +153,28 @@ function sunStart() {
 }
 function sunStop() { if (sun.raf) cancelAnimationFrame(sun.raf); sun.raf = 0; }
 
+const html = () => document.documentElement;
 function sunSync() {                                          // called when the visible section / visibility / toggle changes
-  if (sun.mode === 'gl') { isHome() ? sunStart() : sunStop(); }
-  else if (sun.mode === 'css') { applyCss(cssState()); }
+  if (sun.mode === 'off') { html().classList.remove('sol-frozen'); sun.frozen = false; return; }
+  if (isHome()) {
+    sun.frozen = false; html().classList.remove('sol-frozen');
+    if (sun.mode === 'gl') sunStart(); else if (sun.mode === 'css') applyCss(cssState());
+    return;
+  }
+  // inside a section: freeze at that section's sun angle (v22)
+  const a = sectionSunAngle(document.documentElement.dataset.sec);
+  sunStop();
+  if (a != null) { sun.cur = sun.tgt = nearestEquivalent(a, sun.cur); sun.first = false; }
+  sun.frozen = true; html().classList.add('sol-frozen');
+  if (sun.mode === 'gl') { if (sun.ready) sunRender(sun.t || performance.now()); }
+  else if (sun.mode === 'css') { const st = cssState(); setVars(st); applyCss(st); }
 }
 
 function onWheelAngle(e) {
   if (sun.mode === 'off') return;
   const d = e.detail || {}; if (typeof d.angle !== 'number') return;
-  const tgt = solFromWheel(d.angle);
+  let tgt = solFromWheel(d.angle);
+  if (cdiff360(tgt, sun.cur) < 0.01) { sun.cur = tgt; sun.tgt = tgt; }      // same angle a whole number of days away (e.g. coming back home from a section): adopt it, never spin
   const apply = () => { sun.tgt = tgt; if (sun.first || reduce() || sun.mode === 'css') { sun.cur = tgt; sun.first = false; } sun.dirty = true; if (sun.mode === 'css') { const st = cssState(); setVars(st); applyCss(st); } else if (sun.mode === 'gl') { isHome() && !sun.raf ? sunStart() : 0; } };
   if (reduce() && d.dragging) { clearTimeout(sun.timer); sun.timer = setTimeout(() => { sun.tgt = tgt; sun.cur = tgt; sun.dirty = true; if (sun.mode === 'css') { const st = cssState(); setVars(st); applyCss(st); } }, 160); return; }   // reduced motion: change only once the wheel settles
   if (reduce() && !d.dragging) { clearTimeout(sun.timer); sun.timer = setTimeout(apply, 60); return; }
@@ -163,22 +182,23 @@ function onWheelAngle(e) {
 }
 
 function fallbackCss(reason) {
-  sun.mode = 'css'; document.documentElement.classList.remove('gl-on'); document.documentElement.classList.add('sol-css');
+  sun.mode = 'css'; document.documentElement.classList.remove('gl-on', 'sol-want'); document.documentElement.classList.add('sol-css');
   sunStop(); sun.reason = reason || 'no-webgl';
-  const st = cssState(); setVars(st); applyCss(st);
+  const st = cssState(); setVars(st); applyCss(st); sunSync();
 }
 
 function sunEnable() {
   const html = document.documentElement;
   if (!root) return;
+  html.classList.add('sol-want');                             // from now on the photo layers stay hidden: the shader scene (or its sky colour until it is ready) is the background, no photo flash
   if (!sun.glow) {
     sun.glow = root.querySelector('.sol-glow'); sun.night = root.querySelector('.sol-night');
   }
-  if (sun.mode === 'gl' || sun.mode === 'css') { html.classList.toggle('gl-on', sun.mode === 'gl' && sun.ready); html.classList.toggle('sol-css', sun.mode === 'css'); sunSync(); return; }
+  if (sun.mode === 'gl' || sun.mode === 'css') { html.classList.toggle('gl-on', sun.mode === 'gl' && sun.ready); html.classList.toggle('sol-css', sun.mode === 'css'); html.classList.toggle('sol-want', sun.mode === 'gl'); sunSync(); return; }
   let r = null;
   try {
     sun.canvas = sun.canvas || document.getElementById('bg-gl') || Object.assign(document.createElement('canvas'), { id: 'bg-gl' });
-    if (!sun.canvas.parentNode) root.append(sun.canvas);
+    if (!sun.canvas.parentNode) root.insertBefore(sun.canvas, root.querySelector('.sol-veil'));
     r = createSunrise(sun.canvas, { onLost: () => { sun.ready = false; fallbackCss('context-lost'); }, onRestored: () => { sun.renderer = r; sun.mode = 'gl'; sun.ready = true; html.classList.remove('sol-css'); html.classList.add('gl-on'); sunLayout(); sun.dirty = true; sunSync(); } });
   } catch (err) { fallbackCss('webgl-failed'); return; }
   sun.renderer = r; sun.mode = 'gl'; sunLayout();
@@ -191,11 +211,12 @@ function sunEnable() {
   img.onload = () => { try { r.setTexture(img); } catch { /* plain procedural planet */ } done(); };
   img.onerror = () => done();
   img.src = new URL('../assets/mars-map.webp', import.meta.url).href;
+  setTimeout(() => { if (!sun.ready && sun.mode === 'gl') done(); }, 6000);       // texture never arrived: show the procedural planet rather than an empty sky
 }
 
 function sunDisable() {
   const html = document.documentElement;
-  sunStop(); html.classList.remove('gl-on', 'sol-css'); sun.mode = 'off';
+  sunStop(); html.classList.remove('gl-on', 'sol-css', 'sol-want', 'sol-frozen'); sun.mode = 'off'; sun.frozen = false;
   if (root) ['--sol-deg', '--sol-elev', '--sol-day', '--sol-night'].forEach((k) => root.style.removeProperty(k));
   if (sun.glow) sun.glow.style.opacity = '0'; if (sun.night) sun.night.style.opacity = '0';
   const dust = document.getElementById('bg-dust'); if (dust) dust.style.opacity = '';
@@ -210,7 +231,7 @@ export function setDynamicBackground(on) {
 
 function initSun() {
   window.addEventListener('wheel-angle', onWheelAngle);
-  window.addEventListener('resize', () => { if (sun.mode === 'gl') { sunLayout(); sun.dirty = true; } else if (sun.mode === 'css') applyCss(cssState()); }, { passive: true });
+  window.addEventListener('resize', () => { if (sun.mode === 'gl') { sunLayout(); sun.dirty = true; if (sun.frozen && sun.ready) sunRender(sun.t || performance.now()); } else if (sun.mode === 'css') applyCss(cssState()); }, { passive: true });
   document.addEventListener('visibilitychange', () => { if (sun.mode === 'gl') (document.hidden ? sunStop() : sunSync()); });
   const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
   mq.addEventListener && mq.addEventListener('change', () => { sun.dirty = true; sunSync(); });
@@ -218,7 +239,7 @@ function initSun() {
   window.__aitorBg.sun = {
     mode: () => sun.mode, ready: () => sun.ready, reason: () => sun.reason || '', solDeg: () => norm360(sun.cur), targetDeg: () => norm360(sun.tgt), running: () => !!sun.raf,
     snap: (deg) => { sun.tgt = sun.cur = deg; sun.dirty = true; if (sun.mode === 'gl') { sunRender(performance.now()); } else if (sun.mode === 'css') { const st = cssState(); setVars(st); applyCss(st); } },
-    scale: () => sun.scale,
+    scale: () => sun.scale, frozen: () => sun.frozen, anchors: () => sunAnchors(),
   };
 }
 

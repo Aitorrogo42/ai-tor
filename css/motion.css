@@ -74,23 +74,28 @@ html:not([data-sec=home]) .mars-glow{opacity:.35;animation-play-state:paused}
 html.bg-paused .mars-glow{animation-play-state:paused}
 @media (prefers-reduced-motion:reduce){.mars-glow{animation:none!important;opacity:.8}.mars,.mars-dim{transition:none}}
 
-/* ===== v21: DYNAMIC SUNRISE (js/sunrise.js + js/bg.js) =====
-   html.gl-on     WebGL planet is drawn on #bg-gl; it shows on the home view only and the CSS photo layers fade out underneath (sections keep the dimmed photo look).
-   html.sol-css   WebGL unavailable / lost: the photo stays and a Mars-ember glow + a night veil follow the same sun angle (transform / opacity only).
-   neither        toggle off in Settings = the plain static background of v20.
-   #bg carries --sol-deg / --sol-elev / --sol-day / --sol-night (set by bg.js from the wheel angle). */
+/* ===== v21/v22: DYNAMIC SUNRISE (js/sunrise.js + js/bg.js) =====
+   html.sol-want   the shader is (being) used: the CSS photo layers stay hidden on EVERY view, so a section never flashes the old photo.
+   html.gl-on      WebGL planet is drawn on #bg-gl (home: live, turning with the wheel; section: one frozen frame, see sol-frozen).
+   html.sol-frozen inside a section: the loop is stopped, #bg-gl holds the frame of that section's sun angle, and .sol-veil (one flat dark layer, no blur) dims it
+                   so text keeps AA contrast (opacity grows a little with --sol-day: the noon scene is the brightest).
+   html.sol-css    WebGL unavailable / lost: the photo stays and a Mars-ember glow + a night veil follow the same sun angle (transform / opacity only); in a section they stay,
+                   frozen at that section's angle, under the same .sol-veil.
+   neither         toggle off in Settings = the plain static background of v20 (dimmed photo inside sections).
+   #bg carries --sol-deg / --sol-elev / --sol-day / --sol-night (set by bg.js from the sun angle). */
 #bg-gl{position:absolute;inset:0;width:100%;height:100%;display:block;opacity:0;transition:opacity .8s var(--ease);pointer-events:none}
-html.gl-on:not([data-sec]) #bg-gl,html.gl-on[data-sec=home] #bg-gl{opacity:1}
-html.gl-on:not([data-sec]) .mars,html.gl-on[data-sec=home] .mars,html.gl-on:not([data-sec]) .bg-par,html.gl-on[data-sec=home] .bg-par{opacity:0}
-html.gl-on:not([data-sec]) #bg-dust,html.gl-on[data-sec=home] #bg-dust{opacity:0!important}
+html.gl-on #bg-gl{opacity:1}
+html.sol-want .mars,html.sol-want .bg-par{opacity:0}
+html.sol-want #bg-dust{opacity:0!important}
 .bg-par,#bg-dust{transition:opacity .8s var(--ease)}
+.sol-veil{position:absolute;inset:0;display:block;background:#07020a;opacity:0;pointer-events:none;transition:opacity .6s var(--ease)}
+html.sol-frozen .sol-veil{opacity:calc(var(--veil-lo,.72) + (var(--veil-hi,.86) - var(--veil-lo,.72)) * var(--sol-day,0))}
 .sol-night,.sol-glow{display:none;position:absolute;pointer-events:none;opacity:0}
 html.sol-css .sol-night,html.sol-css .sol-glow{display:block}
 html.sol-css .sol-night{inset:0;background:#040103;will-change:opacity}
 html.sol-css .sol-glow{left:0;top:0;width:96vmax;height:96vmax;margin:-48vmax 0 0 -48vmax;will-change:transform,opacity;mix-blend-mode:screen;
   background:radial-gradient(closest-side,rgba(255,236,214,.95),rgba(255,130,70,.55) 14%,rgba(217,58,45,.28) 38%,rgba(143,26,28,.10) 62%,rgba(143,26,28,0))}
-html:not([data-sec=home]) .sol-night,html:not([data-sec=home]) .sol-glow{display:none!important}
-@media (prefers-reduced-motion:reduce){#bg-gl,.mars,.bg-par,#bg-dust{transition:none}}
+@media (prefers-reduced-motion:reduce){#bg-gl,.mars,.bg-par,#bg-dust,.sol-veil{transition:none}}
 
 /* ===== staggered entrance (class .enter is put on #app by the router for one navigation) ===== */
 .enter .stg{animation:fade-up .55s var(--ease) both;animation-delay:calc(var(--i,0)*45ms + 60ms)}

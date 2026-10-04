@@ -3,6 +3,7 @@
 // (inertia + snap), tapping a tick, the arrow keys, Home/End or the mouse wheel; it always snaps so exactly one section is at the top.
 // v17: the hollow centre shows ONLY the selected section's line icon and a Mars-red down marker (no text); v18: the marker is a bold solid down-pointing triangle; the section name stays as a visually
 // hidden label + a polite live region for screen readers. The centre is the link that opens the section.
+// v22: fully dynamic: the number of sections, the tick count (see ticksPerSection), the snap angle (360 / K) and the keyboard order all come from the items passed in (js/sections.js wheelEntries()).
 // v21: every paint dispatches a 'wheel-angle' event on window ({angle: continuous degrees, index, dragging}) for the dynamic sunrise background (js/bg.js).
 // Reduced motion: no inertia or spring, the dial jumps to the new position. Flat: no blur, no glow, no shadow.
 import { h } from './util.js';
@@ -10,7 +11,8 @@ import { icon, sectionGlyph, hasSectionGlyph } from './icons.js';
 
 const NS = 'http://www.w3.org/2000/svg';
 const VB = 300, C = VB / 2, R0 = 96;                 // viewBox size, centre, inner radius of the ticks (hollow centre)
-const PER = 12;                                      // ticks between two sections
+const PER_MAX = 12, TICKS_MAX = 72;                  // ticks between two sections: 12 up to 6 sections, then fewer so the dial never holds more than 72 ticks (v22: scales with the section count)
+export const ticksPerSection = (K) => (K <= TICKS_MAX / PER_MAX ? PER_MAX : Math.max(3, Math.floor(TICKS_MAX / K)));
 const SIGMA = 21;                                    // degrees: how far from 12 o'clock a tick still grows
 const EMBER = [255, 82, 56], WHITE = [255, 255, 255];
 const reduced = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -29,13 +31,16 @@ if (!window.__wheelModality) {
 }
 
 let lastSel = 0;   // the wheel remembers the last section while the app stays open (coming back from a section)
+/** v22: opening a section (also by deep link) makes the wheel come back to rest on it, so the home sun angle resumes exactly where the frozen scene stopped. */
+export function rememberSelection(index) { if (Number.isInteger(index) && index >= 0) lastSel = index; }
 
 /**
  * items: [{ id, title, route, iconName?, label? }]  (v18/v19: section ids finances|travels|todo|settings use the inline Set A glyph from icons.js; others iconName)
  * returns the wheel element (role=slider). `el.wheel` has { select(i, animate), index() }.
  */
 export function createWheel(items) {
-  const K = items.length, A = 360 / K, N = K * PER;
+  const K = items.length, A = 360 / K, PER = ticksPerSection(K), N = K * PER;   // v22: nothing here assumes 4 sections: K = the registry's entries, the tick count and the snap angle follow
+  if (lastSel >= K) lastSel = 0;
   let rot = -lastSel * A, sel = lastSel, raf = 0, anim = null;
 
   const svg = document.createElementNS(NS, 'svg');

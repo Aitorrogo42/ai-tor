@@ -45,9 +45,10 @@ export async function validateImport(obj) {
     for (const s of sections) {
       if (!secs || secs[s.id] == null) continue;
       const mod = await s.loader();
+      if (typeof mod.validate !== 'function') { result.sections[s.id] = secs[s.id]; lines.push(`${s.title}: imported as is`); continue; }   // v22: a new section without validate() still round-trips
       const v = mod.validate(secs[s.id]);
       if (!v.ok) errors.push(...v.errors);
-      else { result.sections[s.id] = v.doc; lines.push(`${s.title}: ${mod.summary(v.doc, (n) => formatMoney(n, result.profile.currency))}`); }
+      else { result.sections[s.id] = v.doc; lines.push(`${s.title}: ${typeof mod.summary === 'function' ? mod.summary(v.doc, (n) => formatMoney(n, result.profile.currency)) : 'imported'}`); }
     }
   }
   return { ok: errors.length === 0, errors, warnings, result, lines };

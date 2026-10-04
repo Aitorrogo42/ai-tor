@@ -22,12 +22,9 @@ const P = {
 };
 // v18/v19: section glyphs = the approved "Set A (Solid)" from the Graphic Designer (flat, straight-edged, solid, transparent). Inline SVG filled with currentColor (white),
 // original 1024 geometry untouched; the viewBox is cropped to the mark (160 160 704 704) so it reads larger at 24-32px. Replaces icons/sections/*.png in the UI.
-const SECTION_GLYPHS = {
-  finances: 'M243.81 647.51 L571.57 319.75 L780.19 319.75 L780.19 223.75 L531.81 223.75 L243.81 511.75 Z M243.81 800.25 L576.54 467.51 L644.43 535.4 L780.19 399.63 L712.31 331.75 L644.43 399.63 L576.54 331.75 L243.81 664.49 Z',
-  travels: 'M196 506 L506 506 L506 196 Z M828 506 L518 196 L518 506 Z M822 518 L202 518 L512 828 Z',
-  settings: 'M326.215 240.337 L422.215 240.337 L422.215 463.332 L326.215 463.332 Z M608.56 197.369 L668.415 272.425 L494.07 411.46 L434.215 336.404 Z M818.193 391.324 L796.831 484.917 L579.427 435.296 L600.789 341.703 Z M797.256 676.151 L710.763 717.804 L614.009 516.892 L700.502 475.24 Z M561.516 837.369 L475.023 795.716 L571.777 594.804 L658.27 636.457 Z M288.489 753.577 L267.127 659.984 L484.531 610.363 L505.893 703.956 Z M183.771 487.873 L243.626 412.817 L417.97 551.852 L358.115 626.908 Z',   // v19: Aitor's 7-bar pinwheel (icons-v2/set-a/settings.svg), same 160 160 704 704 crop; its rotation centre is 512,512
-  todo: 'M832.32 341.05 L764.44 273.17 L422.54 615.07 L422.54 750.83 Z M259.56 464.09 L191.68 531.97 L410.54 750.83 L410.54 615.07 Z',
-};
+// The glyph paths live in the section registry (js/sections.js); a section registers its glyph with registerSectionGlyph(id, pathData) (1024 grid, straight edges, evenodd).
+const SECTION_GLYPHS = {};
+export function registerSectionGlyph(id, d) { if (id && typeof d === 'string' && d) SECTION_GLYPHS[id] = d; }
 export const hasSectionGlyph = (id) => Object.prototype.hasOwnProperty.call(SECTION_GLYPHS, id);
 /** sectionGlyph('finances', 40) -> <svg class="sec-ico"> (solid, currentColor). size omitted = sized by CSS. */
 export function sectionGlyph(id, size) {

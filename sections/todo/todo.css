@@ -10,7 +10,7 @@
 .todo-add-row .btn{min-height:54px;flex:none;padding:0 22px}
 input[type=password]{width:100%;min-height:46px;padding:10px 12px;border-radius:var(--r-sm);border:1px solid var(--hair-2);background:var(--field);color:var(--text);font:inherit;font-size:16px}
 input[type=password]:focus-visible{outline:2px solid var(--blue);outline-offset:1px}
-.linkbtn{background:none;border:0;color:var(--blue);font:inherit;font-size:inherit;padding:0 6px;min-height:44px;cursor:pointer}
+.linkbtn{background:none;border:0;color:var(--text-hi);text-decoration:underline;text-decoration-color:var(--ember);text-decoration-thickness:2px;text-underline-offset:3px;font:inherit;font-size:inherit;padding:0 6px;min-height:44px;cursor:pointer}
 .linkbtn.danger-txt{color:var(--red)}
 .todo-syncbar .note{text-align:center}
 .todo-syncrow{display:flex;align-items:center;justify-content:space-between;gap:10px}

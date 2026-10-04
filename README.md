@@ -6,9 +6,24 @@ An installable personal-life app (PWA). Plain HTML/CSS/JS: **no build step, no C
 
 Today: **Finances** (accounts, debts, income/expenses, goals, notes, dashboard, and an optional Refresh from your assistant) and **Travels** with two tabs: **Visited** (tick the countries you have visited out of a bundled offline list of 195, with search, per-continent counts, and optional year(s)/note per country) and **Destinations** (places your Travel Guide bot proposes, from an optional encrypted feed). **To-Do** (two parallel lists, **Personal** and **Work**, each a clear task list with a Done pile, comments per task, and an optional daily feed from your assistant). The home screen is a registry of sections, so more can be added later. Section logos live in `icons/sections/`.
 
+## v22 / 2.7.1 (sw aitor-v22): frozen sunrise scene inside sections + a fully dynamic section registry
+
+**Frozen scene.** Opening a section (Finances, Travels, To-Do, Settings) no longer falls back to the old dimmed photo. The background stays STATIC and shows the sunrise / sunset frame the home wheel had for that section when you tapped it (tap Finances = the Finances sunrise stays behind it).
+- **Freeze.** `js/bg.js` `sunSync()`: on entering a section it stops the render loop, sets the sun to that section's anchor and renders one final frame (same animation time as the last home frame, so the planet does not shift). `html.sol-frozen` is set; `.sol-veil` (one flat dark layer, `#07020a`, **no blur, no gradient, no shadow**) dims the scene so text keeps AA contrast: opacity `0.72` (night) rising to `0.86` at noon (`--sol-day`, the brightest scene), see `--veil-lo / --veil-hi` in `css/motion.css`. Resizing re-renders the frozen frame at once; a lost WebGL context is redrawn on restore.
+- **Transition.** The photo layers (`.mars`, `.bg-par`, `#bg-dust`) are hidden by `html.sol-want` on EVERY view as soon as the shader is in use, so the dive never flashes the old photo; the veil fades in (0.6 s) while the page dives. Back home: the loop resumes from exactly the same angle (`onWheelAngle` adopts the equivalent angle a whole number of days away, so it never spins); the wheel is created resting on the section you came from (`rememberSelection`).
+- **Cold start / deep links** (`#/travels` typed or reloaded) use the section's default angle: Finances sunrise (90), Travels noon (180), To-Do sunset (270), Settings night (0) with the four built-in entries.
+- **Settings toggle** "Dynamic sunrise background": off = the old dimmed photo inside sections and the plain photo at home (exactly v20); switching it on inside a section shows that section's frozen scene live. **Reduced motion**: static frames, no fades, the sun jumps to the section's angle. **No WebGL / lost context**: the CSS fallback layers (`.sol-glow`, `.sol-night`, transform / opacity only) stay on and are frozen at the same angle under the same veil.
+- **Contrast.** `ai-tor-test-freeze.py` measures every visible text node (text hidden, bare pixels under it, 97th-percentile brightness, alpha blended) in all four sections over all four frozen scenes (night, sunrise, noon = brightest, sunset), in WebGL and in the CSS fallback: all >= 4.5:1.
+
+**One registry drives everything.** `js/sections.js` is the single source: add an entry and the section gets a wheel slot, glyph, header, view transition, frozen scene, storage and export/import without touching `wheel.js`, `sunrise.js`, `bg.js` or `nav.js`.
+- **Wheel.** `K = wheelEntries().length` (the sections, then Settings). Entries are spaced evenly (`360 / K`), the snap angle, keyboard order (Arrow keys, Home / End) and tap-a-tick follow K. Ticks per section: 12 up to 6 entries, then `floor(72 / K)` (min 3), so the dial never holds more than 72 ticks and ticks never touch (`ticksPerSection` in `js/wheel.js`).
+- **Sun angles** (`js/sol.js`, pure maths). Entry `i` of `K` has the anchor `90 + i * 360 / K` degrees (90 sunrise, 180 noon, 270 sunset, 0 / 360 midnight). That anchor is both the sun angle at rest on the wheel and the frozen scene inside the section. An entry may pin its own with `sunAngle` (degrees): pins follow the wheel order (each is unwrapped to the first angle at or after the previous pinned entry), the entries between two pins are spread evenly between them, the anchors always form a strictly increasing sequence spanning exactly 360, and the wheel angle maps piecewise-linearly between them, so **one wheel turn is always exactly one sol and the mapping is continuous**. A pin that would break the order (less than 1 degree per entry) is ignored. With 4 entries this is exactly `sol = 90 - wheelAngle`, as in v21.
+- Tests: `ai-tor-test-freeze.py` (freeze, no photo flash, no jump on return, cold start, toggle, reduced motion, fallback, contrast) and `ai-tor-test-sections.py` (registers a fake 5th and a fake 7th entry: tick count, even placement, snapping, keyboard, tap-a-tick, frozen angles incl. a `sunAngle` override, header glyph, export/import, no overlap). Screenshots 310+ (`310`-`349` freeze, `350`-`371` dynamic sections).
+- Rollback: the build before this change is tagged **`v21-before-freeze`**.
+
 ## v21 / 2.7.0 (sw aitor-v21): dynamic sunrise background (EXPERIMENTAL, easy to switch off or roll back)
 
-The Mars background of the **home screen** now reacts to the wheel: turn the dial and a lit, textured Mars sphere moves through night, dawn, sunrise, day, sunset and dusk. Sections keep the (dimmed) photo look of v20.
+The Mars background of the **home screen** now reacts to the wheel: turn the dial and a lit, textured Mars sphere moves through night, dawn, sunrise, day, sunset and dusk. (v22: sections keep the scene frozen behind them instead of the photo, see above.)
 
 - **Mapping (one full wheel turn = one Martian day, "sol").** `sol° = 90° − wheelAngle°` (linear, continuous, unwrapped, so any number of turns loops seamlessly; no jump at 360°). `js/wheel.js` fires a `wheel-angle` event on `window` on every paint (`{angle, index, dragging}`); `js/bg.js` eases toward the new sun angle (70 ms time constant) and writes `--sol-deg`, `--sol-elev`, `--sol-day`, `--sol-night` on `#bg`. Sun elevation `E = −90°·cos(sol)`:
   | sol | wheel at rest on | sun | look |
@@ -99,7 +114,8 @@ js/splash.js                  launch splash (black + A, tap -> FLIP to the heade
 js/wheel.js                   home selection wheel (rotatable dial of radial ticks; sections + Settings)
 js/nav.js                    page transitions: View Transitions API + WAAPI fallback, shared-element morphs, reduced-motion handling
 js/bg.js                     background: starfield/ember-dust canvas, scroll/tilt parallax, per-section glow, pause when hidden
-js/sections.js               SECTION REGISTRY (id, title, icon, route, loader)
+js/sections.js               SECTION REGISTRY: the single source for the wheel, headers, glyphs, frozen sun angles, storage and export (see 'How to add a section')
+js/sol.js                    pure maths: wheel angle <-> sun angle ("sol") through the per-section anchors; one turn = one sol
 js/storage.js                namespaced localStorage (core + one key per section)
 js/dataio.js                 export / validate / import of the whole app
 js/settings.js               Settings screen
@@ -159,11 +175,15 @@ Groups: Stock/Equity, Retirement, Crypto, Cash/Bank, Property, Other, or any cus
 
 Import rejects: non-JSON, wrong `app`, missing/newer `schema`, negative account values, bad dates/numbers, files over 5 MB. Nothing is written unless validation passes and you confirm.
 
-## Add a section (e.g. Travel)
-1. Create `sections/travel/index.js` exporting `async function render(container, ctx)` (use `ctx.store.get()/set()/clear()` for storage) and, so export/import covers it, `validate(doc) → {ok, errors, doc}` and `summary(doc, formatMoney)`. Link its CSS in `index.html`.
-2. Add one entry to `js/sections.js`:
-   `{ id:'travel', title:'Travel', subtitle:'…', route:'#/travel', loader:()=>import('../sections/travel/index.js') }` (v18: the glyph is an inline SVG in `js/icons.js` `SECTION_GLYPHS`)
-3. Add the new files to `PRECACHE` in `sw.js` and bump `VERSION` (so phones refresh).
+## How to add a section (v22 recipe)
+Everything below is data: **no change** to `wheel.js`, `sunrise.js`, `bg.js` or `nav.js`. The wheel re-spaces itself (360 / K), the tick count, snap points and keyboard order follow, the new section gets a frozen sunrise scene, a header, the dive transition and export / import.
+1. **Folder.** Create `sections/<id>/index.js` exporting `async function render(container, ctx)` (use `ctx.store.get() / set() / clear()`; storage is namespaced to `aitor:sec:<id>`) and, so backups cover it, `validate(doc) -> {ok, errors, doc}` and `summary(doc, formatMoney)` (a section without them is still exported and re-imported as is). Use `pageTitle('<id>', 'Title')` for the header (`js/util.js`) and put the CSS in `sections/<id>/<id>.css`, linked from `index.html`.
+2. **Icon glyph.** Draw a solid, flat, straight-edged glyph on a 1024 grid (white, like the Set A icons; the app crops it to `160 160 704 704` and fills it with `currentColor`) and keep only its path data (`d`).
+3. **Registry entry.** Add one object to `sections` in `js/sections.js`:
+   `{ id:'health', title:'Health', subtitle:'Sleep, workouts', route:'#/health', glyph:'M... Z', sunAngle: 200 /* optional */, loader:()=>import('../sections/health/index.js') }`
+   - `sunAngle` (optional, degrees: 0 midnight, 90 sunrise, 180 noon, 270 sunset) pins the scene behind the section; leave it out for the default derived from its wheel position (`90 + index * 360 / K`).
+   - Order in the array = order on the wheel (Settings is always last).
+4. **Ship.** Add the new files to `PRECACHE` in `sw.js`, bump `VERSION` (and `APP_VERSION` in `js/settings.js`) so phones refresh. Check with `python3 ai-tor-test-sections.py` (it registers fake 5th / 7th entries the same way, through `registerSection()`).
 
 ## To-Do and optional task sync
 **Using it:** type a task (optional due date) and tap *Add task*. New tasks appear at the top. Tick the circle to move a task to the collapsed **Done** pile (with the time you finished it); untick it there to bring it back. Tap a task to open it: add, edit or delete timestamped comments, edit a manual task, or delete it. A 💬 count on the row shows how many comments it has.
