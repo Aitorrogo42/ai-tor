@@ -4,6 +4,7 @@ import { toast, confirmDialog } from '../../js/ui.js';
 import { emptyDoc, isEmptyDoc, validate, exampleDoc, summary } from './model.js';
 import { renderDashboard } from './dashboard.js';
 import { renderEdit } from './edit.js';
+import { refreshBar } from './refreshbar.js';
 
 export { validate, summary, emptyDoc, exampleDoc };
 export const storageId = 'finances';
@@ -14,6 +15,7 @@ function emptyState(root, ctx) {
   root.append(
     h('div', { class: 'topbar' }, h('a', { class: 'back', href: '#/' }, '‹ Home')),
     h('div', { class: 'fin-head' }, h('h1', { class: 'with-ico' }, sectionIcon('finances'), 'Finances')),
+    refreshBar(null, ctx.rerender),
     h('div', { class: 'card empty', id: 'empty-state' },
       h('div', { class: 'empty-icon', 'aria-hidden': 'true' }, '💰'),
       h('h2', null, 'Your finances, your device'),
@@ -48,6 +50,7 @@ export async function render(root, ctx) {
       d.updatedAt = new Date().toISOString();
       try { store.set(d); toast('Saved'); } catch (e) { console.warn(e); toast('Could not save: storage is full or blocked'); }
     },
+    rerender: ctx.rerender,
     loadExample: async () => {
       if (!isEmptyDoc(doc) && !(await confirmDialog({ title: 'Replace your finances with example data?', message: 'Your current finances on this device will be overwritten by fake example data.', okLabel: 'Replace', danger: true }))) return;
       store.set(exampleDoc()); ctx.rerender();

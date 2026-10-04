@@ -8,7 +8,7 @@ const FIXED_COLORS = { 'Stock/Equity': '#a78bfa', Retirement: '#4aa3ff', Crypto:
 const PALETTE = ['#f472b6', '#2dd4bf', '#fb923c', '#84cc16', '#38bdf8', '#c084fc', '#facc15', '#f87171'];
 export const LIMITS = { name: 80, group: 40, note: 500, notes: 5000, items: 500, amount: 1e15 };
 
-export const emptyDoc = () => ({ version: VERSION, example: false, updatedAt: null, accounts: [], monthlyIncome: null, monthlyExpenses: null, debts: [], goals: [], notes: '' });
+export const emptyDoc = () => ({ version: VERSION, example: false, updatedAt: null, accounts: [], monthlyIncome: null, monthlyExpenses: null, debts: [], goals: [], notes: '', feed: null });
 
 export function isEmptyDoc(d) {
   return !d || (!d.accounts.length && !d.debts.length && !d.goals.length && d.monthlyIncome == null && d.monthlyExpenses == null && !d.notes.trim());
@@ -54,6 +54,8 @@ export function validate(raw) {
     return o.note.trim();
   };
 
+  // optional feed key: marks an item as managed by the encrypted finance feed (see feed.js); manual items have none
+  const fk = (o) => (isStr(o.fk) && o.fk && o.fk.length <= 120 ? { fk: o.fk } : {});
   list('accounts').forEach((a, i) => {
     const w = `Account #${i + 1}`;
     if (!a || typeof a !== 'object') { err(`${w}: must be an object.`); return; }
@@ -63,7 +65,7 @@ export function validate(raw) {
     let g = a.group == null || a.group === '' ? 'Other' : a.group;
     if (!isStr(g) || g.trim().length > LIMITS.group) { err(`${w}: group must be text up to ${LIMITS.group} characters.`); g = 'Other'; }
     const nt = note(a, w);
-    if (n && isAmt(a.value) && a.value >= 0) doc.accounts.push({ id: takeId(a.id), name: n, value: a.value, group: canonicalGroup(g) || 'Other', note: nt });
+    if (n && isAmt(a.value) && a.value >= 0) doc.accounts.push({ id: takeId(a.id), name: n, value: a.value, group: canonicalGroup(g) || 'Other', note: nt, ...fk(a) });
   });
   list('debts').forEach((d, i) => {
     const w = `Debt #${i + 1}`;
@@ -71,7 +73,7 @@ export function validate(raw) {
     const n = name(d, w);
     if (!isAmt(d.amount) || d.amount < 0) err(`${w}: "amount" must be a number ≥ 0.`);
     const nt = note(d, w);
-    if (n && isAmt(d.amount) && d.amount >= 0) doc.debts.push({ id: takeId(d.id), name: n, amount: d.amount, note: nt });
+    if (n && isAmt(d.amount) && d.amount >= 0) doc.debts.push({ id: takeId(d.id), name: n, amount: d.amount, note: nt, ...fk(d) });
   });
   list('goals').forEach((g, i) => {
     const w = `Goal #${i + 1}`;
@@ -80,7 +82,7 @@ export function validate(raw) {
     if (!isAmt(g.target) || g.target <= 0) err(`${w}: "target" must be a number > 0.`);
     let date = null;
     if (g.date != null && g.date !== '') { if (isValidISODate(g.date)) date = g.date; else err(`${w}: "date" must look like YYYY-MM-DD.`); }
-    if (n && isAmt(g.target) && g.target > 0) doc.goals.push({ id: takeId(g.id), name: n, target: g.target, date });
+    if (n && isAmt(g.target) && g.target > 0) doc.goals.push({ id: takeId(g.id), name: n, target: g.target, date, ...fk(g) });
   });
   for (const key of ['monthlyIncome', 'monthlyExpenses']) {
     const v = raw[key];
@@ -91,6 +93,11 @@ export function validate(raw) {
   if (raw.notes == null) doc.notes = '';
   else if (!isStr(raw.notes) || raw.notes.length > LIMITS.notes) err(`Finances: "notes" must be text up to ${LIMITS.notes} characters.`);
   else doc.notes = raw.notes;
+  const f = raw.feed;   // metadata of the last feed refresh (text only)
+  if (f && typeof f === 'object' && !Array.isArray(f)) {
+    const t = (v, n) => (isStr(v) ? v.slice(0, n) : null);
+    doc.feed = { updated: t(f.updated, 40), asOf: t(f.asOf, 200), refreshedAt: t(f.refreshedAt, 40), notes: t(f.notes, LIMITS.notes) };
+  }
   return { ok: errors.length === 0, errors, doc };
 }
 

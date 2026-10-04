@@ -72,3 +72,23 @@ details.src-all .gbody{padding-top:0}
 .na .big{font-size:20px}
 ul.goals li b{font-weight:600}
 .btnrow .btn.small{flex:1}
+
+/* Refresh bar (feed) */
+.feedbar{padding:12px 14px}
+.feed-row{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.feed-text{min-width:0;font-size:13px}
+.feed-upd{color:var(--text);overflow-wrap:anywhere}
+.feed-ago,.feed-asof{color:var(--muted)}
+.feed-asof{font-size:12px;margin-top:2px;overflow-wrap:anywhere}
+#refresh-btn{flex:none;min-width:116px}
+#refresh-btn[disabled]{opacity:.8;cursor:progress}
+.spinner{display:inline-block;width:15px;height:15px;border:2px solid rgba(255,255,255,.35);border-top-color:#fff;border-radius:50%;animation:feedspin .8s linear infinite}
+@keyframes feedspin{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.spinner{animation-duration:2.4s}}
+.feed-err{margin-top:10px;font-size:13px;line-height:1.45;color:var(--red);overflow-wrap:anywhere}
+.feed-err .note{margin-top:4px}
+.feed-form{margin-top:10px}
+.feed-formrow{display:flex;gap:8px;margin-top:6px}
+.feed-formrow input{min-height:46px;padding:10px 12px;border-radius:12px;border:1px solid #26365a;background:#0d1628;color:var(--text);font:inherit;font-size:16px;flex:1;min-width:0}
+.feed-notes{margin-top:10px;font-size:13px}
+.feed-notes summary{cursor:pointer;color:var(--muted);min-height:32px;display:flex;align-items:center}

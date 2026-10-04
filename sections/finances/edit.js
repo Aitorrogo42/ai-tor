@@ -51,7 +51,7 @@ export function renderEdit(root, doc, ctx) {
       let g = sel.value;
       if (g === CUSTOM) { g = canonicalGroup(custom.value); if (!g) return 'Please type a name for your custom group.'; }
       commit(() => {
-        const rec = { id: item?.id || uid(), name: n, value: v, group: g, note: note.value.trim() };
+        const rec = { id: item?.id || uid(), name: n, value: v, group: g, note: note.value.trim(), ...(item?.fk ? { fk: item.fk } : {}) };
         if (item) doc.accounts[doc.accounts.findIndex((a) => a.id === item.id)] = rec; else doc.accounts.push(rec);
         open = null;
       });
@@ -69,7 +69,7 @@ export function renderEdit(root, doc, ctx) {
       if (v == null || Number.isNaN(v) || v < 0) return 'Please enter the amount owed as a number (0 or more).';
       if (v > LIMITS.amount) return 'That number is too large.';
       commit(() => {
-        const rec = { id: item?.id || uid(), name: n, amount: v, note: note.value.trim() };
+        const rec = { id: item?.id || uid(), name: n, amount: v, note: note.value.trim(), ...(item?.fk ? { fk: item.fk } : {}) };
         if (item) doc.debts[doc.debts.findIndex((a) => a.id === item.id)] = rec; else doc.debts.push(rec);
         open = null;
       });
@@ -88,7 +88,7 @@ export function renderEdit(root, doc, ctx) {
       if (v > LIMITS.amount) return 'That number is too large.';
       if (date.value && !isValidISODate(date.value)) return 'Please pick a valid date.';
       commit(() => {
-        const rec = { id: item?.id || uid(), name: n, target: v, date: date.value || null };
+        const rec = { id: item?.id || uid(), name: n, target: v, date: date.value || null, ...(item?.fk ? { fk: item.fk } : {}) };
         if (item) doc.goals[doc.goals.findIndex((a) => a.id === item.id)] = rec; else doc.goals.push(rec);
         open = null;
       });

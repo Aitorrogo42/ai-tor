@@ -1,17 +1,21 @@
 // Optional task feed. AI-TOR fetches ONE same-origin file, ./feed/tasks.enc.json (an AES-GCM encrypted copy of the task list,
 // published next to the app), and decrypts it on this device with a passphrase using WebCrypto. No third-party requests, no tokens.
-// The passphrase lives only in localStorage ("aitor:cfg:todo") on this device; it is never exported or sent anywhere.
+// The passphrase is shared with the Finances feed (js/feedcrypto.js) and lives only in localStorage on this device
+// ("aitor:cfg:feed", mirrored in "aitor:cfg:todo"); it is never exported or sent anywhere.
 // With no passphrase set this module makes zero requests.
 //
 // File format: {"v":1,"kdf":"PBKDF2-SHA256","iter":600000,"salt":"<b64>","iv":"<b64>","ct":"<b64 ciphertext+16-byte tag>","updated":"ISO"}
 // Key = PBKDF2-HMAC-SHA256(NFC(passphrase) as UTF-8, salt, iter) -> 256-bit AES-GCM key; 12-byte iv; no AAD.
 import * as storage from '../../js/storage.js';
 import { validate, emptyDoc, parseFeed, mergeFeed } from './model.js';
+import * as feedcrypto from '../../js/feedcrypto.js';
+import { FeedError } from '../../js/feedcrypto.js';   // shared crypto + passphrase live in js/feedcrypto.js
+export { FeedError };
 
 export const AUTO_SYNC_MS = 4 * 60 * 60 * 1000;   // auto-sync on open at most every 4 hours after a success
 export const RETRY_MS = 30 * 60 * 1000;           // ...and not more than every 30 min after a failed attempt
 export const FEED_URL = new URL('../../feed/tasks.enc.json', import.meta.url).href;   // same origin as the app
-export const MAX_ITER = 2000000, MIN_ITER = 100000;
+export { MAX_ITER, MIN_ITER } from '../../js/feedcrypto.js';
 
 const cfgStore = () => storage.config('todo');
 const store = () => storage.section('todo');
@@ -19,47 +23,18 @@ let inFlight = null;
 
 export function getConfig() {
   const c = cfgStore().get();
-  return (c && typeof c === 'object') ? c : {};
+  const cfg = (c && typeof c === 'object') ? { ...c } : {};
+  const p = feedcrypto.getPassphrase();   // the passphrase is shared with Finances (aitor:cfg:feed)
+  if (p) cfg.passphrase = p; else delete cfg.passphrase;
+  return cfg;
 }
-export function isConfigured() { const c = getConfig(); return typeof c.passphrase === 'string' && c.passphrase.length > 0; }
-export function saveConfig({ passphrase }) {
-  const prev = getConfig();
-  const { repo, path, token, ...rest } = prev;   // drop obsolete GitHub settings if an older version stored them
-  cfgStore().set({ ...rest, passphrase });
-}
-export function clearConfig() { cfgStore().clear(); }
-export function checkConfig({ passphrase }) {
-  const errors = [];
-  if (!passphrase) errors.push('Enter the passphrase.');
-  else if (passphrase.length < 8) errors.push('The passphrase must be at least 8 characters.');
-  else if (passphrase.length > 200) errors.push('That passphrase is too long (max 200 characters).');
-  return errors;
-}
-
-const b64 = (s) => { const bin = atob(s); const out = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i); return out; };
-export class FeedError extends Error { constructor(kind, message) { super(message); this.kind = kind; } }
+export function isConfigured() { return feedcrypto.hasPassphrase(); }
+export function saveConfig({ passphrase }) { feedcrypto.setPassphrase(passphrase); }
+export function clearConfig() { feedcrypto.clearPassphrase(); cfgStore().clear(); }
+export const checkConfig = ({ passphrase }) => feedcrypto.checkPassphrase(passphrase);
 
 /** Decrypt the envelope object (already JSON-parsed) -> plaintext string. Throws FeedError(kind: 'format' | 'passphrase' | 'nocrypto'). */
-export async function decryptEnvelope(env, passphrase) {
-  const bad = (m) => new FeedError('format', m || 'The encrypted task file is in an unexpected format.');
-  if (!env || typeof env !== 'object' || Array.isArray(env)) throw bad();
-  if (env.v !== 1) throw bad(env.v > 1 ? 'The encrypted task file is a newer format than this app understands (update AI-TOR).' : null);
-  if (env.kdf !== 'PBKDF2-SHA256' || !Number.isInteger(env.iter) || env.iter < MIN_ITER || env.iter > MAX_ITER) throw bad();
-  if (typeof env.salt !== 'string' || typeof env.iv !== 'string' || typeof env.ct !== 'string') throw bad();
-  let salt, iv, ct;
-  try { salt = b64(env.salt); iv = b64(env.iv); ct = b64(env.ct); } catch { throw bad(); }
-  if (salt.length < 8 || salt.length > 64 || iv.length !== 12 || ct.length < 16 || ct.length > 4 * 1024 * 1024) throw bad();
-  const subtle = globalThis.crypto && globalThis.crypto.subtle;
-  if (!subtle) throw new FeedError('nocrypto', 'This browser cannot do encryption here (it needs HTTPS). Open AI-TOR from its normal https address.');
-  const pw = new TextEncoder().encode(String(passphrase).normalize('NFC'));
-  let plain;
-  try {
-    const base = await subtle.importKey('raw', pw, 'PBKDF2', false, ['deriveKey']);
-    const key = await subtle.deriveKey({ name: 'PBKDF2', hash: 'SHA-256', salt, iterations: env.iter }, base, { name: 'AES-GCM', length: 256 }, false, ['decrypt']);
-    plain = await subtle.decrypt({ name: 'AES-GCM', iv }, key, ct);
-  } catch { throw new FeedError('passphrase', 'Wrong passphrase. It must match the one used to encrypt the task list exactly (check capital letters and spaces). Open sync settings to re-enter it.'); }
-  return new TextDecoder('utf-8', { fatal: true }).decode(plain);
-}
+export const decryptEnvelope = (env, passphrase) => feedcrypto.decryptEnvelope(env, passphrase, 'task');
 
 export function describeHttp(status) {
   if (status === 404) return 'No task feed found yet (404). Your assistant has not published the encrypted list, or AI-TOR is not up to date. Try again later.';
@@ -121,12 +96,4 @@ export function shouldAutoSync(now = Date.now()) {
 }
 export function maybeAutoSync() { return shouldAutoSync() ? syncNow({ auto: true }) : Promise.resolve(null); }
 
-export function timeAgo(iso, now = Date.now()) {
-  const t = Date.parse(iso || ''); if (!t) return 'never';
-  const m = Math.max(0, Math.round((now - t) / 60000));
-  if (m < 1) return 'just now';
-  if (m < 60) return `${m} min ago`;
-  const hr = Math.round(m / 60);
-  if (hr < 24) return `${hr} h ago`;
-  return new Date(t).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
-}
+export const timeAgo = feedcrypto.timeAgo;

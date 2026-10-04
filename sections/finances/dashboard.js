@@ -1,6 +1,7 @@
 import { h, sectionIcon, money, pct, fmtDate, todayISO } from '../../js/util.js';
 import { compute, alerts, projectableGoals } from './model.js';
 import { projectionChart } from './chart.js';
+import { refreshBar } from './refreshbar.js';
 
 let projGoalId = null; // which goal the illustration uses (UI-only state)
 
@@ -67,7 +68,9 @@ export function renderDashboard(root, doc, ctx) {
     h('div', { class: 'topbar' }, h('a', { class: 'back', href: '#/' }, '‹ Home'),
       h('a', { class: 'btn ghost small', href: '#/finances/edit', id: 'edit-btn' }, '✎ Edit')),
     h('div', { class: 'fin-head' }, h('h1', { class: 'with-ico' }, sectionIcon('finances'), 'Finances'),
-      doc.updatedAt ? h('div', { class: 'asof' }, 'Last updated ' + new Date(doc.updatedAt).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })) : null));
+      doc.updatedAt && !(doc.feed && doc.feed.refreshedAt) ? h('div', { class: 'asof' }, 'Last updated ' + new Date(doc.updatedAt).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })) : null));
+
+  root.append(refreshBar(doc, ctx.rerender));
 
   if (doc.example) {
     root.append(h('div', { class: 'banner example', id: 'example-banner' },

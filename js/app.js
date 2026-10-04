@@ -86,6 +86,18 @@ async function autoSync() {
 autoSync();
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') autoSync(); });
 
+// Optional Finances feed refresh: needs the shared passphrase (set in Finances or To-Do). At most once per 15 minutes.
+async function autoRefreshFinances() {
+  try {
+    const f = storage.config('feed').get(), t = storage.config('todo').get();
+    if (!((f && f.passphrase) || (t && t.passphrase))) return;
+    const m = await import('../sections/finances/feed.js');
+    await m.maybeAutoRefresh();
+  } catch (e) { console.warn('finances auto-refresh skipped', e); }
+}
+autoRefreshFinances();
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') autoRefreshFinances(); });
+
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     const had = !!navigator.serviceWorker.controller;
