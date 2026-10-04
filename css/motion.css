@@ -93,7 +93,7 @@ html.sol-frozen .sol-veil{opacity:calc(var(--veil-lo,.72) + (var(--veil-hi,.86) 
 .sol-night,.sol-glow{display:none;position:absolute;pointer-events:none;opacity:0}
 html.sol-css .sol-night,html.sol-css .sol-glow{display:block}
 html.sol-css .sol-night{inset:0;background:#040103;will-change:opacity}
-html.sol-css .sol-glow{left:0;top:0;width:96vmax;height:96vmax;margin:-48vmax 0 0 -48vmax;will-change:transform,opacity;mix-blend-mode:screen;
+html.sol-css .sol-glow{left:0;top:0;width:96vmax;height:96vmax;margin:-48vmax 0 0 -48vmax;will-change:transform,opacity;
   background:radial-gradient(closest-side,rgba(255,236,214,.95),rgba(255,130,70,.55) 14%,rgba(217,58,45,.28) 38%,rgba(143,26,28,.10) 62%,rgba(143,26,28,0))}
 @media (prefers-reduced-motion:reduce){#bg-gl,.mars,.bg-par,#bg-dust,.sol-veil{transition:none}}
 
@@ -119,25 +119,20 @@ html.sol-css .sol-glow{left:0;top:0;width:96vmax;height:96vmax;margin:-48vmax 0 
 ::view-transition{pointer-events:none}
 ::view-transition-group(*){animation-duration:.46s;animation-timing-function:var(--ease)}
 ::view-transition-old(root),::view-transition-new(root){animation-timing-function:var(--ease)}
-/* dive into a section: old page recedes (scale+fade), new page fades in and its content staggers up */
-html.vt-fwd::view-transition-old(root){animation:vt-out-fwd .34s var(--ease-io) both}
-html.vt-fwd::view-transition-new(root){animation:vt-in .42s ease-out both}
-/* back to home: old page zooms slightly forward and fades, home cards settle in */
-html.vt-back::view-transition-old(root){animation:vt-out-back .3s var(--ease-io) both}
-html.vt-back::view-transition-new(root){animation:vt-in-back .44s ease-out both}
-html.vt-push::view-transition-old(root){animation:vt-out-push .3s var(--ease-io) both}
-html.vt-push::view-transition-new(root){animation:vt-in .4s ease-out both}
-html.vt-pop::view-transition-old(root){animation:vt-out-pop .3s var(--ease-io) both}
-html.vt-pop::view-transition-new(root){animation:vt-in .4s ease-out both}
-html.vt-tab::view-transition-old(root){animation:vt-out-tab .2s ease-in both}
-html.vt-tab::view-transition-new(root){animation:vt-in .3s ease-out both}
-@keyframes vt-out-fwd{to{opacity:0;transform:scale(.93)}}
+/* v23: the 'root' snapshot contains the page AND the background (#bg: Mars canvas + veil). Chrome / Safari paint the root group opaque, so the background cannot be a group of its own below
+   the page; instead the root crossfade is made EXACT: old and new use the same duration and the same easing, opacity ONLY (no scale / translate on root), and plus-lighter blending
+   is set EXPLICITLY (the UA applies it through its own animation, which a custom `animation:` shorthand silently REPLACES: v20-v22 therefore cross-faded with NORMAL blending, where
+   identical background pixels dip to ~75% brightness mid-fade). With plus-lighter, old(1-e) + new(e) = 1, so the identical background pixels in both snapshots add up to exactly the
+   same colour on every frame. Before v23 the old snapshot was also scaled (.93 / 1.05) and faded with a different curve and duration than the new one: two copies of the sun
+   streak / limb glow at different heights plus a brightness dip = the 'flickering spark' between tabs. Motion now lives in the shared-element morphs (card / icon / title / tab pill) and the staggered fade-up of the new page. */
+html[class*=vt-]::view-transition-old(root){animation:vt-out var(--vt-d,.34s) var(--ease-io) both;mix-blend-mode:plus-lighter}
+html[class*=vt-]::view-transition-new(root){animation:vt-in var(--vt-d,.34s) var(--ease-io) both;mix-blend-mode:plus-lighter}
+html.vt-fwd{--vt-d:.4s}
+html.vt-back{--vt-d:.4s}
+html.vt-push,html.vt-pop{--vt-d:.34s}
+html.vt-tab{--vt-d:.26s}
 @keyframes vt-in{from{opacity:0}to{opacity:1}}
-@keyframes vt-out-back{to{opacity:0;transform:scale(1.05)}}
-@keyframes vt-in-back{from{opacity:0;transform:scale(.96)}to{opacity:1;transform:none}}
-@keyframes vt-out-push{to{opacity:0;transform:translate3d(-14%,0,0) scale(.97)}}
-@keyframes vt-out-pop{to{opacity:0;transform:translate3d(14%,0,0) scale(.97)}}
-@keyframes vt-out-tab{to{opacity:0}}
+@keyframes vt-out{from{opacity:1}to{opacity:0}}
 /* shared elements: tapped card -> page header, icon -> icon, title -> title (and back) */
 ::view-transition-group(sec-card),::view-transition-group(sec-icon),::view-transition-group(sec-title){animation-duration:.5s;animation-timing-function:var(--ease)}
 ::view-transition-group(tab-pill){animation-duration:.4s;animation-timing-function:var(--ease)}
@@ -153,8 +148,9 @@ html.vt-tab::view-transition-new(root){animation:vt-in .3s ease-out both}
   html{transition:none}
   .enter .stg{animation:none!important}
   ::view-transition-group(*){animation-duration:.01s}
-  html[class*=vt-]::view-transition-old(root){animation:vt-out-tab .16s linear both}
-  html[class*=vt-]::view-transition-new(root){animation:vt-in .2s linear both}
+  html[class*=vt-]{--vt-d:.18s}
+  html[class*=vt-]::view-transition-old(root){animation:vt-out var(--vt-d) linear both;mix-blend-mode:plus-lighter}
+  html[class*=vt-]::view-transition-new(root){animation:vt-in var(--vt-d) linear both;mix-blend-mode:plus-lighter}
 }
 
 /* ===== launch splash (js/splash.js; markup #splash is static in index.html and <html class="splash">) =====

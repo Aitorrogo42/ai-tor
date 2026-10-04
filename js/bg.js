@@ -86,7 +86,7 @@ const SOL_OFFSET = SOL_ORIGIN;               // sol (deg) = 90 - wheel angle (de
 export const solFromWheel = (angleDeg) => solFromWheelAngle(angleDeg, sunAnchors());      // v22: piecewise linear through the section anchors (js/sol.js); unwrapped, so any number of turns loops seamlessly
 const cfg = () => storage.config('display');
 export const isDynamicBackground = () => { try { const c = cfg().get(); return !(c && c.dynbg === false); } catch { return true; } };
-const sun = { mode: 'off', renderer: null, canvas: null, cur: SOL_OFFSET, tgt: SOL_OFFSET, first: true, raf: 0, last: 0, lastDraw: 0, texImg: null, ready: false, scale: 0, slow: 0, cost: 0, timer: 0, glow: null, night: null, dirty: true, frames: 0, frozen: false, t: 0 };
+const sun = { mode: 'off', renderer: null, canvas: null, cur: SOL_OFFSET, tgt: SOL_OFFSET, first: true, raf: 0, last: 0, lastDraw: 0, off: 0, texImg: null, ready: false, scale: 0, slow: 0, cost: 0, timer: 0, glow: null, night: null, dirty: true, frames: 0, frozen: false, t: 0 };
 const cdiff360 = (a, b) => Math.abs((((a - b) % 360) + 540) % 360 - 180);   // distance between two angles on the circle (degrees)
 const isHome = () => { const s = document.documentElement.dataset.sec; return !s || s === 'home'; };
 
@@ -121,8 +121,9 @@ function applyCss(st) {                                      // fallback layers:
   const dust = document.getElementById('bg-dust'); if (dust) dust.style.opacity = (0.25 + 0.75 * st.night).toFixed(3);
 }
 
-function sunRender(t) {
-  sun.t = t;                                                  // the time of the last frame: a frozen frame reuses it, so the planet does not shift when it freezes
+function sunRender(real) { sunRenderAt(real - sun.off); }
+function sunRenderAt(t) {                                      // t = shader time (ms) = real time minus sun.off
+  sun.frames++; sun.t = t;                                                  // the shader time of the last frame: a frozen frame reuses it, so the planet does not shift when it freezes
   const still = reduce();
   const t0 = performance.now();
   const st = sun.renderer.draw(norm360(sun.cur) * Math.PI / 180, still ? 0 : t / 1000, still);
@@ -132,8 +133,9 @@ function sunRender(t) {
 }
 
 const IDLE_MS = 100;                                        // idle (wheel at rest): ~10 fps is plenty for the slow rotation / star twinkle
-function sunFrame(t) {
+function sunFrame() {
   sun.raf = requestAnimationFrame(sunFrame);
+  const t = performance.now();                                // v23: one time base only (the rAF timestamp can lag behind performance.now() when frames queue up, which made the shader clock jump back / forth after a resume)
   const dt = sun.last ? Math.min(100, t - sun.last) : 16; sun.last = t;
   const diff = sun.tgt - sun.cur;
   let moving = false;
@@ -149,7 +151,9 @@ function sunFrame(t) {
 
 function sunStart() {
   if (sun.mode !== 'gl' || sun.raf || document.hidden || !isHome()) return;
-  sun.last = 0; sun.dirty = true; sun.raf = requestAnimationFrame(sunFrame);
+  sun.last = 0; sun.dirty = true;
+  if (sun.t) sun.off = performance.now() - sun.t;               // v23: shader time continues from the last drawn frame (the slow planet drift + star twinkle must not jump after a stay in a section / a hidden page)
+  sun.raf = requestAnimationFrame(sunFrame);
 }
 function sunStop() { if (sun.raf) cancelAnimationFrame(sun.raf); sun.raf = 0; }
 
@@ -166,7 +170,7 @@ function sunSync() {                                          // called when the
   sunStop();
   if (a != null) { sun.cur = sun.tgt = nearestEquivalent(a, sun.cur); sun.first = false; }
   sun.frozen = true; html().classList.add('sol-frozen');
-  if (sun.mode === 'gl') { if (sun.ready) sunRender(sun.t || performance.now()); }
+  if (sun.mode === 'gl') { if (sun.ready) sunRenderAt(sun.t || performance.now() - sun.off); }
   else if (sun.mode === 'css') { const st = cssState(); setVars(st); applyCss(st); }
 }
 
@@ -231,7 +235,7 @@ export function setDynamicBackground(on) {
 
 function initSun() {
   window.addEventListener('wheel-angle', onWheelAngle);
-  window.addEventListener('resize', () => { if (sun.mode === 'gl') { sunLayout(); sun.dirty = true; if (sun.frozen && sun.ready) sunRender(sun.t || performance.now()); } else if (sun.mode === 'css') applyCss(cssState()); }, { passive: true });
+  window.addEventListener('resize', () => { if (sun.mode === 'gl') { sunLayout(); sun.dirty = true; if (sun.frozen && sun.ready) sunRenderAt(sun.t || performance.now() - sun.off); } else if (sun.mode === 'css') applyCss(cssState()); }, { passive: true });
   document.addEventListener('visibilitychange', () => { if (sun.mode === 'gl') (document.hidden ? sunStop() : sunSync()); });
   const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
   mq.addEventListener && mq.addEventListener('change', () => { sun.dirty = true; sunSync(); });
@@ -239,7 +243,7 @@ function initSun() {
   window.__aitorBg.sun = {
     mode: () => sun.mode, ready: () => sun.ready, reason: () => sun.reason || '', solDeg: () => norm360(sun.cur), targetDeg: () => norm360(sun.tgt), running: () => !!sun.raf,
     snap: (deg) => { sun.tgt = sun.cur = deg; sun.dirty = true; if (sun.mode === 'gl') { sunRender(performance.now()); } else if (sun.mode === 'css') { const st = cssState(); setVars(st); applyCss(st); } },
-    scale: () => sun.scale, frozen: () => sun.frozen, anchors: () => sunAnchors(),
+    scale: () => sun.scale, frozen: () => sun.frozen, shaderTime: () => sun.t, offset: () => sun.off, canvas: () => sun.canvas, draws: () => sun.frames, anchors: () => sunAnchors(),
   };
 }
 

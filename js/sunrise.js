@@ -201,7 +201,7 @@ function rotMat() {   // M = Rx(TILT) * Rz(ROLL), column-major for uniformMatrix
 
 /** Create the renderer on a canvas. Throws if WebGL is missing or the shader fails (the caller then keeps the CSS background). */
 export function createSunrise(canvas, { onLost, onRestored } = {}) {
-  const gl = canvas.getContext('webgl', { alpha: false, antialias: false, depth: false, stencil: false, powerPreference: 'high-performance', preserveDrawingBuffer: false })
+  const gl = canvas.getContext('webgl', { alpha: false, antialias: false, depth: false, stencil: false, powerPreference: 'high-performance', preserveDrawingBuffer: true })
     || canvas.getContext('experimental-webgl', { alpha: false, antialias: false, depth: false, stencil: false });
   if (!gl) throw new Error('no webgl');
   let prog, U = {}, tex, hasTex = 0, lost = false, disposed = false, geo = { W: 1, H: 1, cx: 0, cy: 0, R: 1, k: 1 };
