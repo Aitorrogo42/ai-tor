@@ -3,6 +3,7 @@
 // Every wheel entry (section) owns one ANCHOR: the sun angle shown when the wheel rests on it and the angle that is frozen behind the section once it is opened.
 // Default anchor of entry i out of K = SOL_ORIGIN + i * 360 / K (so the first entry is sunrise and the rest are evenly spread around the day).
 // An entry may pin its anchor with `sunAngle` (degrees); the anchors are then a strictly increasing sequence that spans exactly 360 degrees (entries between two pins are spread evenly),
+// (v25: the app pins its 5 sections to 90 / 135 / 180 / 225 / 270, i.e. sunrise -> sunset, so no section sits in the night; the one segment from the last section back to the first carries the other 180 degrees, night included),
 // and the wheel angle is mapped piecewise-linearly between them, so the mapping stays continuous and one turn is still exactly one sol.
 export const SOL_ORIGIN = 90;
 export const norm360 = (d) => ((d % 360) + 360) % 360;
