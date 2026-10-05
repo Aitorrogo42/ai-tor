@@ -105,6 +105,7 @@ function setVars(st) {
   el.style.setProperty('--sol-elev', st.E.toFixed(2));
   el.style.setProperty('--sol-day', st.day.toFixed(3));
   el.style.setProperty('--sol-night', st.night.toFixed(3));
+  el.style.setProperty('--sol-city', st.city.toFixed(3));
 }
 
 function cssState() {
@@ -221,7 +222,7 @@ function sunEnable() {
 function sunDisable() {
   const html = document.documentElement;
   sunStop(); html.classList.remove('gl-on', 'sol-css', 'sol-want', 'sol-frozen'); sun.mode = 'off'; sun.frozen = false;
-  if (root) ['--sol-deg', '--sol-elev', '--sol-day', '--sol-night'].forEach((k) => root.style.removeProperty(k));
+  if (root) ['--sol-deg', '--sol-elev', '--sol-day', '--sol-night', '--sol-city'].forEach((k) => root.style.removeProperty(k));
   if (sun.glow) sun.glow.style.opacity = '0'; if (sun.night) sun.night.style.opacity = '0';
   const dust = document.getElementById('bg-dust'); if (dust) dust.style.opacity = '';
   if (sun.renderer) { try { sun.renderer.dispose(); } catch { /* ignore */ } sun.renderer = null; if (sun.canvas) { sun.canvas.remove(); sun.canvas = null; } sun.ready = false; }

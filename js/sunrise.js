@@ -7,6 +7,22 @@
 const DEG = Math.PI / 180;
 export const TEX_LON_CENTER = -65, TEX_SPAN = 120;     // the map patch covers lon -125..-5 and lat -60..60 (equirectangular, 2048x2048)
 const TILT = 0.80, ROLL = -0.30;                       // planet orientation: pole tilted towards the viewer and rolled a little
+// v27: ONE small city on the night side. Fixed planet coordinates (degrees, same lon/lat frame as the surface texture lookup below, so it turns with the planet drift):
+// chosen so that at the rest layout (apex .60 H, R = 1.5 min(W, .7 H)) it sits at about (.53 W, .72 H): inside the visible disc, below the wheel, above the greeting, and
+// the +-13 degree drift keeps it on screen. The shader draws it only where the surface is on the night side (see cityLights).
+export const CITY = { lat: 7.9, lon: 15.2 };
+
+/** Where the city is on screen (CSS px) for a viewport, plus its facing (nz > 0 = on the visible side). drift = the shader's planet drift in degrees (0 when still). Pure + testable. */
+export function cityScreenPos(W, H, drift = 0) {
+  const R = 1.5 * Math.min(W, 0.7 * H), cx = W / 2, cy = 0.6 * H + R;
+  const la = CITY.lat * DEG, lo = (CITY.lon - drift) * DEG;
+  const a = [Math.cos(la) * Math.sin(lo), Math.sin(la), Math.cos(la) * Math.cos(lo)];
+  const ct = Math.cos(TILT), st = Math.sin(TILT), cr = Math.cos(ROLL), sr = Math.sin(ROLL);
+  const Rz = [[cr, -sr, 0], [sr, cr, 0], [0, 0, 1]], Rx = [[1, 0, 0], [0, ct, -st], [0, st, ct]];
+  const M = Rx.map((row) => [0, 1, 2].map((j) => row[0] * Rz[0][j] + row[1] * Rz[1][j] + row[2] * Rz[2][j]));
+  const n = [0, 1, 2].map((j) => M[0][j] * a[0] + M[1][j] * a[1] + M[2][j] * a[2]);   // M^T a
+  return { x: cx + n[0] * R, y: cy - n[1] * R, nz: n[2], R };
+}
 
 /** Sun / light state for a sol angle (radians). W,H = viewport in CSS px; cx,cy,R = planet centre + radius (CSS px). Pure + testable. */
 export function solarState(sol, W, H, cx, cy, R) {
@@ -20,7 +36,8 @@ export function solarState(sol, W, H, cx, cy, R) {
   const l = Math.hypot(s[0], s[1], s[2]); s = s.map((v) => v / l);
   const day = Math.min(1, Math.max(0, (sinE + 0.12) / 0.57));  // 0 night .. 1 day
   const night = 1 - Math.min(1, Math.max(0, (sinE + 0.25) / 0.33)); // star visibility
-  return { sol, E: E / DEG, sinE, sunX, sunY, s, day, night, limbY };
+  const ct = Math.min(1, Math.max(0, (sinE + 0.30) / 0.28)), city = 1 - ct * ct * (3 - 2 * ct);   // v27: city-lights strength (= the shader's 1 - smoothstep(-.30, -.02, sinE)): 0 by day and at sunset, 1 deep in the night
+  return { sol, E: E / DEG, sinE, sunX, sunY, s, day, night, city, limbY };
 }
 
 const VERT = 'attribute vec2 a;void main(){gl_Position=vec4(a,0.,1.);}';
@@ -54,6 +71,38 @@ float crater(vec2 p){
 }
 float terrain(vec2 s2){ return crater(s2 * .62) * 1.0 + crater(s2 * 1.9 + 11.) * .55 + (fbm(s2 * 5.) - .5) * .09; }
 float lum(vec3 c){ return dot(c, vec3(.3, .55, .15)); }
+
+// v27: night lights of one small city: a bright small core with a soft amber falloff, scattered dots thinning out with distance, a few thin streets (dotted lamps) radiating
+// from it and a partial ring road. Analytic, no texture. g = (lonD, latD) in degrees; pd = degrees per canvas pixel at this point (keeps the lines >= ~1 px).
+const float CITY_LON = ${CITY.lon.toFixed(2)}, CITY_LAT = ${CITY.lat.toFixed(2)};
+vec3 cityLights(vec2 g, float pd){
+  vec2 d = (g - vec2(CITY_LON, CITY_LAT)) * vec2(.9906, 1.);
+  float r = length(d);
+  if (r > 7.) return vec3(0.);
+  float core = exp(-r * r / .08);                                       // sigma .2 deg
+  float halo = .26 * exp(-r / 1.0) + .40 * exp(-r * r / .6);
+  float w = max(.03, pd * .5);
+  // suburban dots
+  vec2 cell = floor(d / .30), f = fract(d / .30);
+  float hp = h21(cell + 3.3), dots = 0.;
+  if (hp < .62 * exp(-r / 1.7)) { vec2 dp = vec2(.2 + .6 * h21(cell + 8.1), .2 + .6 * h21(cell + 1.9)); float dr = max(.075, pd * .8); dots = exp(-pow(length((f - dp) * .30) / dr, 2.)) * (.45 + .55 * h21(cell + 5.5)); }
+  // streets radiating from the core, slightly bent, with a dotted lamp pattern
+  float roads = 0.;
+  for (int k = 0; k < 7; k++) {
+    float fk = float(k);
+    float ang = fk * .93 + .5 * h21(vec2(fk, 2.7));
+    vec2 dir = vec2(cos(ang), sin(ang));
+    float along = dot(d, dir), len = 1.9 + 3.6 * h21(vec2(fk, 7.1));
+    float perp = d.x * dir.y - d.y * dir.x + .09 * sin(along * 2.3 + fk * 1.7) * smoothstep(0., 1.2, along);
+    float line = exp(-perp * perp / (2. * w * w)) * smoothstep(len, len * .30, along) * smoothstep(.12, .4, along);
+    float lamp = .35 + .65 * step(.40, fract(along * 7. + fk * .37));
+    roads += line * lamp;
+  }
+  // partial ring road
+  float ang2 = atan(d.y, d.x), ring = exp(-pow((r - 1.15) / w, 2.) * .5) * step(.42, vn(vec2(ang2 * 1.7 + 4., 1.7))) * .6;
+  vec3 amber = vec3(1., .55, .17);
+  return amber * (halo * .65 + dots * .75 + (roads + ring) * .45) + vec3(1., .80, .48) * core * 1.5;
+}
 
 vec3 tonemap(vec3 x){ x *= .85; return clamp((x * (2.51 * x + .03)) / (x * (2.43 * x + .59) + .14), 0., 1.); }
 
@@ -162,6 +211,9 @@ void main(){
     fog = clamp(fog * (.35 + .65 * hl), 0., .92);
     vec3 hazeCol = mix(vec3(.30, .09, .06), vec3(.95, .50, .28), clamp(hl * .9 + dayF * .4, 0., 1.)) * (.07 + .75 * hl * horizon + .10 * dayF);
     surf = mix(surf, hazeCol, fog);
+    // city lights: only on the night side (fully off by day and at sunset, fading in through dusk; sinE < -.30 = full), softened by the limb haze
+    float cityK = (1. - smoothstep(-.30, -.02, sinE)) * (1. - smoothstep(-.10, .20, ndl0));
+    if (cityK > .004) surf += cityLights(vec2(lonD, latD), 180. / (PI * uR * max(nz, .25))) * cityK * (1. - .6 * fog);
     float edge = smoothstep(-1., 1., -hr);
     col = mix(col, surf, edge);
   }
