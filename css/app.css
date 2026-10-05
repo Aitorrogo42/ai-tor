@@ -55,7 +55,7 @@ body{margin:0;min-height:100vh;min-height:100dvh;font-family:var(--font);font-si
 @supports not (overflow:clip){html{overflow-x:hidden}}
 a{color:inherit;text-decoration:none}
 h1,h2,h3,p{margin:0}
-/* ---- loading splash: the lockup (A over lowercase ai-tor) ---- */
+/* ---- loading splash: the lockup (A over the ai-tor wordmark) ---- */
 .loading{color:var(--muted);padding:15vh 0 56px;display:flex;flex-direction:column;align-items:center;gap:18px}
 .loading .lockup{--lk:84px;animation:mark-breathe 2.4s ease-in-out infinite}
 .sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
@@ -71,11 +71,11 @@ h1,h2,h3,p{margin:0}
 .home-head{position:relative;text-align:center;padding:14px 0 22px}
 .lockup-h1{margin:0;font-size:inherit;font-weight:inherit}
 .lockup-hero{--lk:104px}
-/* header lockup (brand board v5): the A centred on top, lowercase "ai-tor" directly beneath. --lk = mark width; the wordmark is sized so its
-   ink spans the mark's width (League Spartan Bold, .26em tracking; same ratios as lockup-header.svg: font-size = .2656 x mark width, gap = .156 x mark width) */
+/* header lockup (v24, final wordmark): the A centred on top, the custom "ai-tor" wordmark (inline SVG path art, no font) directly beneath. --lk = mark width; the wordmark is as wide
+   as the A and sits 100/640 = .15625 x the A's width below it (lockup-final.svg). Accessible name 'ai-tor' = the aria-label of the container. */
 .lockup{--lk:96px;display:flex;flex-direction:column;align-items:center;width:var(--lk);margin:0 auto;color:#fff}
 .brand-mark{display:block;width:var(--lk,28px);height:auto;aspect-ratio:640/544;flex:none;color:#fff}
-.wordmark{display:block;margin-top:calc(var(--lk)*.1);font-family:var(--font);font-size:calc(var(--lk)*.2656);line-height:1;font-weight:700;letter-spacing:.26em;margin-right:-.26em;white-space:nowrap;text-transform:none;color:#fff;font-size-adjust:none}
+.wordmark{display:block;width:var(--lk);height:auto;aspect-ratio:640/121.46;flex:none;margin-top:calc(var(--lk)*.15625);color:#fff;overflow:visible}   /* v24: the custom wordmark (path art, js/brand.js): ink as wide as the A, gap = 100/640 of the A's width */
 .about-lockup{display:flex;justify-content:center;padding:6px 0 16px;margin-bottom:4px;border-bottom:1px solid var(--hair)}
 .about-lockup .lockup{--lk:56px}
 .home-rule{display:block;width:36px;height:2px;background:var(--mars);margin:20px auto 14px}

@@ -19,6 +19,7 @@ export const sections = [
     title: 'Finances',
     subtitle: 'Net worth & accounts',
     route: '#/finances',
+    sunAngle: 90,    // v24: with 5 wheel entries the three approved scenes are pinned (sunrise / noon / sunset) so they do not move; Architecture takes the dusk between To-Do and Settings (night)
     glyph: 'M243.81 647.51 L571.57 319.75 L780.19 319.75 L780.19 223.75 L531.81 223.75 L243.81 511.75 Z M243.81 800.25 L576.54 467.51 L644.43 535.4 L780.19 399.63 L712.31 331.75 L644.43 399.63 L576.54 331.75 L243.81 664.49 Z',
     loader: () => import('../sections/finances/index.js'),
   },
@@ -27,6 +28,7 @@ export const sections = [
     title: 'Travels',
     subtitle: 'Countries you have visited',
     route: '#/travels',
+    sunAngle: 180,
     glyph: 'M196 506 L506 506 L506 196 Z M828 506 L518 196 L518 506 Z M822 518 L202 518 L512 828 Z',
     loader: () => import('../sections/travels/index.js'),
   },
@@ -35,8 +37,18 @@ export const sections = [
     title: 'To-Do',
     subtitle: 'Your daily task list',
     route: '#/todo',
+    sunAngle: 270,
     glyph: 'M832.32 341.05 L764.44 273.17 L422.54 615.07 L422.54 750.83 Z M259.56 464.09 L191.68 531.97 L410.54 750.83 L410.54 615.07 Z',
     loader: () => import('../sections/todo/index.js'),
+  },
+  {
+    id: 'architecture',
+    title: 'Architecture',
+    subtitle: 'Materials, buildings & consultants',
+    route: '#/architecture',
+    // FINAL icon (Graphic Designer, icons-v2/set-a/architecture.svg, concept 3 'Perspective'): same 1024 geometry, viewBox is cropped to 160 160 704 704 by js/icons.js like the others.
+    glyph: 'M424 832 L600 832 L600 293.61 L424 192 Z M412 832 L412 391.61 L236 290 L236 832 Z M788 832 L788 501.61 L612 400 L612 832 Z',
+    loader: () => import('../sections/architecture/index.js'),
   },
 ];
 
@@ -45,6 +57,7 @@ export const settingsEntry = {
   id: 'settings',
   title: 'Settings',
   route: '#/settings',
+  sunAngle: 0,   // v24: midnight, pinned (see the note on Finances)
   glyph: 'M326.215 240.337 L422.215 240.337 L422.215 463.332 L326.215 463.332 Z M608.56 197.369 L668.415 272.425 L494.07 411.46 L434.215 336.404 Z M818.193 391.324 L796.831 484.917 L579.427 435.296 L600.789 341.703 Z M797.256 676.151 L710.763 717.804 L614.009 516.892 L700.502 475.24 Z M561.516 837.369 L475.023 795.716 L571.777 594.804 L658.27 636.457 Z M288.489 753.577 L267.127 659.984 L484.531 610.363 L505.893 703.956 Z M183.771 487.873 L243.626 412.817 L417.97 551.852 L358.115 626.908 Z',
 };
 

@@ -113,9 +113,17 @@ html.kbd-nav .wheel:focus-visible{outline:2px solid var(--focus);outline-offset:
 .section-btn.wheel-open .section-icon .sec-ico{width:100%;height:100%;fill:currentColor;transform:none}   /* v18: Set A solid glyph, white via currentColor, viewBox cropped to the mark */
 .section-btn.wheel-open .section-icon .ico{width:68%;height:68%}
 .wheel-arrow{display:grid;place-items:center;color:var(--ember);line-height:0;animation:wheel-nudge 2.6s ease-in-out infinite}   /* v18: bold solid Ember down-pointing triangle (was a thin v17 arrow), same subtle idle nudge */
-.wheel-arrow .ico{width:clamp(19px,calc(var(--wheel)*.07),22px);height:clamp(19px,calc(var(--wheel)*.07),22px);margin:0;fill:currentColor;stroke:currentColor;stroke-linejoin:round}   /* triangle spans 17/24 of the box = 14-16px wide */
+.wheel-arrow .ico{width:clamp(19px,calc(var(--wheel)*.07),22px);height:clamp(19px,calc(var(--wheel)*.07),22px);margin:0;fill:currentColor;stroke:currentColor;stroke-linejoin:miter;stroke-miterlimit:10}   /* triangle spans 17/24 of the box = 14-16px wide */
 @keyframes wheel-nudge{0%,100%{transform:translateY(-1px);opacity:.75}50%{transform:translateY(3px);opacity:1}}
 .section-btn.wheel-open:active .section-icon{transform:scale(.94)}
 .section-btn.wheel-open:focus,.section-btn.wheel-open:focus-visible{outline:none}
 html.kbd-nav .section-btn.wheel-open:focus-visible{outline:2px solid var(--focus);outline-offset:-6px}
 @media (prefers-reduced-motion:reduce){.wheel-arrow{animation:none}.section-btn.wheel-open,.section-btn.wheel-open.sel{transition:none}.section-btn.wheel-open:active .section-icon{transform:none}}
+
+/* ===== v24 QA polish (Graphic Designer QA v3) ===== */
+.trv-cb,.todo-cb,.set-cb{font-family:inherit}                                              /* checkbox inputs inherit League Spartan */
+.overlay{background:rgba(5,2,3,.78)}                                                         /* erase / confirm dialogs: stronger dim scrim */
+.dialog{background:rgba(14,5,8,.95);max-width:440px}
+.dlg-actions{flex-wrap:wrap}
+.dlg-actions .btn{flex:1 1 auto;min-width:0;white-space:nowrap;padding:0 14px}               /* 'Erase everything' never wraps */
+.trv-searchrow{background:rgba(10,3,5,.96)}                                                 /* sticky search strip: scrolled text must not show through */

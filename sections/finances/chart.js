@@ -50,8 +50,8 @@ export function projectionChart({ series, start, end, goalValue, nowValue }) {
     const pts = ser.points.map(([d, v]) => `${X(d).toFixed(1)},${Y(v).toFixed(1)}`).join(' ');
     svg.append(s('polyline', { points: pts, fill: 'none', stroke: ser.color, 'stroke-width': '2.5', 'stroke-linecap': 'butt', 'stroke-linejoin': 'miter', ...(ser.dash ? { 'stroke-dasharray': ser.dash } : {}) }));
   }
-  svg.append(s('circle', { cx: X(start), cy: Y(nowValue), r: 4.5, fill: '#ff5238', stroke: '#0a0305', 'stroke-width': '2' }));
-  svg.append(s('circle', { cx: X(end), cy: Y(goalValue), r: 4.5, fill: '#ffffff', stroke: '#0a0305', 'stroke-width': '2' }));
+  svg.append(s('rect', { x: X(start) - 4.5, y: Y(nowValue) - 4.5, width: 9, height: 9, fill: '#ff5238', stroke: '#0a0305', 'stroke-width': '2', transform: `rotate(45 ${X(start)} ${Y(nowValue)})` }));   // v24: diamond, not a round dot
+  svg.append(s('rect', { x: X(end) - 4.5, y: Y(goalValue) - 4.5, width: 9, height: 9, fill: '#ffffff', stroke: '#0a0305', 'stroke-width': '2', transform: `rotate(45 ${X(end)} ${Y(goalValue)})` }));
   svg.append(s('text', { x: X(start) + 8, y: Y(nowValue) + 16, fill: '#ffffff', 'font-size': '12' }, 'Today ' + moneyCompact(nowValue)));
   if (min > 0) svg.append(s('text', { x: 6, y: H - 6, fill: '#c4c5c6', 'font-size': '12' }, 'Y-axis starts at ' + moneyCompact(min) + ' (not zero)'));
   return svg;

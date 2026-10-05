@@ -1,0 +1,34 @@
+/* Architecture (v24): flat translucent cards, same tokens as the other sections. Text >= 12px; secondary text uses --text / --muted (AA over the frozen scene + veil). */
+.arc{gap:12px}
+.arc-cats{display:flex;flex-direction:column;gap:10px}
+.arc-card{display:flex;align-items:center;gap:12px;min-height:76px;padding:14px 12px 14px 18px;color:inherit;text-decoration:none;transition:transform .16s var(--ease)}
+.arc-card:active{transform:scale(.99);--cf-line:var(--ember)}
+.arc-card-text{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.arc-card-title{font-size:19px;font-weight:500;letter-spacing:.05em;color:var(--text-hi);overflow-wrap:anywhere}
+.arc-card-sub{font-size:13px;line-height:1.35;color:var(--text)}
+.arc-card-count{flex:none;display:flex;flex-direction:column;align-items:flex-end;min-width:44px}
+.arc-n{font-size:26px;font-weight:600;line-height:1;font-variant-numeric:tabular-nums;color:#fff}
+.arc-n-l{font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-top:3px}
+.arc-card .chev{flex:none;color:var(--text);margin-right:2px}
+.arc-disc-card .k{margin-bottom:10px}
+.arc-disc-list{display:flex;flex-wrap:wrap;gap:8px 8px}
+.arc-disc-list .chip{margin:0;font-size:12px;color:var(--text)}
+.arc-searchrow[hidden]{display:none}
+.arc-search{width:100%}
+.arc-chips{padding:2px 0 6px}
+.arc-chips[hidden]{display:none}
+.arc-chip-n{margin-left:7px;font-size:12px;font-variant-numeric:tabular-nums;color:var(--text-hi);opacity:.85}
+.arc-formbox:empty{display:none}
+.arc-form h3{margin-bottom:2px}
+.arc-form textarea{min-height:104px}
+.arc-ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px}
+.arc-row .arc-main{flex:1;min-width:0;display:flex;flex-direction:column;align-items:flex-start;gap:5px;padding:14px 4px 10px 16px}
+.arc-name{font-size:17px;font-weight:600;letter-spacing:.015em;color:var(--text-hi);overflow-wrap:anywhere}
+.arc-meta{font-size:13px;line-height:1.4;color:var(--text);overflow-wrap:anywhere}
+.arc-notes{font-size:14px;line-height:1.4;color:var(--text-soft);overflow-wrap:anywhere;white-space:pre-line;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.arc-link{display:inline-flex;align-items:center;gap:4px;min-height:44px;margin:-6px 0;color:var(--ember);font-weight:600;font-size:14px;overflow-wrap:anywhere}
+.arc-acts{display:flex;gap:8px;margin-top:4px}
+.arc-acts .btn{min-height:44px}
+.arc-star{align-self:flex-start;min-height:56px}
+.arc-empty .btnrow{margin-top:6px}
+.arc-listbox{margin-top:2px}

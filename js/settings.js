@@ -7,7 +7,7 @@ import { buildExport, validateImport, applyImport, MAX_IMPORT_BYTES } from './da
 import { sections } from './sections.js';
 import { isDynamicBackground, setDynamicBackground } from './bg.js';
 
-export const APP_VERSION = '2.7.2 (v23)';
+export const APP_VERSION = '2.8.0 (v24)';
 
 export async function renderSettings(root, ctx) {
   document.title = 'Settings · AI-TOR';
@@ -37,7 +37,7 @@ export async function renderSettings(root, ctx) {
   // ---- import
   const importMsg = h('div', { id: 'import-msg', role: 'status', class: 'note' });
   const showErrors = (errs, warns = []) => {
-    importMsg.className = 'form-err'; importMsg.replaceChildren(h('b', null, 'Import failed. Nothing was changed.'), h('ul', null, errs.slice(0, 8).map((x) => h('li', null, x))), warns.length ? h('p', { class: 'note' }, warns.join(' ')) : null);
+    importMsg.className = 'form-err'; importMsg.replaceChildren(...[h('b', null, 'Import failed. Nothing was changed.'), h('ul', null, errs.slice(0, 8).map((x) => h('li', null, x))), warns.length ? h('p', { class: 'note' }, warns.join(' ')) : null].filter(Boolean));   // v24: replaceChildren(null) used to print the word "null"
   };
   const fileInput = h('input', { type: 'file', id: 'import-file', accept: 'application/json,.json', class: 'file-input', onchange: async () => {
     const f = fileInput.files && fileInput.files[0];
@@ -113,8 +113,8 @@ export async function renderSettings(root, ctx) {
     h('div', { class: 'card stackc' }, eraseBtn),
     h('h2', { class: 'sec' }, 'About'),
     h('div', { class: 'card' },
-      h('div', { class: 'about-lockup' }, lockup()),
+      h('div', { class: 'about-lockup', role: 'img', 'aria-label': 'ai-tor' }, lockup()),
       h('div', { class: 'row' }, h('div', { class: 'l' }, 'AI-TOR version'), h('div', { class: 'r' }, APP_VERSION)),
-      h('div', { class: 'row' }, h('div', { class: 'l' }, 'Data format'), h('div', { class: 'r' }, 'schema 4')),
+      h('div', { class: 'row' }, h('div', { class: 'l' }, 'Data format'), h('div', { class: 'r' }, 'schema 5')),
       h('p', { class: 'note', style: 'margin-top:8px' }, 'No accounts, no servers, no analytics. The app makes no network requests and works offline once opened. The only exception is the optional To-Do task sync, which (once you enter a passphrase) reads one encrypted file from this same site.')));
 }

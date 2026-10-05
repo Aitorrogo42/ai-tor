@@ -4,7 +4,35 @@ An installable personal-life app (PWA). Plain HTML/CSS/JS: **no build step, no C
 
 **Local-first:** every person who installs AI-TOR enters *their own* data. It is stored only in that device's browser storage (`localStorage`), never sent anywhere, and the app works fully offline once opened. **The app bundle contains no personal data**: only code, icons, and clearly-fake example data.
 
-Today: **Finances** (accounts, debts, income/expenses, goals, notes, dashboard, and an optional Refresh from your assistant) and **Travels** with two tabs: **Visited** (tick the countries you have visited out of a bundled offline list of 195, with search, per-continent counts, and optional year(s)/note per country) and **Destinations** (places your Travel Guide bot proposes, from an optional encrypted feed). **To-Do** (two parallel lists, **Personal** and **Work**, each a clear task list with a Done pile, comments per task, and an optional daily feed from your assistant). The home screen is a registry of sections, so more can be added later. Section logos live in `icons/sections/`.
+Today: **Architecture** (v24, staged: materials, famous buildings, architects, designers and consultants by discipline), **Finances** (accounts, debts, income/expenses, goals, notes, dashboard, and an optional Refresh from your assistant) and **Travels** with two tabs: **Visited** (tick the countries you have visited out of a bundled offline list of 195, with search, per-continent counts, and optional year(s)/note per country) and **Destinations** (places your Travel Guide bot proposes, from an optional encrypted feed). **To-Do** (two parallel lists, **Personal** and **Work**, each a clear task list with a Done pile, comments per task, and an optional daily feed from your assistant). The home screen is a registry of sections, so more can be added later. Section logos live in `icons/sections/`.
+
+## v24 / 2.8.0 (sw aitor-v24): Architecture section + chamfered rectangles (+ QA v3 polish)
+
+> **Status: published as v24 / 2.8.0.** The pre-Architecture state is tagged `v23-before-architecture` (live was v23 / 2.7.2, commit 4cfc140).
+
+**Architecture (5th wheel section, `sections/architecture/`).** A local-first reference library (no feed, no network). Dashboard `#/architecture` = header + one card per category with live counts; each category has its own list page `#/architecture/<slug>`:
+1. **Materials** (`materials`): type, supplier. 2. **Famous Buildings** (`famous-buildings`): architect, city, year. 3. **Architects** (`architects`): firm, city. 4. **Designers** (`designers`): studio / firm, city. 5. **Consultants** (`consultants`): discipline (required), firm, contact, with a **filter chip per discipline**: MEP, Structural, Security, IT, AV, Fire & Life Safety, Civil & Traffic, Facade, Lighting, Acoustics, Sustainability.
+Every entry also has name (required), notes, an optional https link, a favourite star (favourites sort first, plus a Favorites filter), search inside the category (accent / case-insensitive), edit and delete (with a confirm dialog) and a friendly empty state with an add form. Document `aitor:sec:architecture` = `{version:1, example, updatedAt, entries:[{id, cat, name, fav, notes, link, createdAt, updatedAt, ...category fields}]}` (`model.js`: `validate`, `summary`, `cleanEntry`, `exampleDoc` (FAKE sample data, "Load example data" on the empty dashboard)).
+- **Wheel.** The registry entry in `js/sections.js` is all it takes: the wheel splits into 5 (72 degrees each, 12 ticks per section = 60), keyboard order / snap / tap-a-tick follow. To keep the three scenes Aitor approved exactly where they were, **Finances (90), Travels (180), To-Do (270) and Settings (0) are pinned with `sunAngle`**; Architecture takes the dusk between To-Do and Settings (derived: 315). One wheel turn is still exactly one sol. (Remove the pins in `js/sections.js` for an even 72 degree spread.)
+- **Backups.** Export / import / erase pick the section up automatically. Export `schema` is now **5** (an older app refuses a schema-5 file as "newer" instead of silently dropping Architecture); schema 1-4 files import unchanged.
+- **Icon: FINAL** (Graphic Designer, concept 3 "Perspective", `icons-v2/set-a/architecture.svg`), registered as the `architecture` glyph in `js/sections.js` (cropped viewBox `160 160 704 704`, `currentColor`, like the others).
+
+**Final wordmark (v24).** The lowercase "ai-tor" text under the A is replaced by the Graphic Designer's custom wordmark (`ai-tor-design/wordmark/wordmark-final.svg`, one path, ink 640 wide = the A's width). `tools/make_logo_icons.py` crops it to its ink box (`192 451.27 640 121.46`) and writes it into `js/brand.js` (`wordmark()`, `lockup()` = A + wordmark); `index.html`'s loading lockup inlines the same path. Both are SVG with `fill: currentColor`, no font involved. Gap between the A and the wordmark = 100/640 of the A's width (`.wordmark{margin-top:calc(var(--lk)*.15625)}`), lockup centred, `aria-label="ai-tor"` stays on the containers (home `h1`, Settings About). The splash flight is unchanged (the A glides up, the wordmark fades in beneath it via `.home-head .wordmark`). The old League Spartan wordmark CSS (font-size / tracking rules) was removed; League Spartan remains the UI font.
+
+**Chamfers inside sections (`css/chamfer.css`, GENERATED by `tools/make_chamfer_css.py`).** Every rectangle inside a section page (cards, header strips, tabs, buttons, inputs / selects / textareas, list rows, chips, badges, checkboxes, dialogs, toasts, banners) has **exactly 2 chamfers on opposite corners: top-left and bottom-right**; the other two stay sharp. Sizes come from three variables in `:root` of that file: `--cf` 8px (cards, buttons, inputs, tabs, dialogs), `--cf-s` 5px (list rows, chips, small tabs, back link), `--cf-xs` 4px (badges, checkboxes). The home wheel and the splash are untouched. Excluded on purpose: progress bars, stacked bars, legend dots, the chart, list bullets and the spinner (not rectangles to cut).
+- **Technique.** `clip-path: polygon(...)` cuts the corners. A clip-path also clips a CSS border, so the diagonals would have no line (the "white outline artifact"). The 1px outline is therefore drawn with 6 background gradients: four edge strips (each stops short of the chamfers) + two 45-degree bands that follow the cuts; the real border is `transparent` and only keeps the layout. The strips and bands do not overlap, so translucent borders show no doubled-alpha dots at the joints. **One colour source**: the custom property `--cf-line` (thickness `--cf-t`, default 1px), so every state is a one-line rule (`.btn:active`, `.card.error`, `.dst-row.is-new`, checked checkbox ...). Tabs / chips are fill-only (`--cf-line: transparent`).
+- **Focus.** An outline would be clipped by the clip-path, so `:focus-visible` on a chamfered element sets `--cf-line` to the focus colour and `--cf-t: 2px` (a 2px line inside that follows the chamfers). Inputs show a 2px Ember line while focused. A `details` whose summary has focus gets the same (needs `:has()`, iOS 15.4+; older engines keep the summary outline). Forced-colors mode falls back to plain rectangles with a real border.
+- Tap targets are unchanged (44-48px+), text >= 12px, the carets / text never reach a cut corner (the cut is <= 8px, padding is >= 12px).
+
+**QA v3 polish (Graphic Designer).** Wheel triangle `stroke-linejoin: miter` (`css/flat.css`); Finances chart end markers are diamonds, not circles (`chart.js`); checkbox inputs `font-family: inherit`; confirm / erase dialog: stronger dim scrim (`.78`), `.95` panel, buttons never wrap ("Erase everything" stays on one line); Travels sticky search strip `.96` opaque so scrolled text no longer shows through. (Item 3, the wordmark, is skipped: a custom wordmark is coming.)
+
+**Tests (local, fake data).** `ai-tor-test-architecture.py` (5-entry wheel and scenes, CRUD per category, discipline filter, search, favourites, validation, export / import round trip incl. old schema-4 backup and invalid files, erase, chamfer audit on every section page incl. hit-testing of the cut corners, overflow at 320 / 360 / 390, >= 12px text, tap targets, AA contrast over the frozen scene, focus line). The generic registry / wheel / freeze suites run on a copy whose `sections.js` is stripped back to the v23 registry (`/workspace/_arch_strip.py`), so they still test the mechanism itself. Screenshots `screenshots/400-*` ... `432-*`.
+
+### Replacing the Architecture icon later
+The single place is the `glyph: '...'` string of the `architecture` entry in `js/sections.js` (1024-viewBox path data, evenodd; join multiple paths with spaces). The wheel centre, the headers, the empty states and the transition morph all read it through `sectionGlyph('architecture')`. `icons/` PWA icons are not involved. Check with `python3 ai-tor-test-architecture.py`.
+
+### Publishing checklist (done for v24)
+Tag the previous live state (`v23-before-architecture`), copy the app files (same list as the `sw.js` PRECACHE + `sections/architecture/*`, `css/chamfer.css`, `tools/*`, README), bump `VERSION` in `sw.js` and `APP_VERSION` in `js/settings.js` together, `git pull --rebase`, push, confirm Pages serves the new `sw.js`. Phones refresh after closing and reopening the app once or twice. Real-iPhone behaviour of the chamfers / wordmark / new section is not verified yet.
 
 ## v23 / 2.7.2 (sw aitor-v23): background flicker between tabs fixed
 
@@ -123,7 +151,8 @@ cd ai-tor && python3 -m http.server 8765 --bind 127.0.0.1
 index.html, manifest.webmanifest, sw.js
 css/app.css                  design tokens (:root: crimson Mars palette, font, tracking, surfaces, radii, easing) + shell, buttons, forms, dialogs, toast
 css/motion.css               dynamic background, Mars photo layer, page-transition (View Transitions) rules, staggered entrances, tab pill
-css/flat.css                 flat translucent material + brand-only palette overrides + QA rules (loaded last)
+css/flat.css                 flat translucent material + brand-only palette overrides + QA rules
+css/chamfer.css              (v24, generated by tools/make_chamfer_css.py) 2 opposite chamfers on every rectangle inside sections; loaded last
 js/icons.js                  line-icon set (inline SVG, 1.25 px stroke)
 assets/mars-photo.webp       the Mars photo, text removed (made by tools/make_mars_photo.py)
 tools/make_mars_photo.py     builds the photo asset from the reference (needs numpy, scipy, Pillow); tools/font_match.py ranks fonts against the MARS lettering
@@ -144,6 +173,8 @@ sections/todo/
 sections/travels/
   index.js (tabs + Visited), model.js (document v2), countries.js (bundled list: code, name, flag, continent), travels.css
   dest-model.js (place schema, sanitizing, https-only links, merge), dest-feed.js (fetch + decrypt + merge, auto-refresh), dest-ui.js (list + detail + refresh bar)
+sections/architecture/
+  index.js (dashboard + category pages), model.js (schema, validation, example data), architecture.css
 sections/finances/
   index.js                   entry: empty state / dashboard / editor routing
   model.js                   schema v1, validation, calculations, example data
@@ -165,7 +196,7 @@ screenshots/                 fake-data screenshots only
 - `aitor:sec:<sectionId>` – that section's own document (e.g. `aitor:sec:finances`). A section only ever receives its own store (`ctx.store`), so future sections can't collide.
 - `aitor:cfg:<sectionId>` – device settings of a section (`aitor:cfg:feed`: the ONE passphrase shared by the To-Do and Finances feeds, mirrored into `aitor:cfg:todo` together with the To-Do last-sync info; `aitor:cfg:finances`: last refresh attempt/error). **Never exported**, kept when you Import, wiped by *Erase all data*.
 
-**Export file** (`schema` 4; schema 1, 2 and 3 files still import. Every section is optional):
+**Export file** (`schema` 5; schema 1-4 files still import. Every section is optional):
 ```json
 { "app": "ai-tor", "schema": 4, "exportedAt": "…",
   "profile": { "name": "…", "currency": "USD" },
@@ -201,7 +232,8 @@ Everything below is data: **no change** to `wheel.js`, `sunrise.js`, `bg.js` or 
    `{ id:'health', title:'Health', subtitle:'Sleep, workouts', route:'#/health', glyph:'M... Z', sunAngle: 200 /* optional */, loader:()=>import('../sections/health/index.js') }`
    - `sunAngle` (optional, degrees: 0 midnight, 90 sunrise, 180 noon, 270 sunset) pins the scene behind the section; leave it out for the default derived from its wheel position (`90 + index * 360 / K`).
    - Order in the array = order on the wheel (Settings is always last).
-4. **Ship.** Add the new files to `PRECACHE` in `sw.js`, bump `VERSION` (and `APP_VERSION` in `js/settings.js`) so phones refresh. Check with `python3 ai-tor-test-sections.py` (it registers fake 5th / 7th entries the same way, through `registerSection()`).
+4. **Chamfers (v24).** Use the shared classes (`.card`, `.btn`, `.chip`, `.dst-row`, `.dst-chip`, `.trv-tab`, `input`, `select`, `textarea` ...) and the new section's boxes are chamfered automatically. A box with a new class name needs one line in `GROUPS` of `tools/make_chamfer_css.py` (selector + size + default outline colour) and `python3 tools/make_chamfer_css.py`; ai-tor-test-architecture.py's audit lists any rectangle that was missed.
+5. **Ship.** Add the new files to `PRECACHE` in `sw.js`, bump `VERSION` (and `APP_VERSION` in `js/settings.js`) so phones refresh. Check with `python3 ai-tor-test-sections.py` (it registers fake 5th / 7th entries the same way, through `registerSection()`).
 
 ## To-Do and optional task sync
 **Using it:** type a task (optional due date) and tap *Add task*. New tasks appear at the top. Tick the circle to move a task to the collapsed **Done** pile (with the time you finished it); untick it there to bring it back. Tap a task to open it: add, edit or delete timestamped comments, edit a manual task, or delete it. A 💬 count on the row shows how many comments it has.
