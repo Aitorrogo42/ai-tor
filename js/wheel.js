@@ -67,7 +67,8 @@ export function createWheel(items) {
       const major = j % PER === 0;
       // v29: a stronger bump: peak extra length x1.8 (major 24 -> 43, minor 11 -> 20). Ticks grow OUTWARD from R0, so they never reach the centre icon; the 12 o'clock
       // tick ends at 96 + 58 = 154, a hair past the 300 viewBox (.wheel-dial has overflow:visible and there is free space above the wheel)
-      const len = major ? 15 + 43 * g : 6 + 20 * g;
+      // v31: the red selected (major) tick is shorter again (peak 58 -> 37, -36 %): it only rises a little above its tallest white neighbours (~25); the white bump is unchanged
+      const len = major ? 15 + 22 * g : 6 + 20 * g;
       const w = major ? 2.6 + 2.6 * g : 1.7 + 1.6 * g;
       const th = (a + rot) * Math.PI / 180, ux = Math.sin(th), uy = -Math.cos(th);
       const t = ticks[j];

@@ -1,23 +1,20 @@
 #!/usr/bin/env python3
-"""v28: generates the CSS fallback of the Mars night-side city cluster (the .sol-city rule in css/motion.css), used only when WebGL is unavailable.
-Same layout as the shader (js/sunrise.js: CITY, TOWN, VILLAGE, RINGS): one large city with two ring roads + 8 radial avenues, a medium town (east) and a small
-village (south-west) joined to it by two highways, all projected onto the planet exactly like the shader does at a 390x844 reference phone (so the ellipses are
-foreshortened the same way). Output: an inline SVG data URI (no network), opacity driven by --sol-city.   Re-run:  python3 tools/make_city_svg.py
+"""v31: generates the CSS fallback of the Mars night-side city lights (the .sol-city rule in css/motion.css), used only when WebGL is unavailable.
+Three copies of the v27 city SVG (BASE below = the v27 artwork, a 120x90 viewBox drawn at 1.1 px per unit), placed at the screen offsets of CITIES (js/sunrise.js) projected
+like the shader at a 390x844 reference phone, each rotated / scaled like its shader variant. Output: an inline SVG data URI (no network), opacity driven by --sol-city.
+Re-run after changing CITIES:  python3 tools/make_city_svg.py
 """
-import math, pathlib, random, re, urllib.parse
+import math, pathlib, re
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 src = (ROOT / 'js/sunrise.js').read_text()
-num = lambda pat: [float(x) for x in re.search(pat, src).groups()]
-CLAT, CLON = num(r"CITY = \{ lat: ([-\d.]+), lon: ([-\d.]+) \}")
-TDX, TDY = num(r"TOWN = \{ dx: ([-\d.]+), dy: ([-\d.]+) \}")
-VDX, VDY = num(r"VILLAGE = \{ dx: ([-\d.]+), dy: ([-\d.]+) \}")
-R1, R2 = num(r"RINGS = \[([-\d.]+), ([-\d.]+)\]")
-DEG = math.pi / 180; TILT, ROLL = 0.80, -0.30
-W, H = 390, 844; RP = 1.5 * min(W, 0.7 * H)
+CLAT, CLON = [float(x) for x in re.search(r"CITY = \{ lat: ([-\d.]+), lon: ([-\d.]+) \}", src).groups()]
+CITIES = [tuple(float(v) for v in m) for m in re.findall(r"\{ dx: ([-\d.]+), dy: ([-\d.]+), rot: ([-\d.]+), s: ([-\d.]+), seed: [-\d.]+ \}", src)]
+assert len(CITIES) == 3, CITIES
+DEG = math.pi / 180; TILT, ROLL = 0.80, -0.30; W, H = 390, 844; RP = 1.5 * min(W, 0.7 * H)
+BASE = "%3Cdefs%3E%3CradialGradient id='g'%3E%3Cstop offset='0' stop-color='%23ffb35a' stop-opacity='.55'/%3E%3Cstop offset='.35' stop-color='%23ff8a2a' stop-opacity='.22'/%3E%3Cstop offset='1' stop-color='%23ff7a1a' stop-opacity='0'/%3E%3C/radialGradient%3E%3C/defs%3E%3Cellipse cx='60' cy='45' rx='42' ry='30' fill='url(%23g)'/%3E%3Cpath d='M60 45L77.7 47.1' stroke='%23ff9b3d' stroke-width='.55' stroke-opacity='.7' stroke-dasharray='1.3 1.5' fill='none'/%3E%3Cpath d='M60 45L64.9 55.9' stroke='%23ff9b3d' stroke-width='.55' stroke-opacity='.7' stroke-dasharray='1.3 1.5' fill='none'/%3E%3Cpath d='M60 45L47.6 59.4' stroke='%23ff9b3d' stroke-width='.55' stroke-opacity='.7' stroke-dasharray='1.3 1.5' fill='none'/%3E%3Cpath d='M60 45L34.2 51.2' stroke='%23ff9b3d' stroke-width='.55' stroke-opacity='.7' stroke-dasharray='1.3 1.5' fill='none'/%3E%3Cpath d='M60 45L39.1 34.8' stroke='%23ff9b3d' stroke-width='.55' stroke-opacity='.7' stroke-dasharray='1.3 1.5' fill='none'/%3E%3Cpath d='M60 45L59.6 33.2' stroke='%23ff9b3d' stroke-width='.55' stroke-opacity='.7' stroke-dasharray='1.3 1.5' fill='none'/%3E%3Cpath d='M60 45L91.3 33.0' stroke='%23ff9b3d' stroke-width='.55' stroke-opacity='.7' stroke-dasharray='1.3 1.5' fill='none'/%3E%3Ccircle cx='54.7' cy='41.1' r='.7' fill='%23ffb25a' fill-opacity='0.92'/%3E%3Ccircle cx='53.4' cy='42.5' r='.7' fill='%23ffb25a' fill-opacity='0.65'/%3E%3Ccircle cx='62.9' cy='42.4' r='.7' fill='%23ffb25a' fill-opacity='0.59'/%3E%3Ccircle cx='60.4' cy='45.4' r='.7' fill='%23ffb25a' fill-opacity='0.51'/%3E%3Ccircle cx='64.2' cy='51.5' r='.7' fill='%23ffb25a' fill-opacity='0.74'/%3E%3Ccircle cx='43.4' cy='30.8' r='.7' fill='%23ffb25a' fill-opacity='0.64'/%3E%3Ccircle cx='64.8' cy='46.4' r='.7' fill='%23ffb25a' fill-opacity='0.55'/%3E%3Ccircle cx='59.3' cy='44.0' r='.7' fill='%23ffb25a' fill-opacity='0.66'/%3E%3Ccircle cx='52.5' cy='46.6' r='.7' fill='%23ffb25a' fill-opacity='0.60'/%3E%3Ccircle cx='65.0' cy='32.3' r='.7' fill='%23ffb25a' fill-opacity='0.80'/%3E%3Ccircle cx='59.3' cy='44.9' r='.7' fill='%23ffb25a' fill-opacity='0.89'/%3E%3Ccircle cx='57.5' cy='31.0' r='.7' fill='%23ffb25a' fill-opacity='0.59'/%3E%3Ccircle cx='53.5' cy='47.6' r='.7' fill='%23ffb25a' fill-opacity='0.83'/%3E%3Ccircle cx='60.5' cy='45.5' r='.7' fill='%23ffb25a' fill-opacity='0.69'/%3E%3Ccircle cx='62.0' cy='29.5' r='.7' fill='%23ffb25a' fill-opacity='0.74'/%3E%3Ccircle cx='63.9' cy='42.2' r='.7' fill='%23ffb25a' fill-opacity='0.61'/%3E%3Ccircle cx='54.0' cy='42.6' r='.7' fill='%23ffb25a' fill-opacity='0.68'/%3E%3Ccircle cx='70.2' cy='33.5' r='.7' fill='%23ffb25a' fill-opacity='0.92'/%3E%3Ccircle cx='80.3' cy='50.9' r='.7' fill='%23ffb25a' fill-opacity='0.80'/%3E%3Ccircle cx='57.8' cy='42.9' r='.7' fill='%23ffb25a' fill-opacity='0.95'/%3E%3Ccircle cx='56.0' cy='47.5' r='.7' fill='%23ffb25a' fill-opacity='0.78'/%3E%3Ccircle cx='70.9' cy='46.1' r='.7' fill='%23ffb25a' fill-opacity='0.68'/%3E%3Ccircle cx='63.4' cy='46.0' r='.7' fill='%23ffb25a' fill-opacity='0.83'/%3E%3Ccircle cx='64.5' cy='48.4' r='.7' fill='%23ffb25a' fill-opacity='0.57'/%3E%3Ccircle cx='80.6' cy='53.2' r='.7' fill='%23ffb25a' fill-opacity='0.67'/%3E%3Ccircle cx='41.7' cy='40.8' r='.7' fill='%23ffb25a' fill-opacity='0.89'/%3E%3Ccircle cx='60' cy='45' r='3.2' fill='%23ff9a3c' fill-opacity='.5'/%3E%3Ccircle cx='60' cy='45' r='1.5' fill='%23ffe2ad'/%3E"      # inner markup of the v27 SVG (URL-encoded), viewBox 0 0 120 90, city centre (60,45)
 
 def proj(dx, dy):
-    """local east/north offset (degrees) from the city -> screen px (relative to the city centre)."""
     def p(lat, lon):
         la, lo = lat * DEG, lon * DEG
         a = [math.cos(la) * math.sin(lo), math.sin(la), math.cos(la) * math.cos(lo)]
@@ -29,72 +26,20 @@ def proj(dx, dy):
     x0, y0 = p(CLAT, CLON); x, y = p(CLAT + dy, CLON + dx / math.cos(CLAT * DEG))
     return x - x0, y - y0
 
-h21 = lambda a, b: (math.sin(a * 127.1 + b * 311.7) * 43758.5453) % 1.0
-OX, OY = 0, 0   # filled in below (city centre inside the SVG box)
-f = lambda v: f"{v:.1f}".rstrip('0').rstrip('.')
-def pt(dx, dy): x, y = proj(dx, dy); return f(x + OX) + ' ' + f(y + OY)
-def poly(pts): return 'M' + 'L'.join(pt(*q) for q in pts)
-
-# bounding box of the whole cluster
-ext = [proj(dx, dy) for dx in (-2.4, 0, 4.0) for dy in (-2.4, 0, 2.4)]
-x0 = min(e[0] for e in ext); x1 = max(e[0] for e in ext); y0 = min(e[1] for e in ext); y1 = max(e[1] for e in ext)
-OX, OY = -x0 + 4, -y0 + 4; BW, BH = math.ceil(x1 - x0 + 8), math.ceil(y1 - y0 + 8)
-
-AMB, LAMP, CORE = '%23ff9b3d', '%23ffb25a', '%23ffe2ad'
-parts = []
-def glow(i, dx, dy, rx_deg, op):
-    cx, cy = proj(dx, dy); ex = proj(dx + rx_deg, dy)[0] - cx; ey = proj(dx, dy + rx_deg)[1] - cy
-    parts.append(f"<ellipse cx='{f(cx + OX)}' cy='{f(cy + OY)}' rx='{f(abs(ex))}' ry='{f(abs(ey))}' fill='url(%23g)' opacity='{op}'/>")
-glow(0, 0, 0, .55, '.8'); glow(1, TDX, TDY, .3, '.55'); glow(2, VDX, VDY, .18, '.45')
-road = lambda d, op, sw='.45': parts.append(f"<path d='{d}' stroke='{AMB}' stroke-width='{sw}' stroke-opacity='{op}' fill='none'/>")
-# rings (slightly irregular like the shader)
-for R, op in ((R1, '.75'), (R2, '.55')):
-    pts = []
-    for i in range(73):
-        a = i / 72 * 2 * math.pi; rr = R / (1 + .035 * math.sin(3 * a + 1.1) + .02 * math.sin(5 * a + 2.3))
-        pts.append((rr * math.cos(a), rr * math.sin(a)))
-    road(poly(pts) + 'Z', op)
-# 8 radial avenues
-for k in range(7):
-    a = k * .8976 + .55 * (h21(k, 2.7) - .5); L = R2 * (1.15 + 1.1 * h21(k, 7.1))
-    pts = [((t) * math.cos(a) - .02 * math.sin(t * 2.1 + k * 1.7) * min(1, t / 1.2) * math.sin(a), (t) * math.sin(a) + .02 * math.sin(t * 2.1 + k * 1.7) * min(1, t / 1.2) * math.cos(a)) for t in [0.15 + i * (L - .15) / 8 for i in range(9)]]
-    road(poly(pts), '.55')
-# highways to the town and the village (bent)
-for (tx, ty), seed, op in (((TDX, TDY), 1.7, '.35'), ((VDX, VDY), 4.2, '.3')):
-    Lt = math.hypot(tx, ty); ux, uy = tx / Lt, ty / Lt
-    pts = []
-    for i in range(13):
-        t = R2 + (Lt - R2 - .12) * i / 12; b = -.10 * Lt * math.sin((t) / Lt * math.pi) * math.sin(seed * 3.1)
-        pts.append((ux * t - uy * b, uy * t + ux * b))
-    road(poly(pts), op)
-# settlement streets
-for (cx, cy), s, n, seed in (((TDX, TDY), .30, 4, 11), ((VDX, VDY), .17, 3, 23)):
-    for k in range(n):
-        a = k * 2 * math.pi / n + 1.3 * h21(k, seed); L = s * (1.1 + 1.4 * h21(k, seed + 7.1))
-        road(poly([(cx, cy), (cx + L * math.cos(a), cy + L * math.sin(a))]), '.45', '.35')
-# lamp dots (deterministic), three brightness buckets
-rnd = random.Random(28); buckets = {'.9': [], '.65': [], '.4': []}
-def dots(cx, cy, rmax, n, dens):
-    for _ in range(n):
-        a = rnd.random() * 2 * math.pi; r = rmax * math.sqrt(rnd.random())
-        if rnd.random() > dens(r): continue
-        x, y = proj(cx + r * math.cos(a), cy + r * math.sin(a))
-        buckets[rnd.choice(list(buckets))].append(f"M{f(x + OX - .3)} {f(y + OY - .3)}h.6v.6h-.6z")
-dots(0, 0, 1.0, 260, lambda r: min(.95, 1.05 * math.exp(-r / .3)))
-dots(TDX, TDY, .5, 40, lambda r: .8 * math.exp(-r / .17))
-dots(VDX, VDY, .3, 20, lambda r: .8 * math.exp(-r / .1))
-for op, ds in buckets.items(): parts.append(f"<path d='{''.join(ds)}' fill='{LAMP}' fill-opacity='{op}'/>")
-# cores
-for (cx, cy), r1, r2 in (((0, 0), 1.8, .8), ((TDX, TDY), 1.0, .45), ((VDX, VDY), .7, .35)):
-    x, y = proj(cx, cy); parts.append(f"<circle cx='{f(x + OX)}' cy='{f(y + OY)}' r='{r1}' fill='{AMB}' fill-opacity='.45'/><circle cx='{f(x + OX)}' cy='{f(y + OY)}' r='{r2}' fill='{CORE}'/>")
-
-svg = (f"<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 {BW} {BH}'><defs><radialGradient id='g'><stop offset='0' stop-color='%23ffb35a' stop-opacity='.5'/>"
-       f"<stop offset='.4' stop-color='%23ff8a2a' stop-opacity='.18'/><stop offset='1' stop-color='%23ff7a1a' stop-opacity='0'/></radialGradient></defs>{''.join(parts)}</svg>")
-svg = svg.replace('<', '%3C').replace('>', '%3E').replace('#', '%23').replace('"', "'")
+K = 1.1                                                   # px per v27 unit
+pos = [proj(dx, dy) for dx, dy, _, _ in CITIES]
+half = 60 * K * 1.05
+x0 = min(p[0] for p in pos) - half; x1 = max(p[0] for p in pos) + half; y0 = min(p[1] for p in pos) - half; y1 = max(p[1] for p in pos) + half
+BW, BH = math.ceil(x1 - x0), math.ceil(y1 - y0); OX, OY = -x0, -y0
+groups = []
+for (dx, dy, rot, s), (px, py) in zip(CITIES, pos):
+    # the shader rotates the sample point by +rot in the local east/north plane; on screen (y down, foreshortened) that is roughly a -rot turn of the artwork
+    groups.append(f"%3Cg transform='translate({px + OX:.1f} {py + OY:.1f}) rotate({-rot / DEG:.1f}) scale({K * s:.3f}) translate(-60 -45)'%3E{BASE}%3C/g%3E")
+svg = f"%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 {BW} {BH}'%3E" + ''.join(groups) + "%3C/svg%3E"
 rule = (f'.sol-city{{display:none;position:absolute;left:53%;top:72%;width:{BW}px;height:{BH}px;margin:{-round(OY)}px 0 0 {-round(OX)}px;pointer-events:none;opacity:0;'
         f'background:url("data:image/svg+xml,{svg}") center/100% 100% no-repeat}}')
 css = ROOT / 'css/motion.css'; txt = css.read_text()
 txt2 = re.sub(r'^\.sol-city\{display:none;.*$', lambda m: rule, txt, count=1, flags=re.M)
-assert txt2 != txt or rule in txt, 'sol-city rule not found'
+assert '.sol-city{display:none;' in txt2
 css.write_text(txt2)
-print(f'wrote .sol-city: box {BW}x{BH}px, city centre at ({OX:.0f},{OY:.0f}), {len(rule)} bytes')
+print(f'wrote .sol-city: box {BW}x{BH}px, main city at ({OX:.0f},{OY:.0f}), {len(rule)} bytes')
