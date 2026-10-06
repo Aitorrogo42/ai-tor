@@ -7,15 +7,21 @@
 const DEG = Math.PI / 180;
 export const TEX_LON_CENTER = -65, TEX_SPAN = 120;     // the map patch covers lon -125..-5 and lat -60..60 (equirectangular, 2048x2048)
 const TILT = 0.80, ROLL = -0.30;                       // planet orientation: pole tilted towards the viewer and rolled a little
-// v27: ONE small city on the night side. Fixed planet coordinates (degrees, same lon/lat frame as the surface texture lookup below, so it turns with the planet drift):
+// v27: ONE small city on the night side (v30: the LARGE city of a 3-settlement cluster, see TOWN / VILLAGE / cityLights). Fixed planet coordinates (degrees, same lon/lat frame as the surface texture lookup below, so it turns with the planet drift):
 // chosen so that at the rest layout (apex .60 H, R = 1.5 min(W, .7 H)) it sits at about (.53 W, .72 H): inside the visible disc, below the wheel, above the greeting, and
 // the +-13 degree drift keeps it on screen. The shader draws it only where the surface is on the night side (see cityLights).
 export const CITY = { lat: 7.9, lon: 15.2 };
+// v30: the cluster around it (offsets in degrees east / north of CITY in the local plane): a medium TOWN to the east, a small VILLAGE to the south-west, and the large
+// city's two ring roads (beltway radii in degrees). Exported so tests / the CSS fallback generator (tools/make_city_svg.py) use the same layout.
+export const TOWN = { dx: 3.3, dy: 1.5 }, VILLAGE = { dx: -1.5, dy: -1.6 };   // ~215 km ENE and ~130 km SW (1 degree = ~59 km on Mars)
+export const RINGS = [0.28, 0.55];                                             // ring-road radii, ~16 km and ~32 km
 
-/** Where the city is on screen (CSS px) for a viewport, plus its facing (nz > 0 = on the visible side). drift = the shader's planet drift in degrees (0 when still). Pure + testable. */
-export function cityScreenPos(W, H, drift = 0) {
+/** Where the city is on screen (CSS px) for a viewport, plus its facing (nz > 0 = on the visible side). drift = the shader's planet drift in degrees (0 when still).
+ *  v28: off = an offset in degrees east / north of the city in its local plane (e.g. TOWN, VILLAGE) to locate the other settlements. Pure + testable. */
+export function cityScreenPos(W, H, drift = 0, off = null) {
   const R = 1.5 * Math.min(W, 0.7 * H), cx = W / 2, cy = 0.6 * H + R;
-  const la = CITY.lat * DEG, lo = (CITY.lon - drift) * DEG;
+  const dx = off ? off.dx : 0, dy = off ? off.dy : 0;
+  const la = (CITY.lat + dy) * DEG, lo = (CITY.lon + dx / Math.cos(CITY.lat * DEG) - drift) * DEG;
   const a = [Math.cos(la) * Math.sin(lo), Math.sin(la), Math.cos(la) * Math.cos(lo)];
   const ct = Math.cos(TILT), st = Math.sin(TILT), cr = Math.cos(ROLL), sr = Math.sin(ROLL);
   const Rz = [[cr, -sr, 0], [sr, cr, 0], [0, 0, 1]], Rx = [[1, 0, 0], [0, ct, -st], [0, st, ct]];
@@ -72,36 +78,84 @@ float crater(vec2 p){
 float terrain(vec2 s2){ return crater(s2 * .62) * 1.0 + crater(s2 * 1.9 + 11.) * .55 + (fbm(s2 * 5.) - .5) * .09; }
 float lum(vec3 c){ return dot(c, vec3(.3, .55, .15)); }
 
-// v27: night lights of one small city: a bright small core with a soft amber falloff, scattered dots thinning out with distance, a few thin streets (dotted lamps) radiating
-// from it and a partial ring road. Analytic, no texture. g = (lonD, latD) in degrees; pd = degrees per canvas pixel at this point (keeps the lines >= ~1 px).
+// v30 (2.10.0): night lights of a CITY CLUSTER at planetary scale, like a tiny patch of an ISS night photo (1 degree = ~59 km on Mars, diameter ~6,780 km):
+//   large city : ~100 km across with its suburbs (~1.5% of the planet's diameter): a small bright core, dense lights fading into patchy, lopsided suburbs, two
+//                imperfect ring roads (wobbly, off-centre, broken in places; ~16 km and ~32 km radius) and 7 unevenly spaced avenues that meander out through them;
+//   town       : ~35 km across, ~215 km to the east-north-east;  village: ~20 km across, ~130 km to the south-west;
+//   highways   : two dimmer meandering roads (loosely following terrain) from the outer ring to the town and the village.
+// No geometric regularity on purpose: every radius / angle / brightness is perturbed by value noise. g = (lonD, latD) in degrees; pd = degrees per canvas pixel.
 const float CITY_LON = ${CITY.lon.toFixed(2)}, CITY_LAT = ${CITY.lat.toFixed(2)};
-vec3 cityLights(vec2 g, float pd){
-  vec2 d = (g - vec2(CITY_LON, CITY_LAT)) * vec2(.9906, 1.);
+const vec2 TOWN = vec2(${TOWN.dx.toFixed(2)}, ${TOWN.dy.toFixed(2)}), VILLAGE = vec2(${VILLAGE.dx.toFixed(2)}, ${VILLAGE.dy.toFixed(2)});
+const float RING1 = ${RINGS[0].toFixed(2)}, RING2 = ${RINGS[1].toFixed(2)};
+float lit(float perp, float w){ return exp(-perp * perp / (2. * w * w)); }
+float flick(float along, float seed){ return .55 + .45 * vn(vec2(along * 9. + seed, seed)); }      // uneven lamp density along a road
+// a meandering lit road from a to b (local plane)
+float road(vec2 d, vec2 a, vec2 b, float w, float seed){
+  vec2 ab = b - a; float L = length(ab); vec2 u = ab / L;
+  float t = dot(d - a, u), s = t / L;
+  float perp = (d.x - a.x) * u.y - (d.y - a.y) * u.x + L * (.10 * sin(s * PI) * sin(seed * 3.1) + .035 * (vn(vec2(s * 5. + seed, 1.3)) - .5) * 2. * sin(s * PI));
+  return lit(perp, w) * smoothstep(-.02, .06, t) * smoothstep(L + .02, L - .06, t) * flick(t, seed);
+}
+// scattered point lights: density p (0..1) per cell of size c
+float dotsAt(vec2 d, float c, float p, float pd, float seed){
+  vec2 cell = floor(d / c), f = fract(d / c);
+  if (h21(cell + seed) >= p) return 0.;
+  vec2 dp = vec2(.2 + .6 * h21(cell + seed + 8.1), .2 + .6 * h21(cell + seed + 1.9)); float dr = max(.022, pd * .55);
+  return exp(-pow(length((f - dp) * c) / dr, 2.)) * (.45 + .55 * h21(cell + seed + 5.5));
+}
+// a small settlement: lopsided glow + a few short, bent streets + dots; s = radius in degrees
+float settlement(vec2 d, float s, float n, float pd, float w, float seed){
   float r = length(d);
-  if (r > 7.) return vec3(0.);
-  float core = exp(-r * r / .08);                                       // sigma .2 deg
-  float halo = .26 * exp(-r / 1.0) + .40 * exp(-r * r / .6);
-  float w = max(.03, pd * .5);
-  // suburban dots
-  vec2 cell = floor(d / .30), f = fract(d / .30);
-  float hp = h21(cell + 3.3), dots = 0.;
-  if (hp < .62 * exp(-r / 1.7)) { vec2 dp = vec2(.2 + .6 * h21(cell + 8.1), .2 + .6 * h21(cell + 1.9)); float dr = max(.075, pd * .8); dots = exp(-pow(length((f - dp) * .30) / dr, 2.)) * (.45 + .55 * h21(cell + 5.5)); }
-  // streets radiating from the core, slightly bent, with a dotted lamp pattern
-  float roads = 0.;
-  for (int k = 0; k < 7; k++) {
-    float fk = float(k);
-    float ang = fk * .93 + .5 * h21(vec2(fk, 2.7));
-    vec2 dir = vec2(cos(ang), sin(ang));
-    float along = dot(d, dir), len = 1.9 + 3.6 * h21(vec2(fk, 7.1));
-    float perp = d.x * dir.y - d.y * dir.x + .09 * sin(along * 2.3 + fk * 1.7) * smoothstep(0., 1.2, along);
-    float line = exp(-perp * perp / (2. * w * w)) * smoothstep(len, len * .30, along) * smoothstep(.12, .4, along);
-    float lamp = .35 + .65 * step(.40, fract(along * 7. + fk * .37));
-    roads += line * lamp;
+  if (r > 2.6 * s) return 0.;
+  float ang = atan(d.y, d.x), lop = 1. + .45 * (vn(vec2(ang * 1.3 + seed, seed)) - .5) * 2.;     // irregular outline
+  float re = r / lop;
+  float v = exp(-re * re / (.06 * s * s)) * 1.1 + .35 * exp(-re * re / (.45 * s * s)) * (.6 + .8 * vn(d / s * 2.5 + seed));
+  for (int k = 0; k < 4; k++) {
+    float fk = float(k); if (fk >= n) break;
+    float a2 = fk * (6.2832 / n) + 1.6 * h21(vec2(fk, seed));
+    vec2 dir = vec2(cos(a2), sin(a2)); float along = dot(d, dir), len = s * (1.0 + 1.3 * h21(vec2(fk, seed + 7.1)));
+    float perp = d.x * dir.y - d.y * dir.x + .12 * s * sin(along / s * 2.3 + fk);
+    v += .5 * lit(perp, w) * smoothstep(len, len * .3, along) * smoothstep(.0, .15 * s, along) * flick(along, seed + fk);
   }
-  // partial ring road
-  float ang2 = atan(d.y, d.x), ring = exp(-pow((r - 1.15) / w, 2.) * .5) * step(.42, vn(vec2(ang2 * 1.7 + 4., 1.7))) * .6;
+  return v + .8 * dotsAt(d, .07, .8 * exp(-re / (.55 * s)), pd, seed + 31.);
+}
+vec3 cityLights(vec2 g, float pd){
+  vec2 d = (g - vec2(CITY_LON, CITY_LAT)) * vec2(${Math.cos(CITY.lat * DEG).toFixed(4)}, 1.);
+  float r = length(d);
+  if (r > 5.5) return vec3(0.);
+  float w = max(.03, pd * .45);
+  float big = 0., glow = 0., core = 0.;
+  if (r < 1.6) {
+    float ang = atan(d.y, d.x);
+    // sprawl: stretched towards the east-north-east (along the town highway) and the south-west, ragged edge
+    float lop = 1. + .30 * cos(ang - .45) + .18 * cos(2. * ang + .9) + .35 * (vn(vec2(ang * 1.6 + 4., 2.2)) - .5);
+    float re = r / max(lop, .45);
+    float patch = .35 + 1.3 * vn(d * 9. + 3.) * vn(d * 3.7 + 11.);                                  // patchy districts
+    core = exp(-r * r / .0045);                                                                      // downtown, ~8 km
+    glow = .55 * exp(-re * re / .03) + .20 * exp(-re * re / .16) * patch;
+    // imperfect ring roads: off-centre, wobbly, broken in places
+    vec2 d1 = d - vec2(.03, -.02), d2 = d - vec2(-.04, .03);
+    float a1 = atan(d1.y, d1.x), a2r = atan(d2.y, d2.x);
+    float rr1 = length(d1) * (1. + .10 * (vn(vec2(a1 * 2.1 + 1., .5)) - .5) * 2. + .05 * sin(2. * a1 + .7));
+    float rr2 = length(d2) * (1. + .12 * (vn(vec2(a2r * 1.7 + 7., 1.5)) - .5) * 2. + .07 * sin(2. * a2r + 2.1));
+    big += .85 * lit(rr1 - RING1, w) * flick(a1 * RING1, .2) * step(.22, vn(vec2(a1 * 1.9 + 3., 4.4)));
+    big += .70 * lit(rr2 - RING2, w) * flick(a2r * RING2, .6) * step(.30, vn(vec2(a2r * 1.5 + 9., 6.1)));
+    // 7 unevenly spaced avenues, meandering
+    for (int k = 0; k < 7; k++) {
+      float fk = float(k);
+      float ak = fk * .8976 + .55 * (h21(vec2(fk, 2.7)) - .5);
+      vec2 dir = vec2(cos(ak), sin(ak));
+      float along = dot(d, dir), len = RING2 * (1.15 + 1.1 * h21(vec2(fk, 7.1)));
+      float perp = d.x * dir.y - d.y * dir.x + .05 * (vn(vec2(along * 7. + fk * 3., fk)) - .5) * 2. * smoothstep(0., .3, along);
+      big += .55 * lit(perp, w) * smoothstep(len, len * .5, along) * smoothstep(.03, .12, along) * flick(along, fk);
+    }
+    big += .9 * dotsAt(d, .065, clamp(1.05 * exp(-re / .30) * patch, 0., .95), pd, 3.3);         // dense near the core, patchy suburbs
+  }
+  float towns = settlement(d - TOWN, .30, 4., pd, w, 11.) + .85 * settlement(d - VILLAGE, .17, 3., pd, w, 23.);
+  vec2 tA = normalize(TOWN) * RING2, vA = normalize(VILLAGE) * RING2;
+  float hw = .15 * road(d, tA, TOWN - normalize(TOWN) * .15, w * .8, 1.7) + .12 * road(d, vA, VILLAGE - normalize(VILLAGE) * .1, w * .8, 4.2);   // thin and dim, like real highways from orbit
   vec3 amber = vec3(1., .55, .17);
-  return amber * (halo * .65 + dots * .75 + (roads + ring) * .45) + vec3(1., .80, .48) * core * 1.5;
+  return amber * (glow * .65 + (big + towns + hw) * .5) + vec3(1., .80, .48) * core * 1.5;
 }
 
 vec3 tonemap(vec3 x){ x *= .85; return clamp((x * (2.51 * x + .03)) / (x * (2.43 * x + .59) + .14), 0., 1.); }
