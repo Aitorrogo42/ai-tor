@@ -8,10 +8,12 @@ import { initBackground, setBackdropSection } from './bg.js';
 import { createWheel, rememberSelection } from './wheel.js';
 import { classify, transition, beginEnter, markEnter } from './nav.js';
 import { splashWanted, armSplash, skipNextSplash } from './splash.js';
+import { weatherBlock, scheduleWeather } from './marsweather.js';
 
 const app = document.getElementById('app');
 const splashOn = splashWanted();   // launch splash (see js/splash.js): the first render must not start its entrance animation behind it
 initBackground();
+scheduleWeather();   // v37: Mars weather, fetched later in the background (never blocks the intro / wheel)
 let deferredInstall = null;
 window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); deferredInstall = e; const f = document.getElementById('app-foot'); if (f) f.replaceWith(buildFoot()); });
 
@@ -53,7 +55,7 @@ function renderHome() {
     list,
     h('div', { class: 'home-greet' },    // v19: greeting block at the very bottom of the screen (fixed, above the safe-area / home indicator)
       h('p', { class: 'greeting', id: 'greeting' }, greetingText(name)),
-      h('p', { class: 'tagline' }, name ? 'Your finances, travels and to-do list in one place.' : 'Your finances, travels and to-do list in one place. Add your name in Settings.')));   // v18: no footer on the home screen; the privacy line + install hint now live at the bottom of Settings (buildFoot)
+      weatherBlock()));   // v37: the tagline is gone; Mars weather (Curiosity, cached, js/marsweather.js) sits under the greeting when there is data   // v18: no footer on the home screen; the privacy line + install hint now live at the bottom of Settings (buildFoot)
 }
 
 let shownHash = null;     // hash of the page currently on screen (null before the first render)

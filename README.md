@@ -1,10 +1,26 @@
 # AI-TOR
 
-An installable personal-life app (PWA). Plain HTML/CSS/JS: **no build step, no CDNs, no analytics, no backend, no accounts, and no network requests of its own.** (The only possible exceptions are the optional, off-by-default encrypted feeds, which each read one encrypted file from the app's own site: [To-Do sync](#to-do-and-optional-task-sync) and the [Finances Refresh](#finances-refresh-optional-encrypted-feed) and the [Travels Destinations feed](#travels-destinations-optional-encrypted-feed).)
+An installable personal-life app (PWA). Plain HTML/CSS/JS: **no build step, no CDNs, no analytics, no backend, no accounts, and no network requests of its own**, apart from one read-only public weather request (v37, below). (The other exceptions are the optional, off-by-default encrypted feeds, which each read one encrypted file from the app's own site: [To-Do sync](#to-do-and-optional-task-sync) and the [Finances Refresh](#finances-refresh-optional-encrypted-feed) and the [Travels Destinations feed](#travels-destinations-optional-encrypted-feed). Since v37 the home screen also reads public Mars weather from NASA once a day. It is a plain GET with no cookies, no referrer and no personal data, and nothing is sent.)
 
 **Local-first:** every person who installs AI-TOR enters *their own* data. It is stored only in that device's browser storage (`localStorage`), never sent anywhere, and the app works fully offline once opened. **The app bundle contains no personal data**: only code, icons, and clearly-fake example data.
 
 Today: **Architecture** (v24, staged: materials, famous buildings, architects, designers and consultants by discipline), **Finances** (accounts, debts, income/expenses, goals, notes, dashboard, and an optional Refresh from your assistant) and **Travels** with two tabs: **Visited** (tick the countries you have visited out of a bundled offline list of 195, with search, per-continent counts, and optional year(s)/note per country) and **Destinations** (places your Travel Guide bot proposes, from an optional encrypted feed). **To-Do** (two parallel lists, **Personal** and **Work**, each a clear task list with a Done pile, comments per task, and an optional daily feed from your assistant). **Game** (v32: *Keep Mars up*, a one-thumb tap game; the best score is kept on the device and included in backups). The home screen is a registry of sections, so more can be added later. Section logos live in `icons/sections/`.
+
+## v37 / 2.14.0 (sw aitor-v37): Mars weather under the home greeting
+
+- **Home text** (`js/app.js`, `css/flat.css`): the time-of-day greeting stays. The tagline ("Your finances, travels and to-do list in one place.") is gone, and the Mars weather sits under the greeting in its place. Greeting and weather use a light Mars red, `#ffa38e` (`--wx-red`, hue 11°, inside the Ember family that the brand-hue audit allows). Its worst-case contrast is at least 4.8:1 over the live shader at every sun angle (measured against the brightest 3 % of background pixels behind the text), and about 10:1 at rest. All other text is unchanged.
+- **Weather line** (`js/marsweather.js`): for example "Sol 4995 · Gale Crater · −71° / −5 °C · 777 Pa · Sunny", followed by "Curiosity rover · Aug 25". It is never called live or today, because the REMS data lags about six weeks.
+  - Source: `https://mars.nasa.gov/rss/api/?feed=weather&category=msl&feedtype=json` (Curiosity REMS, Centro de Astrobiología / NASA, outreach data).
+  - It uses the newest sol that has real min and max temperatures. Missing (`--`) pressure and condition are skipped.
+- **Icon**: the Graphic Designer's final set (`/workspace/ai-tor-design/icons-v2/weather/`): sunny, cloudy, dust, thermometer, plus partly-cloudy. They are inlined from one map, `WX_ICONS`, and `wxIconKind()` picks the icon from `atmo_opacity`. CSS sets only the size (18 px) and colour, never the stroke.
+  - Across all 4,745 sols the feed contains only "Sunny" (4,742) and "--" (3). The mapping is: sunny/clear → sunny; partly → partly-cloudy; dust/haze/storm → dust; cloud/overcast → cloudy; anything else → thermometer.
+- **Network policy**: a plain GET straight from the page; the service worker never handles cross-origin requests.
+  - Timing: it waits about 5 s and an idle moment, so it never delays the intro, the sunrise or the wheel.
+  - Frequency: at most one successful fetch per day; after a failure it waits 3 h, and it never fetches while offline. The response is about 120 KB gzipped.
+  - Caching: the last good record (a few numbers) is kept in `aitor:cfg:marsweather` (device only, never exported) and shown offline.
+  - With no data at all, only the greeting shows: no gap and no error text.
+- Tests: `ai-tor-test-marswx.py` (new suite `marswx`). Every test context answers the NASA URL with a FIXTURE through `/workspace/_aitor_wx.py`, so no test touches the network. The suite covers the fixture, a feed with only `--` values, a network failure, an HTTP 500, the dust and thermometer icons, the once-a-day and retry rules, offline cache, contrast and layout (390x844, 375x667, 320x568 and the safe area). The v19, flat and sunrise suites now measure the weather line instead of the tagline.
+- Rollback tag `v36-before-mars-weather`.
 
 ## v36 / 2.13.0 (sw aitor-v36): Key holdings on Finances
 
@@ -381,7 +397,7 @@ A **Refresh** button on the Finances dashboard pulls the latest snapshot your fi
 - **Caching.** Network-first, never precached; last copy kept in cache `aitor-feed` only as an offline fallback.
 
 ## Privacy notes
-- CSP in `index.html` restricts everything to same-origin (`connect-src 'self'`, no third-party hosts). The optional To-Do sync and Finances Refresh each only read one same-origin file; nothing is ever sent anywhere.
+- CSP in `index.html` restricts everything to same-origin, with one exception: `connect-src 'self' https://mars.nasa.gov` allows the v37 Mars-weather GET (public data, `credentials: 'omit'`, `referrerPolicy: 'no-referrer'`, at most once per day). The optional To-Do sync and Finances Refresh each only read one same-origin file; nothing is ever sent anywhere.
 - Data lives only in the browser profile on each device. The service worker caches app code only, plus the last copy of the encrypted feed as an offline fallback (it never touches cross-origin requests).
 - The site can be hosted publicly: it holds no one's data. (Each visitor's data stays in their own browser.)
 

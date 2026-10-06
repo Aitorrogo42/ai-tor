@@ -38,3 +38,4 @@ Working copy: `/workspace/ai-tor`. Published repo (GitHub Pages, https://aitorro
 - Real-iPhone behaviour is never covered by these headless (software WebGL) tests.
 
 Deletions (v34): an allowed app file that is tracked in the published repo but no longer exists in `/workspace/ai-tor` is listed by the release script as "files to DELETE" (also in `--dry-run`) and removed with `git rm` in the same commit.
+- Mars weather (v37): every suite answers the NASA weather URL with a FIXTURE (`/workspace/_aitor_wx.py`, installed via `_aitor_ver.py` or an explicit import), so tests never hit the network. The "only same-origin requests" checks ignore that one documented request (`is_wx`). Set `AITOR_WX_LIVE=1` to let the real request through. Suite `marswx` covers the weather line.
