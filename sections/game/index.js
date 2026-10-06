@@ -1,4 +1,4 @@
-// Game section (v32 / 2.11.0): "Keep Mars up". A small Mars falls from the top; tap it to bounce it back up; don't let it fall off the bottom.
+// Game section (v32 / 2.11.0; v33 / 2.11.1: the planets are Aitor's Mars photo, assets/game-mars.webp, a 320px disc with a soft alpha edge, turning slowly): "Keep Mars up". A small Mars falls from the top; tap it to bounce it back up; don't let it fall off the bottom.
 //   - score = bounces (+3 for tapping a passing Phobos / Deimos bonus moon); the best score is saved on this device (aitor:sec:game, included in backups);
 //   - gravity grows slowly with every bounce; where you tap on the planet decides the sideways kick; it bounces off the side walls (and softly off the top);
 //   - a dust puff + ring on every tap, a short haptic tick where supported (navigator.vibrate; iOS ignores it), a small screen shake on a miss;
@@ -39,16 +39,34 @@ export function tapBall(st, b, tx, ty) {
   return true;
 }
 
-function marsSprite(r) {                                             // pre-rendered planet (drawn once per size, then drawImage + rotate)
-  const s = Math.ceil(r * 2 + 4), c = document.createElement('canvas'); c.width = c.height = s;
-  const x = c.getContext('2d'), m = s / 2;
-  const g = x.createRadialGradient(m - r * .35, m - r * .4, r * .1, m, m, r);
+// v33: the planet photo (precached by sw.js). Until it has loaded (or if it fails) the drawn planet below is used; the sprites are rebuilt once it arrives.
+const PHOTO_URL = 'assets/game-mars.webp';
+let photo = null;
+function loadPhoto(onReady) {
+  if (photo && photo.complete && photo.naturalWidth) return onReady();
+  if (!photo) { photo = new Image(); photo.decoding = 'async'; photo.src = new URL('../../' + PHOTO_URL, import.meta.url).href; }
+  photo.addEventListener('load', () => onReady(), { once: true });
+}
+const photoReady = () => !!(photo && photo.complete && photo.naturalWidth);
+
+/** Pre-rendered planet of radius r (CSS px), rendered at the device pixel ratio k so the photo stays sharp; drawn once per size, then drawImage + rotate. */
+function marsSprite(r, k = 1) {
+  const css = Math.ceil(r * 2 + 4), s = Math.ceil(css * k), c = document.createElement('canvas'); c.width = c.height = s;
+  const x = c.getContext('2d'), m = s / 2, R = r * k;
+  c.css = css; c.r = r; c.photo = false;
+  if (photoReady()) {
+    x.imageSmoothingEnabled = true; x.imageSmoothingQuality = 'high';
+    x.drawImage(photo, m - R, m - R, R * 2, R * 2);                  // the WebP already carries the circular alpha mask with an anti-aliased edge
+    c.photo = true;
+    return c;
+  }
+  const g = x.createRadialGradient(m - R * .35, m - R * .4, R * .1, m, m, R);   // fallback drawing (before the photo loads)
   g.addColorStop(0, '#f08a5a'); g.addColorStop(.55, '#c4472b'); g.addColorStop(1, '#5e1a12');
-  x.fillStyle = g; x.beginPath(); x.arc(m, m, r, 0, Math.PI * 2); x.fill();
-  x.save(); x.beginPath(); x.arc(m, m, r, 0, Math.PI * 2); x.clip();
+  x.fillStyle = g; x.beginPath(); x.arc(m, m, R, 0, Math.PI * 2); x.fill();
+  x.save(); x.beginPath(); x.arc(m, m, R, 0, Math.PI * 2); x.clip();
   x.fillStyle = 'rgba(70,16,10,.38)';
-  for (const [cx, cy, cr] of [[-.35, .15, .22], [.3, -.25, .14], [.18, .42, .12], [-.1, -.5, .09], [.5, .2, .08]]) { x.beginPath(); x.arc(m + cx * r, m + cy * r, cr * r, 0, Math.PI * 2); x.fill(); }
-  x.fillStyle = 'rgba(255,215,190,.22)'; x.fillRect(m - r, m - r * .62, r * 2, r * .1);   // a faint polar-cap band
+  for (const [cx, cy, cr] of [[-.35, .15, .22], [.3, -.25, .14], [.18, .42, .12], [-.1, -.5, .09], [.5, .2, .08]]) { x.beginPath(); x.arc(m + cx * R, m + cy * R, cr * R, 0, Math.PI * 2); x.fill(); }
+  x.fillStyle = 'rgba(255,215,190,.22)'; x.fillRect(m - R, m - R * .62, R * 2, R * .1);
   x.restore();
   return c;
 }
@@ -88,13 +106,13 @@ export async function render(root, ctx) {
     if (!W || !H) return;
     cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); cv.style.width = W + 'px'; cv.style.height = H + 'px';
     const R = Math.round(Math.max(22, Math.min(34, W * 0.075)));
-    sprite = marsSprite(R); spriteSmall = marsSprite(Math.round(R * 0.72));
+    sprite = marsSprite(R, dpr); spriteSmall = marsSprite(Math.round(R * 0.72), dpr);
     const sx = W / (st.W || W), sy = H / (st.H || H);
     for (const b of st.balls) { b.x *= sx; b.y *= sy; }
     st.W = W; st.H = H;
     draw();
   }
-  const newBall = (small) => { const R = (small ? spriteSmall : sprite).width / 2 - 2; return { x: W * (0.3 + 0.4 * Math.random()), y: -R, vx: (Math.random() - 0.5) * W * 0.3, vy: 0, r: R, spin: 0, a: 0, small }; };
+  const newBall = (small) => { const R = (small ? spriteSmall : sprite).css / 2 - 2; return { x: W * (0.3 + 0.4 * Math.random()), y: -R, vx: (Math.random() - 0.5) * W * 0.3, vy: 0, r: R, spin: 0, a: 0, small }; };
   function reset() {
     st.g = H * 1.15; st.balls = [newBall(false)]; st.balls[0].y = H * 0.18; st.balls[0].vy = -H * 0.2; st.parts = []; st.moon = null; st.score = 0; st.nextMoon = 6; st.shake = 0; st.t = 0;
     scoreEl.textContent = '0';
@@ -166,8 +184,8 @@ export async function render(root, ctx) {
     if (st.moon) { const m = st.moon; c.fillStyle = '#b9a99a'; c.beginPath(); c.ellipse(m.x, m.y, m.r * 1.15, m.r * 0.85, 0.4, 0, Math.PI * 2); c.fill(); c.fillStyle = 'rgba(90,70,60,.6)'; c.beginPath(); c.arc(m.x - m.r * 0.3, m.y - m.r * 0.1, m.r * 0.28, 0, Math.PI * 2); c.fill();
       c.fillStyle = 'rgba(255,255,255,.75)'; c.font = '600 11px "League Spartan", sans-serif'; c.textAlign = 'center'; c.fillText('+3', m.x, m.y - m.r - 6); }
     for (const b of st.balls) {
-      const sp = b.small ? spriteSmall : sprite, s = sp.width;
-      c.save(); c.translate(b.x, b.y); if (!reduced()) c.rotate(b.a); c.drawImage(sp, -s / 2, -s / 2); c.restore();
+      const sp = b.small ? spriteSmall : sprite, s = sp.css;
+      c.save(); c.translate(b.x, b.y); if (!reduced()) c.rotate(b.a + (b.small ? -0.22 : 0.16) * st.t); c.drawImage(sp, -s / 2, -s / 2, s, s); c.restore();   // v33: a slow constant turn on top of the tap spin
     }
   }
   function frame(t) {
@@ -186,8 +204,9 @@ export async function render(root, ctx) {
   document.addEventListener('visibilitychange', onVis);
   window.addEventListener('resize', onResize);
   window.addEventListener('hashchange', function bye() { pause(); stopLoop(); document.removeEventListener('visibilitychange', onVis); window.removeEventListener('resize', onResize); if (ro) ro.disconnect(); window.removeEventListener('hashchange', bye); }, { once: true });
-  window.__aitorGame = { st, start, pause, stop: () => stopLoop(), tap: (x, y) => onTap({ clientX: cv.getBoundingClientRect().left + x, clientY: cv.getBoundingClientRect().top + y, preventDefault() {} }), step: (n = 1) => { for (let i = 0; i < n; i++) update(STEP); draw(); } };   // test hook (no data)
+  window.__aitorGame = { st, start, pause, stop: () => stopLoop(), photo: () => ({ ready: photoReady(), big: !!(sprite && sprite.photo), small: !!(spriteSmall && spriteSmall.photo), dpr, css: sprite && sprite.css, px: sprite && sprite.width }), tap: (x, y) => onTap({ clientX: cv.getBoundingClientRect().left + x, clientY: cv.getBoundingClientRect().top + y, preventDefault() {} }), step: (n = 1) => { for (let i = 0; i < n; i++) update(STEP); draw(); } };   // test hook (no data)
   sprite = marsSprite(28); spriteSmall = marsSprite(20);           // placeholder sprites until the field is measured (size() rebuilds them)
+  loadPhoto(() => { if (!root.isConnected) return; sprite = marsSprite(sprite.r, dpr); spriteSmall = marsSprite(spriteSmall.r, dpr); draw(); });   // v33: swap in the photo when it arrives
   reset(); setOverlay('ready');
   requestAnimationFrame(() => { size(); if (st.mode === 'ready') { reset(); draw(); } });
 }
