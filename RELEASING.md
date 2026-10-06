@@ -8,7 +8,7 @@ Working copy: `/workspace/ai-tor`. Published repo (GitHub Pages, https://aitorro
 2. Targeted tests: `/workspace/tools/aitor_fasttest.sh`
    - It diffs the working copy against `/tmp/aitor-pub` and runs only the suites that cover the changed files, e.g.
      `js/sections.js` / `js/sol.js` -> sections, wheel, freeze, sunrise, architecture; `js/sunrise.js` / `js/bg.js` -> sunrise, flicker, freeze, citylights;
-     `css/chamfer.css` -> flat, architecture, header; `css/flat.css` / `css/app.css` -> flat, restyle, v19, header; `tools/make_city_svg.py` -> citylights; `sections/todo/*` -> todo, worklist, paste; feeds (`js/feed*.js`, `feedcrypto.js`) -> enc, finfeed, dest. Docs alone run nothing; an unmapped file runs the broad smoke suites (flat, v19).
+     `css/chamfer.css` -> flat, architecture, header; `css/flat.css` / `css/app.css` -> flat, restyle, v19, header; `tools/make_city_svg.py` -> citylights; `sections/game/*` -> game, header (v32 suite `ai-tor-test-game.py`); `sections/todo/*` -> todo, worklist, paste; feeds (`js/feed*.js`, `feedcrypto.js`) -> enc, finfeed, dest. Docs alone run nothing; an unmapped file runs the broad smoke suites (flat, v19).
    - `--list` shows the plan only; explicit files can be passed (`aitor_fasttest.sh js/bg.js`).
    - Up to 3 suites at a time. Each suite gets its own free port (8900+) and temp root (`AITOR_PORT`, `AITOR_ROOT`), so they do not collide with each other or with stray servers. `flicker` (frame-timing analysis) always runs alone; at most 2 of sunrise / citylights / freeze run together; if available memory drops below 3.5 GB, the runner waits and runs the rest one by one.
    - Logs and `summary.json` go to `/workspace/scratch/fasttest/<timestamp>/`.
