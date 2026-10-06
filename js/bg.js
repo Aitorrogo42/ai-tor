@@ -127,7 +127,7 @@ function sunRenderAt(t) {                                      // t = shader tim
   sun.frames++; sun.t = t;                                                  // the shader time of the last frame: a frozen frame reuses it, so the planet does not shift when it freezes
   const still = reduce();
   const t0 = performance.now();
-  const st = sun.renderer.draw(norm360(sun.cur) * Math.PI / 180, still ? 0 : t / 1000, still);
+  const st = sun.renderer.draw(norm360(sun.cur) * Math.PI / 180, still ? 0 : t / 1000, still, sun.frozen);   // frozen: the city lights are drawn a little dimmer under the veil (sunrise.js CITY_FROZEN_K)
   sun.cost = sun.cost * 0.7 + (performance.now() - t0) * 0.3;      // CPU-side cost of the draw call (≈0 on a real GPU, large on a software renderer)
   if (st) setVars(st);
   sun.dirty = false;
@@ -212,10 +212,16 @@ function sunEnable() {
     sunRender(performance.now() / 1000 * 1000); sun.ready = true;
     html.classList.add('gl-on'); html.classList.remove('sol-css'); sunSync();
   };
+  // photoreal city lights: two textures (the Mars map + the prebaked city lights); the first frame waits for both (each one is optional: a failed load just leaves it out)
+  let pending = 2; const one = () => { if (--pending === 0) done(); };
   const img = new Image(); img.decoding = 'async';
-  img.onload = () => { try { r.setTexture(img); } catch { /* plain procedural planet */ } done(); };
-  img.onerror = () => done();
+  img.onload = () => { try { r.setTexture(img); } catch { /* plain procedural planet */ } one(); };
+  img.onerror = one;
   img.src = new URL('../assets/mars-map.webp', import.meta.url).href;
+  const city = new Image(); city.decoding = 'async';
+  city.onload = () => { try { r.setCityTexture(city); } catch { /* no city lights */ } one(); };
+  city.onerror = one;
+  city.src = new URL('../assets/city-lights.webp', import.meta.url).href;
   setTimeout(() => { if (!sun.ready && sun.mode === 'gl') done(); }, 6000);       // texture never arrived: show the procedural planet rather than an empty sky
 }
 

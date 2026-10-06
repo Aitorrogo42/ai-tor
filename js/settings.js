@@ -7,7 +7,7 @@ import { buildExport, validateImport, applyImport, MAX_IMPORT_BYTES } from './da
 import { sections } from './sections.js';
 import { isDynamicBackground, setDynamicBackground } from './bg.js';
 
-export const APP_VERSION = '2.11.1 (v33)';
+export const APP_VERSION = '2.12.0 (v34)';
 
 export async function renderSettings(root, ctx) {
   document.title = 'Settings · AI-TOR';
