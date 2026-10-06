@@ -6,6 +6,11 @@ An installable personal-life app (PWA). Plain HTML/CSS/JS: **no build step, no C
 
 Today: **Architecture** (v24, staged: materials, famous buildings, architects, designers and consultants by discipline), **Finances** (accounts, debts, income/expenses, goals, notes, dashboard, and an optional Refresh from your assistant) and **Travels** with two tabs: **Visited** (tick the countries you have visited out of a bundled offline list of 195, with search, per-continent counts, and optional year(s)/note per country) and **Destinations** (places your Travel Guide bot proposes, from an optional encrypted feed). **To-Do** (two parallel lists, **Personal** and **Work**, each a clear task list with a Done pile, comments per task, and an optional daily feed from your assistant). The home screen is a registry of sections, so more can be added later. Section logos live in `icons/sections/`.
 
+## v28 / 2.9.1 (sw aitor-v28): floating section titles
+
+- Inside every section page the icon + title (`.fin-head`) no longer sit in a bordered chamfered box: no border, fill or chamfer (`.fin-head` removed from `tools/make_chamfer_css.py`, `css/flat.css`), centred horizontally on their own row under the Home / Edit row; subtitles (counts, "Last updated") are centred under them.
+- Tests: new `ai-tor-test-header.py` (every section page at 375 / 320 / 430 px: no box styles, centred within 2 px, no overlap with Home / Edit, no overflow; screenshots 480-488). Rollback tag `v27-before-floating-titles`.
+
 ## v27 / 2.9.0 (sw aitor-v27): city night lights on Mars
 
 One small city on the planet's night side, drawn in the WebGL shader (`js/sunrise.js`, function `cityLights`): a bright small amber core with a soft falloff, scattered dots that thin out with distance, seven thin streets (dotted lamp pattern, slightly bent) radiating from it and a partial ring road, like an ISS night photo. Analytic (no texture, no new asset), about 30 ALU ops and only evaluated within 7 degrees of the city, so it is light for iPhone GPUs.

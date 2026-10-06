@@ -4,9 +4,12 @@
    Mars crimson is only an accent (active tab, primary button, links, focus, chart bars). Tune everything with the --surf* tokens in css/app.css. */
 
 /* ===== page chrome: header strip, tab bar, search strip ===== */
-.fin-head,.trv-searchrow{background:var(--surf);border:1px solid var(--surf-line)}
-.fin-head{position:relative;padding:14px 16px;border-radius:var(--r-md)}
-.fin-head .asof,.fin-head .sub,.fin-head p{color:var(--text)}
+/* v28: the section title FLOATS: no box (no border / fill / chamfer, see tools/make_chamfer_css.py), the icon + title are centred on their own row below the Home / Edit row */
+.trv-searchrow{background:var(--surf);border:1px solid var(--surf-line)}
+.fin-head{position:relative;padding:6px 0 8px;background:none;border:0;border-radius:0;text-align:center}
+.fin-head h1.with-ico{justify-content:center;max-width:100%;margin:0 auto}
+.fin-head .ph-title{min-width:0;overflow-wrap:anywhere}
+.fin-head .asof,.fin-head .sub,.fin-head p{color:var(--text);text-align:center}
 .trv-searchrow{top:6px;padding:8px;border-radius:var(--r-md);margin:0 -2px;background:rgba(10,3,5,.72)}
 .trv-search{background:var(--field);border-color:var(--surf-line)}
 /* filter chips */
