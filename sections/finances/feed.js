@@ -6,15 +6,16 @@
 //   { "version":1, "updated":"ISO", "as_of":"text",
 //     "accounts":[{ "name", "value", "group", "id"?, "source"? }],        // required, at least one
 //     "debts":[{ "name", "value", "id"? }]?, "income_monthly":number?, "expenses_monthly":number?,
-//     "goals":[{ "name", "target", "date"?, "id"? }]?, "notes":"?" }
+//     "goals":[{ "name", "target", "date"?, "id"? }]?, "notes":"?",
+//     "prices":[{ "ticker", "name"?, "price", "change_pct"?, "as_of"?, "basis"? }]? }   // "Key holdings", shown in the given order
 // Merge rules: a feed item matches a local item by feed key (remembered `fk`), else by its `id` (when given), else by name
 // (case-insensitive). Matches get the feed's value/group/(source→note) and become feed-managed; unmatched feed items are added.
 // Feed-managed items that vanished from the feed are removed. Items you added yourself (no `fk`, no match) are never touched.
-// `debts`/`goals` missing from the feed = left alone. Feed `notes` are shown on the dashboard, they never overwrite your own notes.
+// `prices` are feed-only: each Refresh replaces them (missing = the Key holdings list is hidden). `debts`/`goals` missing from the feed = left alone. Feed `notes` are shown on the dashboard, they never overwrite your own notes.
 import * as storage from '../../js/storage.js';
 import { uid, isValidISODate } from '../../js/util.js';
 import { FeedError, decryptEnvelope, fetchEnvelope, getPassphrase, setPassphrase, hasPassphrase, checkPassphrase } from '../../js/feedcrypto.js';
-import { validate, emptyDoc, canonicalGroup, LIMITS } from './model.js';
+import { validate, emptyDoc, canonicalGroup, cleanPrices, LIMITS } from './model.js';
 
 export const FEED_URL = new URL('../../feed/finances.enc.json', import.meta.url).href;   // same origin as the app
 export const AUTO_REFRESH_MS = 15 * 60 * 1000;   // auto-refresh on app open at most once per 15 minutes (counts every attempt)
@@ -60,10 +61,12 @@ export function parseFeed(text) {
   const goals = take(raw.goals, (o) => isNum(o.target) && o.target > 0 && (o.date == null || o.date === '' || isValidISODate(o.date)),
     (o) => ({ name: o.name.trim(), target: o.target, date: o.date ? o.date : null, id: isStr(o.id) ? o.id.trim() : null }));
   const amt = (v) => (isNum(v) && v >= 0 ? v : null);
+  const pr = cleanPrices(raw.prices, true); skipped += pr.skipped;
   return { ok: true, skipped, feed: {
     updated: isStr(raw.updated) ? raw.updated.slice(0, 40) : null, asOf: isStr(raw.as_of) ? raw.as_of.slice(0, 200) : null,
     accounts, debts, goals, income: amt(raw.income_monthly), expenses: amt(raw.expenses_monthly),
-    notes: isStr(raw.notes) && raw.notes.trim() ? raw.notes.slice(0, LIMITS.notes) : null } };
+    notes: isStr(raw.notes) && raw.notes.trim() ? raw.notes.slice(0, LIMITS.notes) : null,
+    prices: pr.list && pr.list.length ? pr.list : null } };
 }
 
 /** Merge `items` (parsed feed items) into `list` in place. Returns { added, updated, removed }. */
@@ -102,6 +105,7 @@ export function mergeFeed(doc, feed, { refreshedAt = new Date().toISOString(), e
   doc.example = false;
   doc.updatedAt = refreshedAt;
   doc.feed = { updated: feed.updated || envUpdated, asOf: feed.asOf, refreshedAt, notes: feed.notes };
+  if (feed.prices && feed.prices.length) doc.feed.prices = feed.prices;   // replaced on every refresh; absent = list hidden
   const sum = (s) => s ? s.added + s.updated + s.removed : 0;
   return { ...stats, changed: sum(stats.accounts) + sum(stats.debts) + sum(stats.goals) };
 }

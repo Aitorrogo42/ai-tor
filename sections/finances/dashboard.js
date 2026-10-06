@@ -1,4 +1,4 @@
-import { h, pageTitle, countUp, money, pct, fmtDate, todayISO } from '../../js/util.js';
+import { h, pageTitle, countUp, money, money2, pct, fmtDate, todayISO } from '../../js/util.js';
 import { icon } from '../../js/icons.js';
 import { compute, alerts, projectableGoals } from './model.js';
 import { projectionChart } from './chart.js';
@@ -57,6 +57,24 @@ function projectionCard(doc, c, cands) {
   draw();
   return card;
 }
+// "Key holdings": the prices the assistant used for the totals above. Feed-only (no manual entries); hidden when the feed has none.
+const priceText = (p) => (Math.abs(p) >= 10000 ? money(p) : money2(p));
+const chgText = (c) => (c > 0 ? '▲ +' : c < 0 ? '▼ −' : '') + Math.abs(c).toFixed(2) + '%';
+function holdingsCard(f) {
+  const rows = f.prices.map((p) => {
+    const meta = [p.basis, p.asOf].filter(Boolean).join(' · ');
+    return h('div', { class: 'row hold', 'data-ticker': p.ticker },
+      h('div', { class: 'l' }, h('b', { class: 'tk' }, p.ticker), p.name ? h('span', { class: 'nm' }, p.name) : null),
+      h('div', { class: 'r' }, h('div', { class: 'px' }, priceText(p.price)),
+        p.changePct != null || meta ? h('div', { class: 'pmeta' },
+          p.changePct != null ? h('span', { class: 'chg ' + (p.changePct > 0 ? 'up' : p.changePct < 0 ? 'down' : 'flat') }, chgText(p.changePct)) : null,
+          p.changePct != null && meta ? ' · ' : null, meta || null) : null));
+  });
+  const asOf = f.asOf || f.prices.map((p) => p.asOf).find(Boolean) || (f.refreshedAt ? new Date(f.refreshedAt).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : null);
+  return h('div', { class: 'card', id: 'holdings' }, rows,
+    h('p', { class: 'hold-foot', id: 'holdings-foot' }, 'Prices used in the totals above' + (asOf ? ', as of ' + asOf : '') + '.'));
+}
+
 function monthsTo(iso) {
   const [ty, tm, td] = todayISO().split('-').map(Number), [gy, gm, gd] = iso.split('-').map(Number);
   return (gy - ty) * 12 + (gm - tm) + (gd - td) / 30;
@@ -150,6 +168,11 @@ export function renderDashboard(root, doc, ctx) {
   if (doc.notes.trim()) {
     root.append(h('h2', { class: 'sec' }, 'Notes'));
     root.append(h('details', { class: 'src-all', id: 'notes' }, h('summary', null, 'Tap to expand your notes'), h('div', { class: 'gbody' }, h('p', { class: 'notes-text' }, doc.notes))));
+  }
+  // 8. key holdings (from the feed only)
+  if (doc.feed && Array.isArray(doc.feed.prices) && doc.feed.prices.length) {
+    root.append(h('h2', { class: 'sec', id: 'holdings-h' }, 'Key holdings'));
+    root.append(holdingsCard(doc.feed));
   }
   root.append(h('p', { class: 'note center' }, icon('lock'), 'Stored only on this device. Export a backup any time in Settings.'));
   // count the headline numbers up when the page is entered (no-op for reduced motion and for in-place re-renders)

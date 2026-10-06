@@ -116,3 +116,11 @@ ul.goals li::before{background:var(--green)}
 .empty p{color:var(--text-soft)}
 .feedbar{background:var(--surf)}
 .feed-err{color:var(--ember)}
+/* Key holdings (v36): ticker + name left, price right, subtle day change */
+.hold .l{display:flex;flex-direction:column;gap:2px}
+.hold .tk{font-family:var(--mono);font-weight:600;letter-spacing:.04em}
+.hold .nm{color:var(--muted);font-size:12px;font-weight:400;overflow-wrap:anywhere}
+.hold .r{text-align:right}
+.hold .pmeta{color:var(--muted);font-size:11.5px;font-weight:400;margin-top:2px}
+.hold .chg.up{color:var(--green);opacity:.8}.hold .chg.down{color:var(--red);opacity:.85}
+.hold-foot{color:var(--muted);font-size:12px;margin:8px 0 0;line-height:1.4}

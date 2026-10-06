@@ -23,6 +23,27 @@ export function canonicalGroup(name) {
 const isStr = (v) => typeof v === 'string';
 const isAmt = (v) => typeof v === 'number' && Number.isFinite(v) && Math.abs(v) <= LIMITS.amount;
 
+export const PRICE_LIMITS = { items: 60, ticker: 12, name: 80, asOf: 60, changePct: 10000 };
+const BASIS = { close: 'close', live: 'live', nav: 'NAV' };
+/** Sanitize a "Key holdings" price list. `feedShape` = snake_case feed items (change_pct/as_of), else the stored camelCase shape.
+ *  Bad items are dropped (counted in `skipped`), bad optional fields are blanked. Order is kept. Returns { list, skipped } (list null = none). */
+export function cleanPrices(raw, feedShape = false) {
+  if (raw == null) return { list: null, skipped: 0 };
+  if (!Array.isArray(raw)) return { list: null, skipped: 1 };
+  let skipped = Math.max(0, raw.length - PRICE_LIMITS.items);
+  const list = [];
+  for (const o of raw.slice(0, PRICE_LIMITS.items)) {
+    const ticker = o && typeof o === 'object' && isStr(o.ticker) ? o.ticker.trim() : '';
+    if (!ticker || ticker.length > PRICE_LIMITS.ticker || !isAmt(o.price) || o.price < 0) { skipped++; continue; }
+    const cp = feedShape ? o.change_pct : o.changePct, asOf = feedShape ? o.as_of : o.asOf;
+    const basis = isStr(o.basis) ? BASIS[o.basis.trim().toLowerCase()] || null : null;
+    list.push({ ticker, name: isStr(o.name) && o.name.trim() ? o.name.trim().slice(0, PRICE_LIMITS.name) : null, price: o.price,
+      changePct: typeof cp === 'number' && Number.isFinite(cp) && Math.abs(cp) <= PRICE_LIMITS.changePct ? cp : null,
+      asOf: isStr(asOf) && asOf.trim() ? asOf.trim().slice(0, PRICE_LIMITS.asOf) : null, basis });
+  }
+  return { list, skipped };
+}
+
 /** Validate + sanitize a finances document. Returns { ok, errors, doc }. Never throws. */
 export function validate(raw) {
   const errors = [];
@@ -97,6 +118,8 @@ export function validate(raw) {
   if (f && typeof f === 'object' && !Array.isArray(f)) {
     const t = (v, n) => (isStr(v) ? v.slice(0, n) : null);
     doc.feed = { updated: t(f.updated, 40), asOf: t(f.asOf, 200), refreshedAt: t(f.refreshedAt, 40), notes: t(f.notes, LIMITS.notes) };
+    const pr = cleanPrices(f.prices).list;   // "Key holdings" from the last feed (feed-only, never edited by hand)
+    if (pr && pr.length) doc.feed.prices = pr;
   }
   return { ok: errors.length === 0, errors, doc };
 }
