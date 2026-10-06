@@ -13,7 +13,7 @@ const NS = 'http://www.w3.org/2000/svg';
 const VB = 300, C = VB / 2, R0 = 96;                 // viewBox size, centre, inner radius of the ticks (hollow centre)
 const PER_MAX = 12, TICKS_MAX = 72;                  // ticks between two sections: 12 up to 6 sections, then fewer so the dial never holds more than 72 ticks (v22: scales with the section count)
 export const ticksPerSection = (K) => (K <= TICKS_MAX / PER_MAX ? PER_MAX : Math.max(3, Math.floor(TICKS_MAX / K)));
-const SIGMA = 21;                                    // degrees: how far from 12 o'clock a tick still grows
+const SIGMA = 27;                                    // degrees: how far from 12 o'clock a tick still grows (v29: 21 -> 27, a wider bump: more ticks take part)
 const EMBER = [255, 82, 56], WHITE = [255, 255, 255];
 const reduced = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 const wrap180 = (a) => ((a % 360) + 540) % 360 - 180;
@@ -65,15 +65,17 @@ export function createWheel(items) {
     for (let j = 0; j < N; j++) {
       const a = j * (360 / N), phi = wrap180(a + rot), g = Math.exp(-Math.pow(phi / SIGMA, 2));
       const major = j % PER === 0;
-      const len = major ? 15 + 24 * g : 6 + 11 * g;
-      const w = major ? 2.6 + 2.2 * g : 1.7 + 1.2 * g;
+      // v29: a stronger bump: peak extra length x1.8 (major 24 -> 43, minor 11 -> 20). Ticks grow OUTWARD from R0, so they never reach the centre icon; the 12 o'clock
+      // tick ends at 96 + 58 = 154, a hair past the 300 viewBox (.wheel-dial has overflow:visible and there is free space above the wheel)
+      const len = major ? 15 + 43 * g : 6 + 20 * g;
+      const w = major ? 2.6 + 2.6 * g : 1.7 + 1.6 * g;
       const th = (a + rot) * Math.PI / 180, ux = Math.sin(th), uy = -Math.cos(th);
       const t = ticks[j];
       t.setAttribute('x1', (C + ux * R0).toFixed(2)); t.setAttribute('y1', (C + uy * R0).toFixed(2));
       t.setAttribute('x2', (C + ux * (R0 + len)).toFixed(2)); t.setAttribute('y2', (C + uy * (R0 + len)).toFixed(2));
       t.setAttribute('stroke-width', w.toFixed(2));
       t.setAttribute('stroke', major ? mix(WHITE, EMBER, g * g) : '#fff');
-      t.setAttribute('stroke-opacity', (major ? 0.72 + 0.28 * g : 0.42 + 0.5 * g).toFixed(2));
+      t.setAttribute('stroke-opacity', (major ? 0.72 + 0.28 * g : 0.42 + 0.58 * Math.min(1, g * 1.15)).toFixed(2));   // v29: brighter near the peak
     }
     const n = nearest(rot);
     if (n !== sel) setSel(n);

@@ -6,6 +6,12 @@ An installable personal-life app (PWA). Plain HTML/CSS/JS: **no build step, no C
 
 Today: **Architecture** (v24, staged: materials, famous buildings, architects, designers and consultants by discipline), **Finances** (accounts, debts, income/expenses, goals, notes, dashboard, and an optional Refresh from your assistant) and **Travels** with two tabs: **Visited** (tick the countries you have visited out of a bundled offline list of 195, with search, per-continent counts, and optional year(s)/note per country) and **Destinations** (places your Travel Guide bot proposes, from an optional encrypted feed). **To-Do** (two parallel lists, **Personal** and **Work**, each a clear task list with a Done pile, comments per task, and an optional daily feed from your assistant). The home screen is a registry of sections, so more can be added later. Section logos live in `icons/sections/`.
 
+## v29 / 2.9.2 (sw aitor-v29): section titles: no subtitle, icon centred on the title; stronger wheel bump
+
+- No subtitle under any section title (counts, "Last updated", taglines are hidden with `.fin-head .asof, .sub, p {display:none}` in `css/flat.css`; the elements stay in the DOM for scripts / tests; the To-Do tabs still show the counts).
+- **Stronger wheel bump** (`js/wheel.js`): the ticks near the selected 12 o'clock tick grow ~1.8x more at the peak (major extra 24 -> 43, minor 11 -> 20 viewBox units), the falloff is wider (`SIGMA` 21 -> 27 degrees, more ticks take part) and the minor ticks get brighter / bolder near the peak. Same per-frame work, ticks still grow outward (never into the centre icon).
+- Icon and title are vertically centred on each other: the glyphs are centred in their SVG boxes but the title's line box carries descender room, so the icon is lifted by `.11em` (`.fin-head h1.with-ico > .sec-ico`) to centre the visible glyph on the capitals (measured within ~.5 px). `ai-tor-test-header.py` checks both. Rollback tag `v28-before-title-polish`.
+
 ## v28 / 2.9.1 (sw aitor-v28): floating section titles
 
 - Inside every section page the icon + title (`.fin-head`) no longer sit in a bordered chamfered box: no border, fill or chamfer (`.fin-head` removed from `tools/make_chamfer_css.py`, `css/flat.css`), centred horizontally on their own row under the Home / Edit row; subtitles (counts, "Last updated") are centred under them.

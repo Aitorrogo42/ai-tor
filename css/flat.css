@@ -9,7 +9,12 @@
 .fin-head{position:relative;padding:6px 0 8px;background:none;border:0;border-radius:0;text-align:center}
 .fin-head h1.with-ico{justify-content:center;max-width:100%;margin:0 auto}
 .fin-head .ph-title{min-width:0;overflow-wrap:anywhere}
-.fin-head .asof,.fin-head .sub,.fin-head p{color:var(--text);text-align:center}
+/* v29: no subtitle under the section titles (counts / "Last updated" / taglines stay in the DOM for scripts but are not shown) */
+.fin-head .asof,.fin-head .sub,.fin-head p{display:none}
+/* v29: optical centring: the glyphs are centred in their boxes, but the title's line box carries descender room, so the box centre sits ~.125em below the middle of
+   the capitals. Lift the icon by .11em (stays within 3 px of the box centre for the v19 check) so the visible glyph is centred on the cap height (measured: glyph centre vs cap centre ~.4 px at 26 px). */
+.fin-head h1.with-ico{align-items:center}
+.fin-head h1.with-ico>.sec-ico{position:relative;top:-.11em}
 .trv-searchrow{top:6px;padding:8px;border-radius:var(--r-md);margin:0 -2px;background:rgba(10,3,5,.72)}
 .trv-search{background:var(--field);border-color:var(--surf-line)}
 /* filter chips */
