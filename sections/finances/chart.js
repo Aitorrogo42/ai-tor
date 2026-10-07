@@ -56,3 +56,35 @@ export function projectionChart({ series, start, end, goalValue, nowValue }) {
   if (min > 0) svg.append(s('text', { x: 6, y: H - 6, fill: '#c4c5c6', 'font-size': '12' }, 'Y-axis starts at ' + moneyCompact(min) + ' (not zero)'));
   return svg;
 }
+
+/** v40.1 savings projection: years 0..N on x, $0..max on y. rows = [{ year, saved, invested }] (model.projectSavings).
+ *  Colours come from CSS classes (finances.css: .sv-*), so the Mars / Earth / Moon palettes apply. */
+export function savingsChart({ rows, rate }) {
+  const W = 320, H = 240, L = 50, R = 14, T = 14, B = 34;
+  const top = Math.max(...rows.map((r) => Math.max(r.saved, r.invested)), 1);
+  const { ticks, max } = niceTicks(0, top);
+  const n = rows.length;
+  const X = (y) => L + (y / n) * (W - L - R);
+  const Y = (v) => T + (1 - v / max) * (H - T - B);
+  const svg = s('svg', { viewBox: `0 0 ${W} ${H}`, role: 'img', id: 'savings-chart', class: 'sv-chart',
+    'aria-label': `Illustration only. Savings over ${n} years: saved only with no growth reaches ${moneyCompact(rows[n - 1].saved)}; if invested at an assumed ${rate}% a year it reaches ${moneyCompact(rows[n - 1].invested)}.` });
+  ticks.forEach((v) => {
+    svg.append(s('line', { class: 'sv-grid', x1: L, x2: W - R, y1: Y(v), y2: Y(v) }));
+    svg.append(s('text', { class: 'sv-lbl', x: L - 6, y: Y(v) + 4, 'text-anchor': 'end', 'font-size': '12' }, moneyCompact(v)));
+  });
+  [1, 5, 10].filter((y) => y <= n).forEach((y) => {   // the line starts at today ($0 saved) on the left edge
+    svg.append(s('line', { class: 'sv-axis', x1: X(y), x2: X(y), y1: H - B, y2: H - B + 4 }));
+    svg.append(s('text', { class: 'sv-lbl', x: X(y), y: H - B + 18, 'text-anchor': y === n ? 'end' : 'middle', 'font-size': '12' }, 'Yr ' + y));
+  });
+  svg.append(s('line', { class: 'sv-axis', x1: L, x2: W - R, y1: H - B, y2: H - B }));
+  const line = (key, cls) => {
+    const pts = [[0, 0], ...rows.map((r) => [r.year, r[key]])].map(([y, v]) => `${X(y).toFixed(1)},${Y(v).toFixed(1)}`).join(' ');
+    svg.append(s('polyline', { class: cls, 'data-series': key, points: pts, fill: 'none', 'stroke-width': '2.5', 'stroke-linecap': 'butt', 'stroke-linejoin': 'miter' }));
+  };
+  line('saved', 'sv-saved'); line('invested', 'sv-inv');
+  rows.filter((r) => [1, 5, 10].includes(r.year)).forEach((r) => {
+    const x = X(r.year), y = Y(r.invested);
+    svg.append(s('rect', { class: 'sv-pt', 'data-year': String(r.year), x: x - 4, y: y - 4, width: 8, height: 8, transform: `rotate(45 ${x} ${y})` }));
+  });
+  return svg;
+}

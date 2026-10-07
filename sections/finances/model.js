@@ -8,7 +8,7 @@ const FIXED_COLORS = { 'Stock/Equity': '#ff5238', Retirement: '#ffffff', Crypto:
 const PALETTE = ['#8f1a1c', '#e2e3e3', '#ffb3a8', '#a3a4a5', '#b3261e', '#6f7071', '#ff7a66', '#d0d1d2'];   // custom groups: brand tone steps
 export const LIMITS = { name: 80, group: 40, note: 500, notes: 5000, items: 500, amount: 1e15 };
 
-export const emptyDoc = () => ({ version: VERSION, example: false, updatedAt: null, accounts: [], monthlyIncome: null, monthlyExpenses: null, debts: [], goals: [], notes: '', feed: null });
+export const emptyDoc = () => ({ version: VERSION, example: false, updatedAt: null, accounts: [], monthlyIncome: null, monthlyExpenses: null, debts: [], goals: [], notes: '', feed: null, monthlyExpensesOverride: null });
 
 export function isEmptyDoc(d) {
   return !d || (!d.accounts.length && !d.debts.length && !d.goals.length && d.monthlyIncome == null && d.monthlyExpenses == null && !d.notes.trim());
@@ -42,6 +42,44 @@ export function cleanPrices(raw, feedShape = false) {
       asOf: isStr(asOf) && asOf.trim() ? asOf.trim().slice(0, PRICE_LIMITS.asOf) : null, basis });
   }
   return { list, skipped };
+}
+
+// v40.1 "Income breakdown" (feed-only, like the Key holdings): who brings in the monthly income and, optionally, one person's paycheck
+// (gross, each deduction line, net) and monthly gross / deductions / net. Never edited by hand; replaced on every Refresh; absent = card hidden.
+export const BREAKDOWN_LIMITS = { people: 8, lines: 12, name: 40, label: 60, note: 300, asOf: 60, perYear: 366 };
+/** Sanitize an income breakdown. `feedShape` = snake_case feed object (monthly_net, per_year, as_of), else the stored camelCase shape.
+ *  Bad people / lines are dropped (counted in `skipped`), bad optional parts are blanked. Returns { value, skipped } (value null = none). */
+export function cleanBreakdown(raw, feedShape = false) {
+  if (raw == null) return { value: null, skipped: 0 };
+  if (typeof raw !== 'object' || Array.isArray(raw) || !Array.isArray(raw.people)) return { value: null, skipped: 1 };
+  const L = BREAKDOWN_LIMITS, amt = (v) => isAmt(v) && v >= 0;
+  const txt = (v, n) => (isStr(v) && v.trim() ? v.trim().slice(0, n) : null);
+  const k = (o, snake, camel) => (o ? (feedShape ? o[snake] : o[camel]) : undefined);
+  let skipped = Math.max(0, raw.people.length - L.people);
+  const people = [];
+  for (const o of raw.people.slice(0, L.people)) {
+    const name = o && typeof o === 'object' ? txt(o.name, L.name) : null;
+    const net = k(o, 'monthly_net', 'monthlyNet');
+    if (!name || !amt(net)) { skipped++; continue; }
+    const p = { name, monthlyNet: net, note: txt(o.note, L.note), paycheck: null, monthly: null };
+    const pc = o.paycheck;
+    if (pc && typeof pc === 'object' && !Array.isArray(pc) && amt(pc.gross) && amt(pc.net)) {
+      const per = k(pc, 'per_year', 'perYear');
+      const lines = [];
+      for (const ln of (Array.isArray(pc.lines) ? pc.lines.slice(0, L.lines) : [])) {
+        const label = ln && typeof ln === 'object' ? txt(ln.label, L.label) : null;
+        if (label && amt(ln.amount)) lines.push({ label, amount: ln.amount }); else skipped++;
+      }
+      p.paycheck = { perYear: Number.isInteger(per) && per > 0 && per <= L.perYear ? per : null, gross: pc.gross, lines, net: pc.net };
+    } else if (pc != null) skipped++;
+    const mo = o.monthly;
+    if (mo && typeof mo === 'object' && !Array.isArray(mo) && amt(mo.gross) && amt(mo.deductions) && amt(mo.net)) p.monthly = { gross: mo.gross, deductions: mo.deductions, net: mo.net };
+    else if (mo != null) skipped++;
+    people.push(p);
+  }
+  if (!people.length) return { value: null, skipped: skipped || 1 };
+  const basis = txt(raw.basis, 20);
+  return { value: { asOf: txt(k(raw, 'as_of', 'asOf'), L.asOf), basis: basis ? basis.toLowerCase() : null, estimate: raw.estimate === true, note: txt(raw.note, L.note), people }, skipped };
 }
 
 /** Validate + sanitize a finances document. Returns { ok, errors, doc }. Never throws. */
@@ -111,6 +149,12 @@ export function validate(raw) {
     else if (!isAmt(v) || v < 0) err(`Finances: "${key}" must be a number >= 0 or null.`);
     else doc[key] = v;
   }
+  // v40.1: "Your estimate" for monthly expenses, typed on the dashboard. It wins over monthlyExpenses (the feed / edit-page value) until reset.
+  const ov = raw.monthlyExpensesOverride;
+  if (ov != null) {
+    if (ov && typeof ov === 'object' && isAmt(ov.value) && ov.value >= 0) doc.monthlyExpensesOverride = { value: ov.value, at: isStr(ov.at) ? ov.at.slice(0, 40) : null };
+    else err('Finances: "monthlyExpensesOverride" must be { value: number >= 0, at }.');
+  }
   if (raw.notes == null) doc.notes = '';
   else if (!isStr(raw.notes) || raw.notes.length > LIMITS.notes) err(`Finances: "notes" must be text up to ${LIMITS.notes} characters.`);
   else doc.notes = raw.notes;
@@ -120,6 +164,8 @@ export function validate(raw) {
     doc.feed = { updated: t(f.updated, 40), asOf: t(f.asOf, 200), refreshedAt: t(f.refreshedAt, 40), notes: t(f.notes, LIMITS.notes) };
     const pr = cleanPrices(f.prices).list;   // "Key holdings" from the last feed (feed-only, never edited by hand)
     if (pr && pr.length) doc.feed.prices = pr;
+    const ib = cleanBreakdown(f.incomeBreakdown).value;   // v40.1 "Income breakdown" from the last feed (feed-only)
+    if (ib) doc.feed.incomeBreakdown = ib;
   }
   return { ok: errors.length === 0, errors, doc };
 }
@@ -136,6 +182,22 @@ export function groupColor(name, allNames) {
   return PALETTE[Math.max(0, custom.indexOf(name)) % PALETTE.length];
 }
 
+/** v40.1: the monthly expenses the dashboard uses: your typed estimate when set (it wins over every feed refresh), else the feed / edit-page value. */
+export function effectiveExpenses(doc) { return doc.monthlyExpensesOverride ? doc.monthlyExpensesOverride.value : doc.monthlyExpenses; }
+
+/** v40.1 savings projection (illustration, not advice): `surplus` saved at the end of every month for `years` years.
+ *  saved = no growth (surplus x months); invested = the same deposits compounding monthly at annualPct / 12 per month (future value of an ordinary annuity).
+ *  Returns [{ year, saved, invested }] for years 1..years. No market data: the only rate is the one the user typed (default 5%). */
+export const RETURN_DEFAULT = 5, RETURN_MIN = 0, RETURN_MAX = 30;
+export function projectSavings(surplus, annualPct, years = 10) {
+  const r = annualPct / 100 / 12, out = [];
+  for (let y = 1; y <= years; y++) {
+    const n = 12 * y;
+    out.push({ year: y, saved: surplus * n, invested: r === 0 ? surplus * n : surplus * ((1 + r) ** n - 1) / r });
+  }
+  return out;
+}
+
 /** All derived numbers for the dashboard. Net worth = assets − debts. No invented values. */
 export function compute(doc) {
   const assets = doc.accounts.reduce((s, a) => s + a.value, 0);
@@ -147,8 +209,10 @@ export function compute(doc) {
     return { name: n, color: groupColor(n, names), accounts, total, share: assets > 0 ? total / assets : 0 };
   }).sort((a, b) => b.total - a.total);
   const cashAccounts = doc.accounts.filter((a) => a.group === 'Cash/Bank');
-  const surplus = doc.monthlyIncome != null && doc.monthlyExpenses != null ? doc.monthlyIncome - doc.monthlyExpenses : null;
-  return { assets, debts, netWorth: assets - debts, groups, hasCash: cashAccounts.length > 0, cashTotal: cashAccounts.reduce((s, a) => s + a.value, 0), surplus };
+  const expenses = effectiveExpenses(doc);
+  const surplus = doc.monthlyIncome != null && expenses != null ? doc.monthlyIncome - expenses : null;
+  return { assets, debts, netWorth: assets - debts, groups, hasCash: cashAccounts.length > 0, cashTotal: cashAccounts.reduce((s, a) => s + a.value, 0), surplus, expenses,
+    annualSavings: surplus != null ? surplus * 12 : null };
 }
 
 /** Plain-language alerts derived only from the user's own numbers. */
@@ -157,7 +221,7 @@ export function alerts(doc, c, fmtPct, fmt) {
   if (c.netWorth < 0) out.push('Your debts are larger than your tracked assets.');
   const top = c.groups[0];
   if (top && c.groups.length > 1 && top.share >= 0.6) out.push(`${fmtPct(top.share)} of your assets are in one group (${top.name}).`);
-  if (doc.monthlyIncome != null && doc.monthlyExpenses != null && doc.monthlyExpenses > doc.monthlyIncome) out.push('Monthly expenses are higher than monthly income.');
+  if (doc.monthlyIncome != null && c.expenses != null && c.expenses > doc.monthlyIncome) out.push('Monthly expenses are higher than monthly income.');
   const today = todayISO();
   for (const g of doc.goals) if (g.date && g.date < today && c.netWorth < g.target) out.push(`The date for goal "${g.name}" has passed and it isn't reached yet (${fmt(g.target - c.netWorth)} to go).`);
   return out;

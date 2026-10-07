@@ -8,7 +8,7 @@ import { sections } from './sections.js';
 import { isDynamicBackground, setDynamicBackground, setBackgroundBody } from './bg.js';
 import { THEMES, THEME_IDS } from './theme.js';
 
-export const APP_VERSION = '2.15.2 (v40)';
+export const APP_VERSION = '2.15.3 (v41)';
 
 export async function renderSettings(root, ctx) {
   document.title = 'Settings · AI-TOR';

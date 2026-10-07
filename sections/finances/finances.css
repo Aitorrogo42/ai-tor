@@ -124,3 +124,55 @@ ul.goals li::before{background:var(--green)}
 .hold .pmeta{color:var(--muted);font-size:11.5px;font-weight:400;margin-top:2px}
 .hold .chg.up{color:var(--green);opacity:.8}.hold .chg.down{color:var(--red);opacity:.85}
 .hold-foot{color:var(--muted);font-size:12px;margin:8px 0 0;line-height:1.4}
+/* Income breakdown (v40.1): people's take-home, then one person's paycheck + month (gross, deductions, net). Same card / row / chip look as the rest */
+.ib-head{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:4px 10px}
+.ib-head .chip{margin:0}
+.ib-person{margin-top:4px}
+.ib-person .l{display:flex;flex-direction:column;gap:2px}
+.ib-person .l b{font-weight:600}
+.ib-person .src{color:var(--muted);font-size:12px;font-weight:400;overflow-wrap:anywhere}
+.ib-person .ib-note{font-size:12px;line-height:1.4}
+.per{color:var(--muted);font-size:12px;font-weight:400;margin-left:2px}
+.ib-detail{margin:2px 0 6px;padding:2px 0 4px 12px;border-left:2px solid var(--hair-2);border-bottom:1px solid var(--hair)}
+.ib-sub{font-family:var(--mono);font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin:10px 0 0}
+.ib-detail .row{font-size:13px;padding:5px 0}
+.ib-detail .ib-ded .l,.ib-detail .ib-ded .r{color:var(--text-soft);font-weight:400}
+.ib-detail .ib-net{border-top:1px solid var(--hair-2)}
+.ib-detail .ib-net .l{font-weight:600}
+.ib-total{margin-top:2px}
+.ib-total .l{font-weight:600}
+/* Editable expenses (v40.1): the number is a button; tap -> numeric field */
+.exp-val{display:flex;align-items:center;gap:8px;width:100%;min-height:44px;padding:0;margin:0;background:none;border:0;color:inherit;font:inherit;text-align:left;cursor:pointer}
+.exp-val .v{margin:6px 0 2px}
+.exp-val svg{flex:none;width:16px;height:16px;color:var(--muted)}
+.exp-val:focus-visible{outline:2px solid var(--ember);outline-offset:2px}
+.exp-ov{display:flex;flex-direction:column;align-items:flex-start;gap:6px}
+.exp-ov .chip{margin:0}
+.exp-ov .btn{width:100%}
+.exp-hint{font-size:12px}
+.exp-field{display:flex;align-items:center;gap:6px;margin:6px 0 4px}
+.exp-field .cur{color:var(--muted);font-size:18px}
+#exp-input,#ret-input{min-height:44px;padding:8px 10px;border-radius:var(--r-sm);border:1px solid var(--hair-2);background:var(--field);color:var(--text-hi);font:inherit;font-size:18px;font-variant-numeric:tabular-nums;width:100%;min-width:0}
+#ret-input{width:84px;font-size:16px;text-align:right}
+/* Savings + 10-year projection (v40.1); colours through the palette variables so Earth / Moon recolour it */
+.sv-nums{margin-top:2px}
+.sv-nums>div{min-width:0}
+.sv-title{margin-top:16px}
+.sv-rate{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:10px}
+.sv-in{display:flex;align-items:center;gap:6px}
+.sv-in .pct{color:var(--muted)}
+.sv-assume{margin:6px 0 0}
+.sv-msg{margin:12px 0 0;font-size:13.5px;line-height:1.5;color:var(--text-soft)}
+.sv-chart .sv-grid{stroke:var(--hair);stroke-width:1}
+.sv-chart .sv-axis{stroke:var(--hair-2);stroke-width:1}
+.sv-chart .sv-lbl{fill:var(--muted)}
+.sv-chart .sv-saved{stroke:var(--text-hi);stroke-dasharray:6 5}
+.sv-chart .sv-inv{stroke:var(--ember)}
+.sv-chart .sv-pt{fill:var(--ember);stroke:var(--bg);stroke-width:2}
+.dash-key.sv-k-saved{border-top-color:var(--text-hi)}
+.dot.sv-k-inv{background:var(--ember)}
+.sv-table{width:100%;border-collapse:collapse;margin-top:10px;font-size:13px;font-variant-numeric:tabular-nums}
+.sv-table th{font-family:var(--mono);font-size:12px;font-weight:500;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);text-align:right;padding:4px 0 6px;border-bottom:1px solid var(--hair-2)}
+.sv-table td{text-align:right;padding:6px 0;border-bottom:1px solid var(--hair);font-weight:600}
+.sv-table th:first-child,.sv-table td:first-child{text-align:left;font-weight:400}
+.sv-table tr:last-child td{border-bottom:0}

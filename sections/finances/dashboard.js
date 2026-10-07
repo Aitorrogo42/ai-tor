@@ -1,7 +1,8 @@
-import { h, pageTitle, countUp, money, money2, pct, fmtDate, todayISO } from '../../js/util.js';
+import { h, pageTitle, countUp, money, money2, pct, fmtDate, todayISO, parseAmount } from '../../js/util.js';
 import { icon } from '../../js/icons.js';
-import { compute, alerts, projectableGoals } from './model.js';
-import { projectionChart } from './chart.js';
+import * as storage from '../../js/storage.js';
+import { compute, alerts, projectableGoals, validate, projectSavings, LIMITS, RETURN_DEFAULT, RETURN_MIN, RETURN_MAX } from './model.js';
+import { projectionChart, savingsChart } from './chart.js';
 import { refreshBar } from './refreshbar.js';
 
 let projGoalId = null; // which goal the illustration uses (UI-only state)
@@ -75,6 +76,140 @@ function holdingsCard(f) {
     h('p', { class: 'hold-foot', id: 'holdings-foot' }, 'Prices used in the totals above' + (asOf ? ', as of ' + asOf : '') + '.'));
 }
 
+// v40.1 "Income breakdown": each person's monthly take-home, a per-paycheck row (gross, each deduction, net) and the monthly gross / deductions / net.
+// Feed-only (Financials Bot's numbers, never typed in); hidden when the feed has none. Amounts shown exactly as given (cents only when the feed has cents).
+const amtText = (n) => (Number.isInteger(n) ? money(n) : money2(n));
+const dedText = (n) => (n > 0 ? '−' + amtText(n) : amtText(n));
+const ibRow = (cls, label, value, attrs = {}) => h('div', { class: 'row ' + cls, ...attrs }, h('div', { class: 'l' }, label), h('div', { class: 'r' }, value));
+function breakdownCard(ib) {
+  const kids = [h('div', { class: 'ib-head' }, h('div', { class: 'k' }, 'Income breakdown'),
+    ib.estimate ? h('span', { class: 'chip warn ib-est', id: 'ib-estimate' }, 'Estimate, until first new pay stub') : null)];
+  for (const p of ib.people) {
+    kids.push(h('div', { class: 'row ib-person', 'data-person': p.name },
+      h('div', { class: 'l' }, h('b', null, p.name), h('span', { class: 'src' }, 'Take-home per month'), p.note ? h('span', { class: 'src ib-note' }, p.note) : null),
+      h('div', { class: 'r' }, money(p.monthlyNet), h('span', { class: 'per' }, '/mo'))));
+    if (p.paycheck || p.monthly) {
+      const box = h('div', { class: 'ib-detail', 'data-person': p.name });
+      if (p.paycheck) {
+        const pc = p.paycheck;
+        box.append(h('div', { class: 'ib-sub' }, p.name + "'s paycheck" + (pc.perYear ? ' (' + pc.perYear + ' a year)' : '')),
+          h('div', { class: 'ib-pay' }, ibRow('ib-gross', 'Gross', amtText(pc.gross)),
+            pc.lines.map((ln) => ibRow('ib-ded', ln.label, dedText(ln.amount), { 'data-label': ln.label })),
+            ibRow('ib-net', 'Net per paycheck', amtText(pc.net))));
+      }
+      if (p.monthly) {
+        const m = p.monthly;
+        box.append(h('div', { class: 'ib-sub' }, p.name + ' per month'),
+          h('div', { class: 'ib-mo' }, ibRow('ib-gross', 'Gross', amtText(m.gross)), ibRow('ib-ded', 'Deductions', dedText(m.deductions)), ibRow('ib-net', 'Net', amtText(m.net))));
+      }
+      kids.push(box);
+    }
+  }
+  if (ib.people.length > 1) kids.push(ibRow('ib-total', 'Total take-home', h('span', null, money(ib.people.reduce((s, p) => s + p.monthlyNet, 0)), h('span', { class: 'per' }, '/mo')), { id: 'ib-total' }));
+  const foot = [ib.note || (ib.basis === 'net' ? 'Take-home pay, after taxes and deductions.' : null), ib.asOf ? 'As of ' + ib.asOf + '.' : null].filter(Boolean).join(' ');
+  if (foot) kids.push(h('p', { class: 'hold-foot', id: 'ib-foot' }, foot));
+  return h('div', { class: 'card', id: 'income-breakdown' }, kids);
+}
+
+// v40.1: change a value on the LATEST saved doc (an auto refresh may have saved since this page was drawn), then save + redraw.
+function patchDoc(doc, ctx, fn) {
+  let target = doc;
+  try { const raw = storage.section('finances').get(); const v = raw ? validate(raw) : null; if (v && v.ok) target = v.doc; } catch { /* use the drawn doc */ }
+  fn(target); ctx.save(target); ctx.rerender();
+}
+
+// v40.1 editable expenses: tap the number, type your own estimate (numeric keypad), saved on Enter / leaving the field. It wins over the feed until reset.
+function expensesCard(doc, c, ctx) {
+  const ov = doc.monthlyExpensesOverride, fromFeed = !!(doc.feed && doc.feed.refreshedAt);
+  const card = h('div', { class: 'card exp-card', id: 'expenses-card' });
+  const show = () => {
+    card.replaceChildren(
+      h('div', { class: 'k' }, 'Expenses / month'),
+      h('button', { type: 'button', class: 'exp-val', id: 'exp-edit', 'aria-label': 'Edit monthly expenses, now ' + money(c.expenses), onclick: edit },
+        h('span', { class: 'v sm', 'data-count': String(c.expenses) }, money(c.expenses)), icon('edit')),
+      ov ? h('div', { class: 'exp-ov' },
+        h('span', { class: 'chip ok', id: 'exp-est' }, 'Your estimate'),
+        doc.monthlyExpenses != null ? h('div', { class: 'sub', id: 'exp-base' }, (fromFeed ? 'Feed value ' : 'Saved value ') + money(doc.monthlyExpenses)) : null,
+        h('button', { type: 'button', class: 'btn ghost small', id: 'exp-reset', onclick: () => patchDoc(doc, ctx, (d) => { d.monthlyExpensesOverride = null; }) },
+          fromFeed ? 'Reset to feed value' : 'Reset to saved value'))
+        : h('div', { class: 'sub exp-hint' }, 'Tap to set your own estimate'));
+  };
+  function edit() {
+    let done = false;
+    const err = h('div', { class: 'form-err', id: 'exp-err', role: 'alert', hidden: true });
+    const input = h('input', { type: 'text', id: 'exp-input', inputmode: 'decimal', enterkeyhint: 'done', autocomplete: 'off', 'aria-label': 'Monthly expenses, your estimate', value: String(c.expenses) });
+    const commit = () => {
+      if (done) return;
+      const t = input.value.trim(), n = parseAmount(t);
+      if (t === '') { done = true; show(); return; }                                  // nothing typed: keep what was there
+      if (Number.isNaN(n) || n < 0 || n > LIMITS.amount) { err.textContent = 'Enter a number, 0 or more.'; err.hidden = false; return; }
+      done = true;
+      if (n === c.expenses) { show(); return; }                                      // unchanged
+      patchDoc(doc, ctx, (d) => { d.monthlyExpensesOverride = { value: n, at: new Date().toISOString() }; });
+    };
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') { e.preventDefault(); commit(); }
+      else if (e.key === 'Escape') { done = true; show(); }
+    });
+    input.addEventListener('blur', commit);
+    card.replaceChildren(h('div', { class: 'k' }, 'Expenses / month'), h('label', { class: 'exp-field' }, h('span', { class: 'cur' }, '$'), input), err,
+      h('div', { class: 'sub' }, 'Your estimate. Saved when you press Enter or tap away.'));
+    input.focus(); input.select();
+  }
+  show();
+  return card;
+}
+
+// v40.1 savings summary + 10-year projection (illustration). The only rate is the one you type (default 5%), stored on this device.
+const projCfg = () => storage.config('finproj');
+function returnPct() { const v = (projCfg().get() || {}).returnPct; return typeof v === 'number' && Number.isFinite(v) && v >= RETURN_MIN && v <= RETURN_MAX ? v : RETURN_DEFAULT; }
+const pctText = (v) => (Math.round(v * 100) / 100).toString() + '%';
+function savingsCard(doc, c) {
+  const card = h('div', { class: 'card', id: 'savings' });
+  const draw = () => {
+    const usingOv = !!doc.monthlyExpensesOverride;
+    const head = h('div', { class: 'grid2 sv-nums' },
+      h('div', null, h('div', { class: 'k' }, 'Monthly surplus'), h('div', { class: 'v sm ' + (c.surplus > 0 ? 'pos' : c.surplus < 0 ? 'neg' : ''), id: 'sv-month' }, money(c.surplus))),
+      h('div', null, h('div', { class: 'k' }, 'Annual savings'), h('div', { class: 'v sm', id: 'sv-year' }, money(c.annualSavings))));
+    const sub = h('div', { class: 'sub' }, 'Income − expenses' + (usingOv ? ' (your expense estimate)' : '') + '; annual = monthly × 12.');
+    if (!(c.surplus > 0)) {
+      card.replaceChildren(head, sub, h('p', { class: 'sv-msg', id: 'savings-msg' },
+        c.surplus === 0 ? 'Income and expenses are even right now, so there is nothing left over to project yet. When income pulls ahead, a 10-year view will show up here.'
+          : 'Expenses are running ahead of income right now, so there is no monthly surplus to project. That is worth a look, and when income pulls ahead again a 10-year view will show up here.'));
+      return;
+    }
+    const rate = returnPct(), rows = projectSavings(c.surplus, rate, 10);
+    const err = h('div', { class: 'form-err', id: 'ret-err', role: 'alert', hidden: true });
+    const input = h('input', { type: 'text', id: 'ret-input', inputmode: 'decimal', enterkeyhint: 'done', autocomplete: 'off', value: String(rate), 'aria-label': 'Assumed annual return, percent' });
+    let done = false;
+    const commit = () => {
+      if (done) return;
+      const n = parseAmount(input.value.replace('%', ''));
+      if (input.value.trim() === '' || Number.isNaN(n) || n < RETURN_MIN || n > RETURN_MAX) { err.textContent = `Enter a percent from ${RETURN_MIN} to ${RETURN_MAX}.`; err.hidden = false; return; }
+      done = true;
+      if (n !== rate) { try { projCfg().set({ returnPct: n }); } catch { /* ignore */ } }
+      draw();
+    };
+    input.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); commit(); } });
+    input.addEventListener('blur', commit);
+    const pick = rows.filter((r) => [1, 5, 10].includes(r.year));
+    card.replaceChildren(head, sub,
+      h('div', { class: 'k sv-title' }, '10-year projection (illustration)'),
+      h('label', { class: 'sv-rate' }, h('span', { class: 'fl' }, 'Assumed annual return'), h('span', { class: 'sv-in' }, input, h('span', { class: 'pct' }, '%'))), err,
+      h('p', { class: 'note sv-assume', id: 'sv-assume' }, 'An assumption you choose, not advice or a forecast. No market data is used.'),
+      h('div', { class: 'chart-wrap' }, savingsChart({ rows, rate })),
+      h('div', { class: 'legend' },
+        h('span', null, h('span', { class: 'dash-key sv-k-saved' }), 'Saved only (no growth)'),
+        h('span', null, h('span', { class: 'dot sv-k-inv' }), 'If invested at ' + pctText(rate) + ' a year')),
+      h('table', { class: 'sv-table', id: 'savings-table' },
+        h('thead', null, h('tr', null, h('th', null, 'Year'), h('th', null, 'Saved only'), h('th', null, 'If invested'))),
+        h('tbody', null, pick.map((r) => h('tr', { 'data-year': String(r.year) }, h('td', null, String(r.year)), h('td', null, money(r.saved)), h('td', null, money(r.invested)))))),
+      h('p', { class: 'note' }, 'Saves the same surplus at the end of every month. "If invested" compounds monthly at ' + pctText(rate) + ' ÷ 12 per month. Taxes, fees and inflation are left out.'));
+  };
+  draw();
+  return card;
+}
+
 function monthsTo(iso) {
   const [ty, tm, td] = todayISO().split('-').map(Number), [gy, gm, gd] = iso.split('-').map(Number);
   return (gy - ty) * 12 + (gm - tm) + (gd - td) / 30;
@@ -113,17 +248,19 @@ export function renderDashboard(root, doc, ctx) {
       h('div', { class: 'bar' }, h('i', { style: `width:${(top.share * 100).toFixed(1)}%;background:${top.color}` }))) : null));
 
   // 2. income & expenses
-  const hasInc = doc.monthlyIncome != null, hasExp = doc.monthlyExpenses != null;
+  const hasInc = doc.monthlyIncome != null, hasExp = c.expenses != null;
   root.append(h('h2', { class: 'sec' }, 'Monthly income & expenses'));
   if (hasInc || hasExp) {
     root.append(h('div', { class: 'grid2', id: 'income' },
       hasInc ? h('div', { class: 'card' }, h('div', { class: 'k' }, 'Income / month'), h('div', { class: 'v sm', 'data-count': String(doc.monthlyIncome) }, money(doc.monthlyIncome))) : na('na-income', 'Monthly income', 'Add it to see your monthly surplus.'),
-      hasExp ? h('div', { class: 'card' }, h('div', { class: 'k' }, 'Expenses / month'), h('div', { class: 'v sm', 'data-count': String(doc.monthlyExpenses) }, money(doc.monthlyExpenses))) : na('na-expenses', 'Monthly expenses', 'Add it to see your monthly surplus.'),
+      hasExp ? expensesCard(doc, c, ctx) : na('na-expenses', 'Monthly expenses', 'Add it to see your monthly surplus.'),   // v40.1: tap to type your own estimate
       c.surplus != null ? h('div', { class: 'card span2' }, h('div', { class: 'k' }, 'Income − expenses'),
         h('div', { class: 'v sm ' + (c.surplus >= 0 ? 'pos' : 'neg'), 'data-count': String(c.surplus) }, money(c.surplus)), h('div', { class: 'sub' }, 'per month, derived from your numbers')) : null));
   } else {
     root.append(h('div', { class: 'grid2' }, na('na-income', 'Monthly income', 'Optional.'), na('na-expenses', 'Monthly expenses', 'Optional.')));
   }
+  if (doc.feed && doc.feed.incomeBreakdown && doc.feed.incomeBreakdown.people.length) root.append(breakdownCard(doc.feed.incomeBreakdown));   // v40.1
+  if (c.surplus != null) { root.append(h('h2', { class: 'sec', id: 'savings-h' }, 'Savings')); root.append(savingsCard(doc, c)); }             // v40.1
 
   // 3. asset groups
   root.append(h('h2', { class: 'sec' }, 'Asset groups'));

@@ -1,7 +1,7 @@
 import { h, money, parseAmount, uid, fmtDate, isValidISODate } from '../../js/util.js';
 import { icon } from '../../js/icons.js';
 import { field, confirmDialog } from '../../js/ui.js';
-import { DEFAULT_GROUPS, LIMITS, canonicalGroup } from './model.js';
+import { DEFAULT_GROUPS, LIMITS, canonicalGroup, effectiveExpenses } from './model.js';
 
 const CUSTOM = '__custom__';
 const txt = (id, value, extra = {}) => h('input', { type: 'text', id, value: value ?? '', autocomplete: 'off', autocapitalize: 'words', ...extra });
@@ -132,14 +132,15 @@ export function renderEdit(root, doc, ctx) {
     root.append(formFor('debt') || addBtn('debt', 'Add debt'));
 
     root.append(h('h2', { class: 'sec' }, 'Monthly income & expenses (optional)'));
-    const inc = amt('f-income', doc.monthlyIncome, { placeholder: 'Optional' }), exp = amt('f-expenses', doc.monthlyExpenses, { placeholder: 'Optional' });
+    const inc = amt('f-income', doc.monthlyIncome, { placeholder: 'Optional' }), exp = amt('f-expenses', effectiveExpenses(doc), { placeholder: 'Optional' });
+    const ovOn = !!doc.monthlyExpensesOverride;   // v40.1: while your dashboard estimate is on, this field edits that estimate (blank = back to the feed / saved value)
     const ierr = h('div', { class: 'form-err', role: 'alert', hidden: true });
     root.append(h('form', { class: 'card form', id: 'cashflow-form', novalidate: true, onsubmit: (e) => {
       e.preventDefault();
       const i = parseAmount(inc.value), x = parseAmount(exp.value);
       if (Number.isNaN(i) || Number.isNaN(x) || (i != null && (i < 0 || i > LIMITS.amount)) || (x != null && (x < 0 || x > LIMITS.amount))) { ierr.textContent = 'Please enter numbers (0 or more), or leave blank.'; ierr.hidden = false; return; }
-      commit(() => { doc.monthlyIncome = i; doc.monthlyExpenses = x; });
-    } }, field('Income per month (after tax)', inc), field('Expenses per month', exp), ierr,
+      commit(() => { doc.monthlyIncome = i; if (ovOn) doc.monthlyExpensesOverride = x == null ? null : { value: x, at: new Date().toISOString() }; else doc.monthlyExpenses = x; });
+    } }, field('Income per month (after tax)', inc), field(ovOn ? 'Expenses per month (your estimate)' : 'Expenses per month', exp), ierr,
       h('div', { class: 'btnrow' }, h('button', { type: 'submit', class: 'btn primary', 'data-act': 'save' }, 'Save'))));
 
     root.append(h('h2', { class: 'sec' }, 'Goals'));

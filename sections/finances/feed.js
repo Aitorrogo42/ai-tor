@@ -7,15 +7,17 @@
 //     "accounts":[{ "name", "value", "group", "id"?, "source"? }],        // required, at least one
 //     "debts":[{ "name", "value", "id"? }]?, "income_monthly":number?, "expenses_monthly":number?,
 //     "goals":[{ "name", "target", "date"?, "id"? }]?, "notes":"?",
-//     "prices":[{ "ticker", "name"?, "price", "change_pct"?, "as_of"?, "basis"? }]? }   // "Key holdings", shown in the given order
+//     "prices":[{ "ticker", "name"?, "price", "change_pct"?, "as_of"?, "basis"? }]?,   // "Key holdings", shown in the given order
+//     "income_breakdown":{ "as_of"?, "basis"?:"net", "estimate"?:bool, "note"?, "people":[{ "name", "monthly_net", "note"?,          // v40.1 "Income breakdown" card
+//        "paycheck"?:{ "per_year"?, "gross", "lines":[{ "label", "amount" }], "net" }, "monthly"?:{ "gross", "deductions", "net" } }] }? }
 // Merge rules: a feed item matches a local item by feed key (remembered `fk`), else by its `id` (when given), else by name
 // (case-insensitive). Matches get the feed's value/group/(source→note) and become feed-managed; unmatched feed items are added.
 // Feed-managed items that vanished from the feed are removed. Items you added yourself (no `fk`, no match) are never touched.
-// `prices` are feed-only: each Refresh replaces them (missing = the Key holdings list is hidden). `debts`/`goals` missing from the feed = left alone. Feed `notes` are shown on the dashboard, they never overwrite your own notes.
+// `prices` and `income_breakdown` are feed-only: each Refresh replaces them (missing = the Key holdings list / Income breakdown card is hidden). `debts`/`goals` missing from the feed = left alone. Feed `notes` are shown on the dashboard, they never overwrite your own notes.
 import * as storage from '../../js/storage.js';
 import { uid, isValidISODate } from '../../js/util.js';
 import { FeedError, decryptEnvelope, fetchEnvelope, getPassphrase, setPassphrase, hasPassphrase, checkPassphrase, AUTO_MS, autoDueIn, nextFailStreak } from '../../js/feedcrypto.js';
-import { validate, emptyDoc, canonicalGroup, cleanPrices, LIMITS } from './model.js';
+import { validate, emptyDoc, canonicalGroup, cleanPrices, cleanBreakdown, LIMITS } from './model.js';
 
 export const FEED_URL = new URL('../../feed/finances.enc.json', import.meta.url).href;   // same origin as the app
 export const AUTO_REFRESH_MS = AUTO_MS;   // auto-refresh on open / back in the foreground at most once per 15 minutes; v40: a network failure retries sooner (js/feedcrypto.js)
@@ -62,11 +64,12 @@ export function parseFeed(text) {
     (o) => ({ name: o.name.trim(), target: o.target, date: o.date ? o.date : null, id: isStr(o.id) ? o.id.trim() : null }));
   const amt = (v) => (isNum(v) && v >= 0 ? v : null);
   const pr = cleanPrices(raw.prices, true); skipped += pr.skipped;
+  const ib = cleanBreakdown(raw.income_breakdown, true); skipped += ib.skipped;
   return { ok: true, skipped, feed: {
     updated: isStr(raw.updated) ? raw.updated.slice(0, 40) : null, asOf: isStr(raw.as_of) ? raw.as_of.slice(0, 200) : null,
     accounts, debts, goals, income: amt(raw.income_monthly), expenses: amt(raw.expenses_monthly),
     notes: isStr(raw.notes) && raw.notes.trim() ? raw.notes.slice(0, LIMITS.notes) : null,
-    prices: pr.list && pr.list.length ? pr.list : null } };
+    prices: pr.list && pr.list.length ? pr.list : null, incomeBreakdown: ib.value } };
 }
 
 /** Merge `items` (parsed feed items) into `list` in place. Returns { added, updated, removed }. */
@@ -101,11 +104,12 @@ export function mergeFeed(doc, feed, { refreshedAt = new Date().toISOString(), e
   if (feed.debts) stats.debts = mergeList(doc.debts, feed.debts, ['name', 'amount', 'note']);
   if (feed.goals) stats.goals = mergeList(doc.goals, feed.goals, ['name', 'target', 'date']);
   if (feed.income != null) doc.monthlyIncome = feed.income;
-  if (feed.expenses != null) doc.monthlyExpenses = feed.expenses;
+  if (feed.expenses != null) doc.monthlyExpenses = feed.expenses;   // v40.1: this is the FEED value; your typed estimate (doc.monthlyExpensesOverride) is never touched here and still wins (model.effectiveExpenses)
   doc.example = false;
   doc.updatedAt = refreshedAt;
   doc.feed = { updated: feed.updated || envUpdated, asOf: feed.asOf, refreshedAt, notes: feed.notes };
   if (feed.prices && feed.prices.length) doc.feed.prices = feed.prices;   // replaced on every refresh; absent = list hidden
+  if (feed.incomeBreakdown) doc.feed.incomeBreakdown = feed.incomeBreakdown;   // v40.1: same rule (absent = card hidden)
   const sum = (s) => s ? s.added + s.updated + s.removed : 0;
   return { ...stats, changed: sum(stats.accounts) + sum(stats.debts) + sum(stats.goals) };
 }
