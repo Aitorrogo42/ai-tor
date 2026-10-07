@@ -5,7 +5,7 @@ import { icon } from '../../js/icons.js';
 import { toast, confirmDialog } from '../../js/ui.js';
 import { COUNTRIES, CONTINENTS, isoLabel } from './countries.js';
 import { validate, summary, emptyDoc, isEmptyDoc, TOTAL, LIMITS, norm } from './model.js';
-import { renderList, renderDetail, LIST_HASH } from './dest-ui.js';
+import { renderList, renderDetail, LIST_HASH, newPlaceCount, syncTabBadge } from './dest-ui.js';
 
 export { validate, summary, emptyDoc };
 export const storageId = 'travels';
@@ -169,7 +169,10 @@ export async function render(root, ctx) {
       active === 'dest' ? h('span', { class: 'tab-pill', 'aria-hidden': 'true' }) : null,
       h('span', { class: 'tab-lbl' }, 'Destinations',
         newCount() ? h('span', { class: 'trv-tabbadge', id: 'tab-dest-new', 'aria-label': `${newCount()} new` }, String(newCount())) : null)));
-  function newCount() { return (doc.destinations || []).filter((p) => !p.seen).length; }
+  function newCount() { return newPlaceCount(); }   // v40: places that arrived since your last visit to the list (dest-ui.js)
+  // v40: a background feed refresh while this page is open updates the Destinations tab badge too
+  const onDest = () => { if (!root.isConnected) { window.removeEventListener('aitor:destinations-refreshed', onDest); return; } syncTabBadge(newPlaceCount()); };
+  window.addEventListener('aitor:destinations-refreshed', onDest);
 
   // ---- Destinations tab (list + detail) ----
   const m = /^#\/travels\/destinations(?:\/([^/?#]+))?\/?$/.exec(ctx.hash || '');

@@ -122,6 +122,17 @@ export function sortPlaces(list) {
     || (b.arrivedAt || '').localeCompare(a.arrivedAt || '') || a.name.localeCompare(b.name));
 }
 
+/** v40: is this place NEW? Not opened yet AND arrived after `boundary` (the end of your previous visit to the list, ISO).
+ *  With no boundary (no history yet) only the most recent arrival batch counts as new. */
+export function isNewPlace(p, boundary, list) {
+  if (!p || p.seen) return false;
+  const at = p.arrivedAt || '';
+  if (boundary) return at > boundary;
+  const newest = (list || []).reduce((m, x) => ((x.arrivedAt || '') > m ? x.arrivedAt : m), '');
+  return at >= newest;
+}
+export const countNew = (list, boundary) => list.filter((p) => isNewPlace(p, boundary, list)).length;
+
 /** Map a country-kind place to the bundled countries list (by name or alias, accent/case-insensitive), or null. */
 export function matchCountry(place, countries, norm) {
   if (place.kind !== 'country') return null;

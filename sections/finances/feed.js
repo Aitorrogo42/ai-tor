@@ -14,11 +14,11 @@
 // `prices` are feed-only: each Refresh replaces them (missing = the Key holdings list is hidden). `debts`/`goals` missing from the feed = left alone. Feed `notes` are shown on the dashboard, they never overwrite your own notes.
 import * as storage from '../../js/storage.js';
 import { uid, isValidISODate } from '../../js/util.js';
-import { FeedError, decryptEnvelope, fetchEnvelope, getPassphrase, setPassphrase, hasPassphrase, checkPassphrase } from '../../js/feedcrypto.js';
+import { FeedError, decryptEnvelope, fetchEnvelope, getPassphrase, setPassphrase, hasPassphrase, checkPassphrase, AUTO_MS, autoDueIn, nextFailStreak } from '../../js/feedcrypto.js';
 import { validate, emptyDoc, canonicalGroup, cleanPrices, LIMITS } from './model.js';
 
 export const FEED_URL = new URL('../../feed/finances.enc.json', import.meta.url).href;   // same origin as the app
-export const AUTO_REFRESH_MS = 15 * 60 * 1000;   // auto-refresh on app open at most once per 15 minutes (counts every attempt)
+export const AUTO_REFRESH_MS = AUTO_MS;   // auto-refresh on open / back in the foreground at most once per 15 minutes; v40: a network failure retries sooner (js/feedcrypto.js)
 export { hasPassphrase, checkPassphrase };
 
 const cfgStore = () => storage.config('finances');
@@ -119,7 +119,7 @@ export function refresh({ auto = false, passphrase = null } = {}) {
     if (!pass) return { ok: false, kind: 'nopass', error: 'Enter your passphrase to refresh from your assistant.' };
     if (passphrase != null) { const errs = checkPassphrase(passphrase); if (errs.length) return { ok: false, kind: 'nopass', error: errs[0] }; }
     const attemptAt = new Date().toISOString();
-    const fail = (error, kind) => { record({ lastAttemptAt: attemptAt, lastError: error, lastErrorKind: kind }); return { ok: false, error, kind }; };
+    const fail = (error, kind) => { record({ lastAttemptAt: attemptAt, lastError: error, lastErrorKind: kind, failStreak: nextFailStreak(getState(), kind) }); return { ok: false, error, kind }; };
     let env, text;
     try { env = await fetchEnvelope(FEED_URL, 'finance', 'Your finance feed has not been published yet (404). Your assistant needs to publish it first. Try again later.'); }
     catch (e) { return fail(e instanceof FeedError ? e.message : 'Could not load the finance feed.', e instanceof FeedError ? e.kind : 'network'); }
@@ -138,19 +138,17 @@ export function refresh({ auto = false, passphrase = null } = {}) {
     const stats = mergeFeed(doc, parsed.feed, { envUpdated: env && env.updated });
     try { store().set(doc); } catch { return fail('Could not save: storage is full or blocked.', 'storage'); }
     if (passphrase != null) { try { setPassphrase(passphrase); } catch { /* ignore */ } }
-    record({ lastAttemptAt: attemptAt, lastRefreshAt: doc.feed.refreshedAt, lastError: null, lastErrorKind: null, lastAuto: auto });
+    record({ lastAttemptAt: attemptAt, lastRefreshAt: doc.feed.refreshedAt, lastError: null, lastErrorKind: null, failStreak: 0, lastAuto: auto });
     try { window.dispatchEvent(new CustomEvent('aitor:finances-refreshed', { detail: { auto, stats } })); } catch { /* ignore */ }
     return { ok: true, stats, skipped: parsed.skipped };
   })().finally(() => { inFlight = null; });
   return inFlight;
 }
 
-export function shouldAutoRefresh(now = Date.now()) {
-  if (!hasPassphrase()) return false;
-  const last = Date.parse(getState().lastAttemptAt || '') || 0;
-  return now - last >= AUTO_REFRESH_MS;
-}
-/** Used on app open / when the app returns to the foreground. Skips example data and the edit page. */
+/** Milliseconds until the next auto refresh is due (0 = now), or null without a passphrase. */
+export function autoRefreshIn(now = Date.now()) { return hasPassphrase() ? autoDueIn(getState(), now, AUTO_REFRESH_MS) : null; }
+export function shouldAutoRefresh(now = Date.now()) { return autoRefreshIn(now) === 0; }
+/** Used on app open / back in the foreground / back online (js/feedauto.js). Skips example data and the edit page. */
 export function maybeAutoRefresh() {
   if (!shouldAutoRefresh() || String(location.hash).startsWith('#/finances/edit')) return Promise.resolve(null);
   const raw = store().get();

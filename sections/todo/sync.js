@@ -12,8 +12,10 @@ import * as feedcrypto from '../../js/feedcrypto.js';
 import { FeedError } from '../../js/feedcrypto.js';   // shared crypto + passphrase live in js/feedcrypto.js
 export { FeedError };
 
-export const AUTO_SYNC_MS = 4 * 60 * 60 * 1000;   // auto-sync on open at most every 4 hours after a success
-export const RETRY_MS = 30 * 60 * 1000;           // ...and not more than every 30 min after a failed attempt
+// v40: was every 4 h after a success / 30 min after a failure, so tasks published in the morning could stay hidden for hours.
+// Now like the other feeds: on open / back in the foreground at most every 15 min; a network failure retries sooner (js/feedcrypto.js).
+export const AUTO_SYNC_MS = 15 * 60 * 1000;       // after a success
+export const RETRY_MS = 15 * 60 * 1000;           // after a non-network failure (wrong passphrase, bad file…)
 export const FEED_URL = new URL('../../feed/tasks.enc.json', import.meta.url).href;   // same origin as the app
 export { MAX_ITER, MIN_ITER } from '../../js/feedcrypto.js';
 
@@ -52,22 +54,22 @@ export function syncNow({ auto = false } = {}) {
     const cfg = getConfig();
     if (!isConfigured()) return { ok: false, error: 'Enter your passphrase in the sync settings first.' };
     const attemptAt = new Date().toISOString();
-    const fail = (error) => { recordAttempt({ lastAttemptAt: attemptAt, lastError: error }); return { ok: false, error }; };
-    if (typeof navigator !== 'undefined' && navigator.onLine === false) return fail('You are offline. Sync will work when you are back online.');
+    const fail = (error, kind = 'other') => { recordAttempt({ lastAttemptAt: attemptAt, lastError: error, lastErrorKind: kind, failStreak: feedcrypto.nextFailStreak(getConfig(), kind) }); return { ok: false, error }; };
+    if (typeof navigator !== 'undefined' && navigator.onLine === false) return fail('You are offline. Sync will work when you are back online.', 'offline');
     let env;
     try {
       const ctl = new AbortController();
       const timer = setTimeout(() => ctl.abort(), 20000);
       let res;
       try {
-        res = await fetch(FEED_URL, { method: 'GET', cache: 'no-store', credentials: 'omit', referrerPolicy: 'no-referrer', redirect: 'follow', signal: ctl.signal });
+        res = await feedcrypto.feedFetch(FEED_URL, ctl.signal);   // v40: cache-busted, one quick retry, never a stale service-worker copy
       } finally { clearTimeout(timer); }
       if (!res.ok) return fail(describeHttp(res.status));
       const text = await res.text();
       if (text.length > 6 * 1024 * 1024) return fail('The encrypted task file is too large.');
       try { env = JSON.parse(text); } catch { return fail('The encrypted task file is not valid JSON (it may still be uploading). Try again in a minute.'); }
     } catch (e) {
-      return fail(e && e.name === 'AbortError' ? 'The task feed took too long to answer. Try again.' : 'Could not load the task feed. Check your connection and try again.');
+      return fail(e && e.name === 'AbortError' ? 'The task feed took too long to answer. Try again.' : 'Could not load the task feed. Check your connection and try again.', e && e.name === 'AbortError' ? 'timeout' : 'network');
     }
     let text;
     try { text = await decryptEnvelope(env, cfg.passphrase); }
@@ -80,20 +82,21 @@ export function syncNow({ auto = false } = {}) {
     if (raw) { const v = validate(raw); if (!v.ok) return fail('Saved To-Do data looks damaged, so sync did not change it. Restore a backup or reset the To-Do section.'); doc = v.doc; }
     const stats = mergeFeed(doc, parsed.feed);
     try { store().set(doc); } catch { return fail('Could not save: storage is full or blocked.'); }
-    recordAttempt({ lastAttemptAt: attemptAt, lastSyncAt: new Date().toISOString(), lastError: null, feedUpdated: parsed.feed.updated || (env && env.updated) || null, lastStats: { added: stats.added, updated: stats.updated, removed: stats.removed, skipped: stats.skipped }, lastAuto: auto });
+    recordAttempt({ lastAttemptAt: attemptAt, lastSyncAt: new Date().toISOString(), lastError: null, lastErrorKind: null, failStreak: 0, feedUpdated: parsed.feed.updated || (env && env.updated) || null, lastStats: { added: stats.added, updated: stats.updated, removed: stats.removed, skipped: stats.skipped }, lastAuto: auto });
     try { window.dispatchEvent(new CustomEvent('aitor:todo-synced', { detail: stats })); } catch { /* ignore */ }
     return { ok: true, ...stats };
   })().finally(() => { inFlight = null; });
   return inFlight;
 }
 
-export function shouldAutoSync(now = Date.now()) {
+/** Milliseconds until the next auto sync is due (0 = now), or null when sync is not set up. */
+export function autoSyncIn(now = Date.now()) {
   const c = getConfig();
-  if (!isConfigured()) return false;
+  if (!isConfigured()) return null;
   const last = Date.parse(c.lastSyncAt || '') || 0;
-  const attempt = Date.parse(c.lastAttemptAt || '') || 0;
-  return now - last >= AUTO_SYNC_MS && now - attempt >= RETRY_MS;
+  return Math.max(0, last + AUTO_SYNC_MS - now, feedcrypto.autoDueIn(c, now, RETRY_MS));   // after a success: 15 min; after a failure: backoff (network) or 15 min
 }
+export function shouldAutoSync(now = Date.now()) { return autoSyncIn(now) === 0; }
 export function maybeAutoSync() { return shouldAutoSync() ? syncNow({ auto: true }) : Promise.resolve(null); }
 
 export const timeAgo = feedcrypto.timeAgo;

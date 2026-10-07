@@ -6,6 +6,21 @@ An installable personal-life app (PWA). Plain HTML/CSS/JS: **no build step, no C
 
 Today: **Architecture** (v24, staged: materials, famous buildings, architects, designers and consultants by discipline), **Finances** (accounts, debts, income/expenses, goals, notes, dashboard, and an optional Refresh from your assistant) and **Travels** with two tabs: **Visited** (tick the countries you have visited out of a bundled offline list of 195, with search, per-continent counts, and optional year(s)/note per country) and **Destinations** (places your Travel Guide bot proposes, from an optional encrypted feed). **To-Do** (two parallel lists, **Personal** and **Work**, each a clear task list with a Done pile, comments per task, and an optional daily feed from your assistant). **Game** (v32: *Keep Mars up*, a one-thumb tap game; the best score is kept on the device and included in backups). The home screen is a registry of sections, so more can be added later. Section logos live in `icons/sections/`.
 
+## v40 / 2.15.2 (sw aitor-v40): new recommendations show up on their own
+- **Bug:** places your travel assistant published did not appear in Travels → Destinations until you refreshed by hand. On a phone the app made a
+  single auto refresh the instant it came back to the foreground, when the network is often not up yet. The service worker answered that failed
+  request with its last saved copy of the feed, so the app thought it had refreshed ("Updated just now"), kept yesterday's list and did not look
+  again for 15 minutes (a failed attempt also blocked the next one for 15 minutes). The feed itself and the merge were fine.
+- **Fix (all three encrypted feeds: Destinations, Finances, To-Do):** one driver (`js/feedauto.js`) checks the feeds when the app opens, comes back
+  to the foreground (visibilitychange / pageshow / focus) or comes back online, at most every 15 minutes each. Every request is cache-busted (`?t=`)
+  and `no-store`, with one quick retry. The service worker's offline copy is marked (`X-Aitor-Feed-Cache`) and counts as a network failure, never as
+  fresh; your saved places/tasks/numbers stay on screen. After a network failure the app retries by itself while open (20 s, 1 min, 3 min, 10 min).
+  To-Do auto sync was every 4 hours, now every 15 minutes like the others. An unchanged Destinations file skips the decrypt.
+- **NEW badges:** only places that arrived since your last visit to the list get NEW (before, every unopened place stayed NEW), newest
+  `recommended_on` first; the Destinations tab shows the count.
+- Tests: new `ai-tor-test-feedauto.py` (dropped first request, offline copy, automatic retry, 15-min throttle, newest first, NEW since last visit);
+  dest / finfeed / todo / enc adapted (`?t=` URLs, a server that cannot be reached is no longer reported as "Synced just now").
+
 ## v39 / 2.15.1 (sw aitor-v39): clouds on the Moon theme's Earth
 
 - The Earthrise / Earthset disc on the **Moon** theme now has real clouds. The NASA Blue Marble cloud layer (the same source as the Earth theme's `earth-clouds.webp`) is baked into the small disc texture `assets/earth-disc.webp` (512x256, 45 KB), composited in linear light with alpha = cloud coverage and a slight brightening so the clouds read at the disc's size. The Moon theme therefore does not download the big Earth cloud texture. The shader is unchanged: phase, terminator lighting and the faint blue rim are applied on top of the clouds. Builder: `python3 tools/make_theme_textures.py --disc-only`.

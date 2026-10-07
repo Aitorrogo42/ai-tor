@@ -6,7 +6,7 @@ import { toast } from '../../js/ui.js';
 import { timeAgo } from '../../js/feedcrypto.js';
 import { COUNTRIES, isoLabel } from './countries.js';
 import { norm } from './model.js';
-import { KINDS, KIND_LABEL, LIMITS, safeUrl, sortPlaces, matchCountry } from './dest-model.js';
+import { KINDS, KIND_LABEL, LIMITS, safeUrl, sortPlaces, matchCountry, isNewPlace, countNew } from './dest-model.js';
 import * as feed from './dest-feed.js';
 
 export const LIST_HASH = '#/travels/destinations';
@@ -35,6 +35,7 @@ function refreshBar(rerender) {
   const root = h('div', { class: 'card feedbar', id: 'dst-bar' });
   const onRefreshed = () => {
     if (!root.isConnected) { window.removeEventListener('aitor:destinations-refreshed', onRefreshed); return; }
+    if (!busy) { const s2 = feed.getState(); if (!s2.lastError) error = null; draw(); }   // v40: a background refresh also updates "Updated <time> · N places"
     if (location.hash === LIST_HASH && rerender) rerender();
   };
   window.addEventListener('aitor:destinations-refreshed', onRefreshed);
@@ -86,8 +87,11 @@ function refreshBar(rerender) {
   return root;
 }
 
+/** v40: number of NEW places for the tab badge (the same rule as the list). */
+export function newPlaceCount() { const d = feed.readDoc(); return d.ok ? countNew(d.doc.destinations, feed.visitBoundary()) : 0; }
+
 /** Keep the "N new" badge on the Destinations tab in step with the list (the tab bar is drawn once per page). */
-function syncTabBadge(n) {
+export function syncTabBadge(n) {
   const tab = document.getElementById('tab-dest');
   if (!tab) return;
   let b = tab.querySelector('.trv-tabbadge');
@@ -99,6 +103,8 @@ function syncTabBadge(n) {
 // ---------- List ----------
 export function renderList(container, ctx) {
   const rerender = () => draw();
+  const boundary = feed.visitBoundary();   // frozen for this visit (see dest-feed.js)
+  let newIds = new Set();
   const bar = refreshBar(rerender);
   const listBox = h('div', { class: 'dst-listbox', id: 'dst-listbox' });
 
@@ -114,9 +120,10 @@ export function renderList(container, ctx) {
 
   function row(p) {
     const meta = [p.region, p.best_window ? 'Best: ' + p.best_window : ''].filter(Boolean).join(' · ');
-    return h('li', { class: 'dst-row' + (p.seen ? '' : ' is-new'), 'data-place': p.id },
+    const isNew = newIds.has(p.id);
+    return h('li', { class: 'dst-row' + (isNew ? ' is-new' : ''), 'data-place': p.id },
       h('a', { class: 'dst-main', href: LIST_HASH + '/' + encodeURIComponent(p.id) },
-        h('span', { class: 'dst-line1' }, h('span', { class: 'dst-name' }, p.name), p.seen ? null : h('span', { class: 'dst-new', 'aria-label': 'New' }, 'NEW')),
+        h('span', { class: 'dst-line1' }, h('span', { class: 'dst-name' }, p.name), isNew ? h('span', { class: 'dst-new', 'aria-label': 'New' }, 'NEW') : null),
         h('span', { class: 'dst-line2' }, kindChip(p.kind), meta ? h('span', { class: 'dst-region' }, meta) : null),
         p.summary ? h('span', { class: 'dst-sum' }, p.summary) : null),
       h('button', { type: 'button', class: 'dst-star' + (p.favorite ? ' on' : ''), 'data-star': p.id, 'aria-pressed': String(p.favorite), 'aria-label': (p.favorite ? 'Remove favorite: ' : 'Favorite: ') + p.name,
@@ -130,7 +137,9 @@ export function renderList(container, ctx) {
       return;
     }
     const all = sortPlaces(doc.doc.destinations);
-    syncTabBadge(all.filter((p) => !p.seen).length);
+    newIds = new Set(all.filter((p) => isNewPlace(p, boundary, all)).map((p) => p.id));   // v40: NEW = arrived since your last visit (and not opened)
+    syncTabBadge(newIds.size);
+    if (document.visibilityState !== 'hidden') feed.markListSeen();
     const present = KINDS.concat(['other']).filter((k) => all.some((p) => p.kind === k));
     if (state.kind !== 'all' && !present.includes(state.kind)) state.kind = 'all';
     chips.replaceChildren(
@@ -149,7 +158,7 @@ export function renderList(container, ctx) {
     } else if (!shown.length) {
       listBox.replaceChildren(h('div', { class: 'card', id: 'dst-nomatch' }, h('p', { class: 'note' }, 'No destination matches your search or filter.')));
     } else {
-      const fresh = all.filter((p) => !p.seen).length;
+      const fresh = newIds.size;
       listBox.replaceChildren(
         h('p', { class: 'dst-count', id: 'dst-count' }, `${shown.length} of ${all.length} destination${all.length === 1 ? '' : 's'}`, fresh ? ` · ${fresh} new` : ''),
         h('ul', { class: 'dst-ul', id: 'dst-ul' }, shown.map(row)));

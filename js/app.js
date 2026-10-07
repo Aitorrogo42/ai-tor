@@ -139,41 +139,9 @@ const firstRoute = route({ animate: true });
 if (splashOn) armSplash(firstRoute, () => { beginEnter(app, 'fwd'); markEnter(app, 'fwd'); });
 storage.requestPersistence();
 
-// Optional To-Do task sync: does nothing (and loads nothing) unless the user configured it in To-Do. At most once every few hours.
-async function autoSync() {
-  try {
-    const c = storage.config('todo').get();
-    if (!c || !c.passphrase) return;
-    const m = await import('../sections/todo/sync.js');
-    await m.maybeAutoSync();
-  } catch (e) { console.warn('auto-sync skipped', e); }
-}
-autoSync();
-document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') autoSync(); });
-
-// Optional Finances feed refresh: needs the shared passphrase (set in Finances or To-Do). At most once per 15 minutes.
-async function autoRefreshFinances() {
-  try {
-    const f = storage.config('feed').get(), t = storage.config('todo').get();
-    if (!((f && f.passphrase) || (t && t.passphrase))) return;
-    const m = await import('../sections/finances/feed.js');
-    await m.maybeAutoRefresh();
-  } catch (e) { console.warn('finances auto-refresh skipped', e); }
-}
-autoRefreshFinances();
-document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') autoRefreshFinances(); });
-
-// Optional Travels → Destinations feed (proposals from the Travel Guide): same shared passphrase, at most once per 15 minutes.
-async function autoRefreshDestinations() {
-  try {
-    const f = storage.config('feed').get(), t = storage.config('todo').get();
-    if (!((f && f.passphrase) || (t && t.passphrase))) return;
-    const m = await import('../sections/travels/dest-feed.js');
-    await m.maybeAutoRefresh();
-  } catch (e) { console.warn('destinations auto-refresh skipped', e); }
-}
-autoRefreshDestinations();
-document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') autoRefreshDestinations(); });
+// Optional encrypted feeds (To-Do tasks, Finances, Travels → Destinations): refreshed automatically on open, back in the foreground and back
+// online, at most every 15 minutes each (sooner after a network failure). Nothing is loaded or fetched for a feed without a passphrase. See js/feedauto.js.
+import('./feedauto.js').then((m) => m.startFeedAutoRefresh()).catch((e) => console.warn('feed auto-refresh unavailable', e));
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
