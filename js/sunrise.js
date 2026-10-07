@@ -233,6 +233,273 @@ void main(){
   gl_FragColor = vec4(col, 1.);
 }`;
 
+// ===================== v38 themes: Earth / Moon =====================
+// The SAME renderer, camera, composition, uniforms and sun mapping as Mars; only the fragment shader and the two textures change per body.
+// Mars keeps its original FRAG above byte for byte (the 'mars' theme is pixel-identical). Earth / Moon use global equirectangular maps (2048x1024, lon -180..180,
+// north up) on unit 0, and a second map on unit 1 (Earth: Black Marble night lights; Moon: a small Earth map for the Earthrise disc).
+// THEMES = the asset list per body (the Settings picker / service worker read it). photo = the pre-rendered CSS fallback (no WebGL), same geometry as mars-photo.webp.
+export const BODIES = ['mars', 'earth', 'moon'];
+export const THEMES = {
+  mars: { label: 'Mars', map: 'assets/mars-map.webp', second: 'assets/city-lights.webp', photo: 'assets/mars-photo.webp', cssCity: 'assets/city-lights-css.webp' },
+  earth: { label: 'Earth', map: 'assets/earth-day.webp', second: 'assets/earth-clouds.webp', third: 'assets/earth-globe.webp', photo: 'assets/earth-photo.webp', cssCity: null },   // pass 3: map = sharp crop (day + lights in A), second = drifting clouds, third = whole-globe fallback
+  moon: { label: 'Moon', map: 'assets/moon-albedo.webp', second: 'assets/earth-disc.webp', third: 'assets/city-lights.webp', fourth: 'assets/moon-relief.webp', photo: 'assets/moon-photo.webp', cssCity: null },   // third = the Mars city texture, reused (smaller) as a growing Moon base
+};
+export const MOON_CROP = [-28, 62, -27, 47];   // pass 3: moon-albedo / moon-relief crop (lon0, lon1, lat0, lat1); phones incl. the +-13 deg drift see lat -23..44, lon -25..58; must match tools/make_moon_textures.py
+export const MOON_SLOPE_ENC = 1.6, MOON_RELIEF = 2.4;
+export const MOON_NOON_CONTRAST = 0.3, MOON_NOON_EXPOSURE_CUT = 0.12;   // pass 4: maria / highland contrast + exposure at high sun (see FRAG_MOON)   // relief atlas encoding (stored = .5 + slope * ENC) and the slope exaggeration used for shading
+export const MOON_BASE_K = 0.6, MOON_BASE_GAIN = 1.3;   // pass 2: Moon base = the Mars city at 60% size
+export const GLOBE_LON0 = 0, EARTH_DLAT = 16;
+export const EARTH_CROP = [-28, 72, -14, 64];   // pass 3: earth-day.webp covers texture lon -28..72, lat -14..64 (phones incl. the +-13 deg drift see lat -9..60, lon -24..68); must match tools/make_theme_textures.py  // EARTH_DLAT: Earth view tilted 16 deg further north (lat ~-7..55: Europe, Mediterranean, Nile, Middle East)
+     // texture longitude at planet lon 0: the rest view shows lat -23..39, lon -12..35 (Earth: Mediterranean, Nile, Sahara, Gulf of Guinea; Moon: Imbrium / Serenitatis / Tranquillitatis)
+const COMMON = `
+#ifdef GL_FRAGMENT_PRECISION_HIGH
+precision highp float;
+#else
+precision mediump float;
+#endif
+uniform vec2 uRes; uniform vec2 uC; uniform float uR; uniform float uPx;
+uniform vec3 uS; uniform float uSinE; uniform float uSol; uniform vec2 uSun;
+uniform float uTime; uniform float uDrift; uniform float uStill;
+uniform mat3 uM; uniform vec3 uAxis;
+uniform sampler2D uTex; uniform float uHasTex;
+uniform sampler2D uCity; uniform float uHasCity; uniform float uCityK;
+const float PI = 3.14159265;
+float h21(vec2 p){ p = fract(p * vec2(123.34, 456.21)); p += dot(p, p + 45.32); return fract(p.x * p.y); }
+float vn(vec2 p){ vec2 i = floor(p), f = fract(p); f = f * f * (3. - 2. * f);
+  return mix(mix(h21(i), h21(i + vec2(1., 0.)), f.x), mix(h21(i + vec2(0., 1.)), h21(i + vec2(1., 1.)), f.x), f.y); }
+float fbm(vec2 p){ float a = .5, s = 0.; for (int i = 0; i < 4; i++) { s += a * vn(p); p = p * 2.03 + vec2(7.1, 3.7); a *= .5; } return s; }
+float lum(vec3 c){ return dot(c, vec3(.3, .55, .15)); }
+vec3 tonemap(vec3 x){ x *= .85; return clamp((x * (2.51 * x + .03)) / (x * (2.43 * x + .59) + .14), 0., 1.); }
+vec3 starField(vec2 p, float H, vec3 mwCol){
+  vec3 stars = vec3(0.);
+  for (int L = 0; L < 2; L++) {
+    float cell = (L == 0 ? 23. : 83.) * uPx;
+    vec2 id = floor(p / cell), f = fract(p / cell);
+    float a = h21(id + float(L) * 17.3), b = h21(id + 5.1 + float(L)), c = h21(id + 9.7);
+    if (c > (L == 0 ? .38 : .30)) continue;
+    vec2 sp = vec2(.15 + .7 * a, .15 + .7 * b);
+    float d = length((f - sp) * cell) / uPx;
+    float rad = L == 0 ? .75 + .6 * a : 1.2 + .8 * b;
+    float tl = 1. - .30 * (1. - uStill) * sin(uTime * (1.2 + 2.6 * b) + a * 40.);
+    float s = smoothstep(rad, rad * .15, d) * (L == 0 ? .35 + .65 * c * 2.6 : 1.) * tl;
+    stars += vec3(1., .94 + .04 * b, .90 + .1 * a) * s * (L == 0 ? .8 : 1.15);
+  }
+  vec2 bn = vec2(.62, .78); float bd = dot(p / H - vec2(.5, .3), bn);
+  stars += mwCol * exp(-pow(bd / .16, 2.)) * (.35 + .9 * fbm(p / H * 7.)) * .05;
+  return stars;
+}
+// planet geometry shared by both bodies: n = view-space normal, a = planet frame, uv = global equirect lookup
+void globe(vec2 q, float r2, float dLat, out vec3 n, out vec2 uv, out vec2 s2, out float lat){
+  float nz = sqrt(max(1. - r2, 0.));
+  n = vec3(q.x, -q.y, nz);
+  vec3 a = uM * n;
+  float cd = cos(dLat), sdl = sin(dLat); a = vec3(a.x, a.y * cd + a.z * sdl, a.z * cd - a.y * sdl);   // extra tilt: Earth shows Europe / the Mediterranean
+  lat = asin(clamp(a.y, -1., 1.));
+  float lonD = atan(a.x, a.z) / PI * 180. + uDrift, latD = lat / PI * 180.;
+  uv = vec2(fract(.5 + (lonD + ${GLOBE_LON0.toFixed(1)}) / 360.), .5 - latD / 180.);
+  s2 = vec2(lonD * cos(lat), latD);
+}
+void grade(inout vec3 col, vec2 p, float H){
+  col = tonemap(col);
+  col = pow(col, vec3(1. / 2.2));
+  float vg = length((p / uRes - .5) * vec2(1., 1.15));
+  col *= 1. - .35 * smoothstep(.45, 1., vg);
+  col *= 1. - .48 * smoothstep(.80, 1., p.y / H);
+  col *= 1. - .76 * (1. - smoothstep(0., .27, p.y / H));
+  col += (h21(p + fract(uTime)) - .5) / 255.;
+}
+`;
+
+// EARTH: Blue Marble + clouds (alpha) + ocean glint, blue Rayleigh limb, warm terminator scattering, Black Marble lights on the night side only.
+const FRAG_EARTH = COMMON + `
+uniform sampler2D uBase; uniform float uHasBase;      // pass 3: unit 2 = earth-globe.webp (whole globe, used only outside the crop)
+const vec4 CROP = vec4(${EARTH_CROP[0].toFixed(1)}, ${EARTH_CROP[3].toFixed(1)}, ${(EARTH_CROP[1] - EARTH_CROP[0]).toFixed(1)}, ${(EARTH_CROP[3] - EARTH_CROP[2]).toFixed(1)});   // lon0, lat1, lon span, lat span
+void main(){
+  vec2 p = vec2(gl_FragCoord.x, uRes.y - gl_FragCoord.y);
+  vec2 q = (p - uC) / uR; float r2 = dot(q, q), r = sqrt(r2);
+  float hr = (r - 1.) * uR; float H = uRes.y; float sinE = uSinE;
+  float dayF = clamp((sinE + .12) / .57, 0., 1.); dayF = dayF * dayF * (3. - 2. * dayF);
+  float tw = exp(-pow((sinE - .03) / .2, 2.));
+  vec2 m = r > 0. ? q / r : vec2(0., -1.);
+  vec3 nl = vec3(m.x, -m.y, 0.);
+  vec2 sunD = uSun - uC; float sunDist = length(sunD); vec2 sunDir = sunD / max(sunDist, 1.);
+  float sd = sunDist - uR;
+  float fwd = pow(max(dot(m, sunDir), 0.), 18.);
+  float litA = smoothstep(-.35, .5, dot(nl, uS));
+  float horizon = smoothstep(-.4, .3, sinE);
+  float prox = exp(-pow(sinE / .30, 2.));                        // how close the sun is to the horizon
+  float sunAmp = sinE < 0. ? exp(sinE * 3.4) : 1. - .70 * smoothstep(.04, .75, sinE);
+  // sky: deep space above a thin bright-blue atmosphere band
+  float hs = max(hr, 0.) / H;
+  vec3 skyNight = mix(vec3(.004, .008, .022), vec3(.0008, .001, .004), smoothstep(0., .5, hs));
+  vec3 skyDay = mix(vec3(.10, .26, .62), vec3(.006, .014, .045), smoothstep(0., .8, pow(hs, .5)));
+  vec3 sky = mix(skyNight, skyDay, dayF);
+  float dxs = (p.x - uSun.x) / H;
+  // Pass 2: twilight = a deep-blue gradient from space down into the atmosphere (no purple: no warm term outside the sun point)
+  vec3 skyTw = mix(vec3(.05, .17, .55), vec3(.003, .008, .032), smoothstep(0., .42, pow(hs, .6)));
+  sky = mix(sky, skyTw * (.55 + .45 * litA), tw * (1. - dayF));
+  float sunPt = exp(-dxs * dxs * 260.);                                  // warm band ONLY right at the sunrise / sunset point
+  sky += vec3(1., .45, .14) * exp(-hs * 60.) * sunPt * tw * 1.1;
+  float starVis = (1. - smoothstep(-.26, .06, sinE)) * smoothstep(0., .10, hs + .01);
+  vec3 col = sky;
+  if (starVis > .003 && hr > -2.) col += starField(p, H, vec3(.55, .6, .8)) * starVis;
+  // sun: whiter than on Mars
+  vec2 dv = p - uSun; float ds = length(dv) / H; float dsH = length(vec2(dv.x * .42, dv.y)) / H;
+  float skyM = smoothstep(-2., 2., hr); float vis = smoothstep(-1., 3., sd);
+  float core = 1. / (1. + pow(ds / .028, 2.));
+  vec3 sunHalo = vec3(1., .93, .80) * exp(-ds * 19.) * .95 + vec3(.55, .78, 1.) * exp(-ds * 6.5) * .10;   // pass 3: Mars-strength halo, yellow-white only (orange over blue = purple)
+  vec3 sunCore = mix(vec3(1., .88, .70), vec3(1., .98, .95), exp(-ds * 60.)) * core * 1.25;
+  float disc = smoothstep(.0105, .0075, ds);
+  float streak = exp(-abs(dv.y) / (2.4 * uPx)) * exp(-abs(dv.x) / (.30 * uRes.x)) * .85;
+  vec3 sunLight = (sunHalo * (.45 + .55 * vis) + sunCore * vis * 1.2 + vec3(1., .98, .95) * disc * vis * 3. + vec3(.7, .85, 1.) * streak * vis * .75 + vec3(1., .6, .3) * streak * (1. - vis) * .12) * sunAmp;
+  col += sunLight * mix(.16, 1., skyM);
+  // pass 3: warm glare hugging the limb on both sides of the sunrise / sunset point (thin in height, so the sky stays blue)
+  float gx = (p.x - uSun.x) / uRes.x;
+  float glare = (exp(-abs(hr) / (3.2 * uPx)) * 1.3 + exp(-abs(hr) / (13. * uPx)) * .35) * exp(-gx * gx * 22.) * prox * sunAmp * smoothstep(-.5, .2, sd / uR + .06);
+  col += vec3(1., .58, .24) * glare;
+  // planet
+  if (r < 1.0035) {
+    vec3 n; vec2 uv, s2; float lat; globe(q, r2, ${(EARTH_DLAT * DEG).toFixed(4)}, n, uv, s2, lat);
+    float nz = n.z, nzx = max(nz, .06);
+    // pass 3: sharp crop (RGB day + A lights) where the camera looks, the low-res globe only outside it (blended over a thin margin)
+    vec2 uvC = vec2((uv.x * 360. - 180. - CROP.x) / CROP.z, (CROP.y - lat * 57.29578) / CROP.w);
+    float inC = smoothstep(0., .015, min(min(uvC.x, 1. - uvC.x), min(uvC.y, 1. - uvC.y)));
+    vec4 tx = vec4(.02, .05, .12, 0.);
+    if (inC > 0.) tx = texture2D(uTex, clamp(uvC, 0., 1.));
+    if (inC < 1.) tx = mix(texture2D(uBase, uv), tx, inC);
+    vec3 alb = mix(vec3(.02, .05, .12), pow(tx.rgb, vec3(2.2)), uHasTex);
+    // pass 3: clouds = their own global texture, drifting slowly (+-6 deg east-west, period 1000 s = the shader clock wrap, so it never jumps; still in reduced motion)
+    float cOff = .0167 * sin(uTime * .0062832) * (1. - uStill);
+    float cloud = smoothstep(.12, .85, texture2D(uCity, uv + vec2(cOff, 0.)).r) * uHasCity;
+    float water = smoothstep(.015, .06, alb.b - alb.r) * (1. - cloud);
+    alb = mix(alb, vec3(.78, .80, .84), cloud);
+    float ndl0 = dot(n, uS);
+    float c2 = clamp((ndl0 + .06) / .28, 0., 1.); float L = c2 * c2 * (3. - 2. * c2); L = mix(L, max(ndl0, 0.), .5);
+    vec3 sunCol = mix(vec3(1., .42, .18), vec3(1., .97, .92), smoothstep(.0, .4, ndl0));
+    vec3 surf = alb * sunCol * L * 1.25;
+    vec3 hv = normalize(uS + vec3(0., 0., 1.));
+    surf += vec3(1., .85, .65) * pow(max(dot(n, hv), 0.), 70.) * water * L * 1.6 * mix(vec3(1., .55, .3), vec3(1.), smoothstep(0., .4, ndl0));
+    surf += alb * vec3(.35, .5, .9) * (.010 + .03 * dayF);
+    // Rayleigh haze toward the limb: blue on the day side, orange at the terminator
+    float fog = 1. - exp(-.05 / (nzx * nzx));
+    float hl = mix(smoothstep(-.3, .4, ndl0), litA, 1. - nz);
+    fog = clamp(fog * (.25 + .75 * hl), 0., .85);
+    vec3 hazeCol = mix(vec3(.28, .52, 1.) * (.04 + .55 * hl * horizon + .25 * dayF), vec3(1., .45, .18) * (.1 + .8 * hl), clamp(pow(max(dot(m, sunDir), 0.), 160.) * (1. - nz) * prox * (1. - smoothstep(0., .35, ndl0)), 0., 1.));
+    surf = mix(surf, hazeCol, fog);
+    // Black Marble lights: night side only (per pixel), dimmed by clouds and the limb haze
+    float cityK = 1. - smoothstep(-.14, .06, ndl0);
+    if (cityK > .004 && uHasTex > .5) {
+      float li = pow(tx.a, 2.2) * 3.0;                                                     // lights come with the day lookup (alpha), no extra fetch; pass 4: full-range texture, gain 3.0
+      li = li / (1. + li);                                                                  // soft knee (no clipped white blobs). Pass 4 fix: pass 3 had left this inside the comment above
+      vec3 sod = mix(vec3(1., .50, .15), vec3(1., .74, .44), li * li * li);                     // high-pressure sodium orange, slightly whiter LED cores (ISS night photos)
+      surf += sod * li * 1.3 * cityK * uCityK * (1. - .75 * cloud) * (1. - .6 * fog);
+    }
+    col = mix(col, surf, smoothstep(-1., 1., -hr));
+  }
+  // blue atmospheric limb (both sides), warm where the sun grazes it
+  float t1 = max(.0095 * uR, 2.6 * uPx);
+  float prof = exp(-abs(hr) / (hr > 0. ? t1 : t1 * 2.0));
+  float broad = exp(-max(hr, 0.) / (.04 * uR)) * (hr > 0. ? 1. : exp(hr / (.04 * uR)));
+  float fwdN = pow(max(dot(m, sunDir), 0.), 70.);                        // narrow lobe: warm only right at the sun point
+  vec3 rimCol = mix(vec3(.42, .68, 1.), vec3(1., .62, .30), clamp(fwdN * prox * 1.6, 0., 1.));
+  float rimAmt = .12 + .30 * tw * horizon + .55 * litA * litA * dayF + 1.3 * prox * fwdN;   // thin bright blue line along the whole limb
+  col += rimCol * prof * rimAmt + vec3(.20, .42, 1.) * broad * (.03 + .12 * tw + .22 * litA * litA * dayF) * .5;
+  grade(col, p, H);
+  gl_FragColor = vec4(col, 1.);
+}`;
+
+// MOON: LROC color + LOLA relief (alpha), hard terminator, black sky with stars at every hour, no haze / glow / cities.
+// The sun is replaced by a small Earth disc on the same path (Earthrise at the sunrise position, Earthset at sunset), lit from the side the sun would be on.
+const FRAG_MOON = COMMON + `
+uniform sampler2D uBase; uniform float uHasBase;
+uniform float uER;   // Earth disc radius (canvas px)
+uniform sampler2D uAux; uniform float uHasAux;   // relief atlas (pass 4: east slope 2048x1280 / north slope 1024x768 | whole-globe gray 1024x512)
+const vec4 MCROP = vec4(${MOON_CROP[0].toFixed(1)}, ${MOON_CROP[3].toFixed(1)}, ${(MOON_CROP[1] - MOON_CROP[0]).toFixed(1)}, ${(MOON_CROP[3] - MOON_CROP[2]).toFixed(1)});   // lon0, lat1, lon span, lat span
+// Pass 2: a small Moon base = the Mars city texture (assets/city-lights.webp) at the same planet spot (CITY), scaled to MOON_BASE_K of its size.
+const float CITY_LON = ${CITY.lon.toFixed(2)}, CITY_LAT = ${CITY.lat.toFixed(2)};
+const vec4 CITY_BOX = vec4(${CITY_BOX[0].toFixed(2)}, ${CITY_BOX[1].toFixed(2)}, ${(CITY_BOX[2] - CITY_BOX[0]).toFixed(2)}, ${(CITY_BOX[3] - CITY_BOX[1]).toFixed(2)});
+vec3 baseLights(vec2 g){
+  vec2 d = (g - vec2(CITY_LON, CITY_LAT)) * vec2(${Math.cos(CITY.lat * DEG).toFixed(4)}, 1.) / ${MOON_BASE_K.toFixed(2)};
+  vec2 uv = vec2((d.x - CITY_BOX.x) / CITY_BOX.z, 1. - (d.y - CITY_BOX.y) / CITY_BOX.w);
+  if (uv.x < 0. || uv.x > 1. || uv.y < 0. || uv.y > 1.) return vec3(0.);
+  vec3 c = pow(texture2D(uBase, uv).rgb, vec3(2.2));
+  c = c / max(1. - c, .02) * ${MOON_BASE_GAIN.toFixed(2)};
+  return c / (1. + .35 * c);                                          // soft knee
+}
+void main(){
+  vec2 p = vec2(gl_FragCoord.x, uRes.y - gl_FragCoord.y);
+  vec2 q = (p - uC) / uR; float r2 = dot(q, q), r = sqrt(r2);
+  float hr = (r - 1.) * uR; float H = uRes.y;
+  float hs = max(hr, 0.) / H;
+  float sinE = uSinE, cosE = sqrt(max(1. - sinE * sinE, 0.));
+  // Pass 2: the Moon's own sun direction (view space, same frame as uS). No atmosphere, so instead of Mars' back-lit dusty limb the sun rakes across the
+  // visible cap from the side it rises on: grazing at sunrise / sunset (long shadows, lit regolith), high at noon (fully lit gray), below the surface at night.
+  vec3 sM = normalize(vec3(-.97 * sin(uSol) * cosE, .15 * cosE + .60 * sinE, .12 * cosE + .80 * sinE));
+  float nightF = 1. - smoothstep(-.35, .05, sinE);
+  vec3 col = vec3(.0006, .0007, .0011);
+  if (hr > -2.) col += starField(p, H, vec3(.6, .6, .65)) * smoothstep(0., .02, hs + .002);
+  // Earth disc (replaces the sun, centred exactly on the Mars sun position uSun). ~4x the sun's disc, crisp edge, faint blue rim, no halo / horizon glow.
+  // Lit by the same sun direction as the Moon (consistent phase: half-lit from the left at Earthrise, from the right at Earthset, gibbous at noon).
+  float rE = uER;                                                       // = .042 * H live; tools/bake_theme_photo.html sets geo.discR for the photo framing
+  vec2 de = (p - uSun) / rE; float re2 = dot(de, de);
+  if (re2 < 1.) {
+    float dE = sqrt(re2);
+    vec3 ne = vec3(de.x, -de.y, sqrt(1. - re2));
+    float lo = atan(ne.x, ne.z) / (2. * PI) + .08, la = asin(ne.y) / PI;
+    vec3 ea = pow(texture2D(uCity, vec2(fract(lo + .5), .5 - la)).rgb, vec3(2.2)) * uHasCity + vec3(.02, .05, .12) * (1. - uHasCity);
+    float ed = dot(ne, sM);
+    float lit = smoothstep(-.03, .06, ed);
+    vec3 ec = ea * 1.9 * lit * (.35 + .65 * max(ed, 0.));
+    float rim = pow(1. - ne.z, 3.);
+    ec = mix(ec, vec3(.40, .62, 1.) * (.15 + 1.0 * max(ed, 0.)), rim * .55 * lit);
+    ec += vec3(.004, .006, .012) * (1. - lit);
+    col = mix(col, ec, smoothstep(1., 1. - 1.6 * uPx / rE, dE));
+  }
+  if (r < 1.0035) {
+    vec3 n; vec2 uv, s2; float lat; globe(q, r2, 0., n, uv, s2, lat);
+    float nz = n.z;
+    // pass 3: photographic surface = LROC WAC albedo crop + LOLA 16-bit DEM slopes (no procedural noise at all)
+    vec2 uvC = vec2((uv.x * 360. - 180. - MCROP.x) / MCROP.z, (MCROP.y - lat * 57.29578) / MCROP.w);
+    float inC = smoothstep(0., .012, min(min(uvC.x, 1. - uvC.x), min(uvC.y, 1. - uvC.y)));
+    vec3 alb = vec3(.16); float gE = 0., gN = 0.;
+    if (inC > 0.) {
+      vec2 c = clamp(uvC, .001, .999);
+      alb = pow(texture2D(uTex, c).rgb, vec3(2.2));
+      // pass 4 atlas (64 px/deg LOLA): east slope = rows 0..1279 full width, north slope = rows 1280..2047 x cols 0..1023 (half-texel insets: no bleed)
+      gE = (texture2D(uAux, vec2(c.x, clamp(c.y * .625, .00025, .62475))).r - .5) / ${MOON_SLOPE_ENC.toFixed(2)};
+      gN = (texture2D(uAux, vec2(clamp(c.x * .5, .0005, .4995), .625 + c.y * .375)).r - .5) / ${MOON_SLOPE_ENC.toFixed(2)};
+      gE *= inC * uHasAux; gN *= inC * uHasAux;
+    }
+    if (inC < 1.) alb = mix(vec3(pow(texture2D(uAux, vec2(.5 + clamp(uv.x, .0005, .9995) * .5, .625 + clamp(uv.y, .001, .999) * .25)).r, 2.2)) * uHasAux + vec3(.16) * (1. - uHasAux), alb, inC);
+    alb = mix(vec3(.16), alb, max(uHasTex, 1. - inC));
+    alb = mix(vec3(lum(alb)), alb, .75);
+    // pass 4: high-sun look. The LROC mosaic is normalised to a 30 deg phase; at small phase the brighter highlands backscatter more than the maria, so the
+    // maria / highland contrast grows a little toward noon (gamma up to 1 + MOON_NOON_CONTRAST around the crop's mean albedo .18), and the exposure drops
+    // a touch so the bright highlands stay off the tonemap shoulder. No surge glow: the phase angle never gets near opposition in this framing.
+    float hiSun = smoothstep(.25, .9, sinE);
+    alb *= pow(max(lum(alb), 1e-3) / .18, ${MOON_NOON_CONTRAST.toFixed(2)} * hiSun);
+    vec3 east = normalize(cross(uAxis, n) + vec3(0., 1e-4, 0.)); vec3 north = cross(n, east);
+    vec3 nb = normalize(n - (east * gE + north * gN) * ${MOON_RELIEF.toFixed(2)});      // tangent-space normal from the DEM slopes (exaggerated a little for the phone scale)
+    float ndl = dot(nb, sM), ndl0 = dot(n, sM);
+    float mu0 = max(ndl, 0.);
+    float ls = 2. * mu0 / (mu0 + max(nz, .1));                          // Lommel-Seeliger: the flat lunar look (bright almost to the terminator)
+    float L = mix(ls, mu0, .3);
+    L *= smoothstep(-.02, .035, ndl0);                                  // hard geometric terminator: relief can never light the night side (no speckle)
+    L *= smoothstep(-.03, .05, ndl);                                    // relief shadows: slopes facing away go black (long shadows at grazing sun)
+    vec3 surf = alb * vec3(1., .985, .96) * L * 1.55 * (1. - ${MOON_NOON_EXPOSURE_CUT.toFixed(2)} * hiSun);
+    float es = .012 + .05 * nightF;                                     // earthshine fill: faint by day, raised at night (no glow, surface only)
+    surf += alb * vec3(.55, .68, 1.) * es * (.6 + .4 * max(dot(nb, normalize(vec3(0., .5, .87))), 0.)) * (1. - .8 * smoothstep(0., .2, ndl0));
+    // Moon base lights: lunar night side only, masked by the hard terminator, no haze
+    float baseK = 1. - smoothstep(-.035, .0, ndl0);
+    if (baseK > .004 && uHasBase > .5) surf += baseLights(vec2(s2.x / cos(lat), s2.y)) * baseK * uCityK;
+    col = mix(col, surf, smoothstep(-1., 1., -hr));
+  }
+  grade(col, p, H);
+  gl_FragColor = vec4(col, 1.);
+}`;
+const FRAGS = { mars: FRAG, earth: FRAG_EARTH, moon: FRAG_MOON };
+export const normBody = (b) => (BODIES.includes(b) ? b : 'mars');
+
 function compile(gl, type, src) {
   const sh = gl.createShader(type); gl.shaderSource(sh, src); gl.compileShader(sh);
   if (!gl.getShaderParameter(sh, gl.COMPILE_STATUS)) { const log = gl.getShaderInfoLog(sh); gl.deleteShader(sh); throw new Error('shader: ' + log); }
@@ -248,19 +515,20 @@ function rotMat() {   // M = Rx(TILT) * Rz(ROLL), column-major for uniformMatrix
 }
 
 /** Create the renderer on a canvas. Throws if WebGL is missing or the shader fails (the caller then keeps the CSS background). */
-export function createSunrise(canvas, { onLost, onRestored } = {}) {
+export function createSunrise(canvas, { onLost, onRestored, body = 'mars' } = {}) {
+  body = normBody(body); const globeWrap = body !== 'mars';   // v38: Earth clouds / Earth disc / Moon maps wrap in longitude
   const gl = canvas.getContext('webgl', { alpha: false, antialias: false, depth: false, stencil: false, powerPreference: 'high-performance', preserveDrawingBuffer: true })
     || canvas.getContext('experimental-webgl', { alpha: false, antialias: false, depth: false, stencil: false });
   if (!gl) throw new Error('no webgl');
-  let prog, U = {}, tex, cityTex, hasCity = 0, hasTex = 0, lost = false, disposed = false, geo = { W: 1, H: 1, cx: 0, cy: 0, R: 1, k: 1 };
+  let prog, U = {}, tex, cityTex, baseTex, hasBase = 0, baseImg = null, auxTex, hasAux = 0, auxImg = null, hasCity = 0, hasTex = 0, lost = false, disposed = false, geo = { W: 1, H: 1, cx: 0, cy: 0, R: 1, k: 1 };
   const rm = rotMat();
   function setup() {
     prog = gl.createProgram();
-    gl.attachShader(prog, compile(gl, gl.VERTEX_SHADER, VERT)); gl.attachShader(prog, compile(gl, gl.FRAGMENT_SHADER, FRAG));
+    gl.attachShader(prog, compile(gl, gl.VERTEX_SHADER, VERT)); gl.attachShader(prog, compile(gl, gl.FRAGMENT_SHADER, FRAGS[body]));
     gl.bindAttribLocation(prog, 0, 'a'); gl.linkProgram(prog);
     if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) throw new Error('link: ' + gl.getProgramInfoLog(prog));
     gl.useProgram(prog);
-    for (const n of ['uRes', 'uC', 'uR', 'uPx', 'uS', 'uSinE', 'uSol', 'uSun', 'uTime', 'uDrift', 'uStill', 'uM', 'uAxis', 'uTex', 'uHasTex', 'uCity', 'uHasCity', 'uCityK']) U[n] = gl.getUniformLocation(prog, n);
+    for (const n of ['uRes', 'uC', 'uR', 'uPx', 'uS', 'uSinE', 'uSol', 'uSun', 'uTime', 'uDrift', 'uStill', 'uM', 'uAxis', 'uTex', 'uHasTex', 'uCity', 'uHasCity', 'uCityK', 'uBase', 'uHasBase', 'uAux', 'uHasAux', 'uER']) U[n] = gl.getUniformLocation(prog, n);
     const buf = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, buf);
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);   // one oversized triangle
     gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
@@ -276,10 +544,26 @@ export function createSunrise(canvas, { onLost, onRestored } = {}) {
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
     gl.activeTexture(gl.TEXTURE0);
+    if (U.uBase) {                                                    // unit 2: Moon base lights / Earth globe (Mars never creates it)
+      gl.uniform1i(U.uBase, 2); baseTex = gl.createTexture(); hasBase = 0;
+      gl.activeTexture(gl.TEXTURE2); gl.bindTexture(gl.TEXTURE_2D, baseTex);
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array([0, 0, 0, 255]));
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+      gl.activeTexture(gl.TEXTURE0);
+    }
+    if (U.uAux) {                                                     // pass 3: unit 3 = Moon relief atlas (Moon program only)
+      gl.uniform1i(U.uAux, 3); auxTex = gl.createTexture(); hasAux = 0;
+      gl.activeTexture(gl.TEXTURE3); gl.bindTexture(gl.TEXTURE_2D, auxTex);
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.LUMINANCE, 1, 1, 0, gl.LUMINANCE, gl.UNSIGNED_BYTE, new Uint8Array([128]));
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+      gl.activeTexture(gl.TEXTURE0);
+    }
   }
   setup();
   canvas.addEventListener('webglcontextlost', (e) => { e.preventDefault(); lost = true; if (!disposed) onLost && onLost(); });
-  canvas.addEventListener('webglcontextrestored', () => { if (disposed) return; try { setup(); lost = false; if (img) setTexture(img); if (cityImg) setCityTexture(cityImg); onRestored && onRestored(); } catch (err) { onLost && onLost(err); } });
+  canvas.addEventListener('webglcontextrestored', () => { if (disposed) return; try { setup(); lost = false; if (img) setTexture(img); if (cityImg) setCityTexture(cityImg); if (baseImg) setBaseTexture(baseImg); if (auxImg) setAuxTexture(auxImg); onRestored && onRestored(); } catch (err) { onLost && onLost(err); } });
 
   let img = null;
   function setTexture(image) {
@@ -306,11 +590,39 @@ export function createSunrise(canvas, { onLost, onRestored } = {}) {
     gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 0);
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB, gl.RGB, gl.UNSIGNED_BYTE, image);
     gl.generateMipmap(gl.TEXTURE_2D);
+    if (globeWrap) gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
     const ext = gl.getExtension('EXT_texture_filter_anisotropic');
     if (ext) gl.texParameterf(gl.TEXTURE_2D, ext.TEXTURE_MAX_ANISOTROPY_EXT, Math.min(4, gl.getParameter(ext.MAX_TEXTURE_MAX_ANISOTROPY_EXT)));
     gl.activeTexture(gl.TEXTURE0);
     hasCity = 1;
+  }
+
+  /** Unit 2 (THEMES[body].third): Moon = base lights (assets/city-lights.webp, pass 2), Earth = whole-globe fallback (earth-globe.webp, pass 3); a no-op for Mars. */
+  function setBaseTexture(image) {
+    baseImg = image;
+    if (lost || !baseTex) return;
+    gl.activeTexture(gl.TEXTURE2); gl.bindTexture(gl.TEXTURE_2D, baseTex);
+    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 0);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);    // RGBA: Earth's globe carries the lights in A
+    gl.generateMipmap(gl.TEXTURE_2D);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
+    if (body === 'earth') gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
+    gl.activeTexture(gl.TEXTURE0);
+    hasBase = 1;
+  }
+
+  /** Pass 3: unit 3 (THEMES[body].fourth) = the Moon relief atlas, uploaded as LUMINANCE (4 MB + mips); a no-op for Mars / Earth. */
+  function setAuxTexture(image) {
+    auxImg = image;
+    if (lost || !auxTex) return;
+    gl.activeTexture(gl.TEXTURE3); gl.bindTexture(gl.TEXTURE_2D, auxTex);
+    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 0);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.LUMINANCE, gl.LUMINANCE, gl.UNSIGNED_BYTE, image);
+    gl.generateMipmap(gl.TEXTURE_2D);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
+    gl.activeTexture(gl.TEXTURE0);
+    hasAux = 1;
   }
 
   /** Layout (CSS px). scale = canvas pixels per CSS pixel (already capped by the caller). */
@@ -333,11 +645,14 @@ export function createSunrise(canvas, { onLost, onRestored } = {}) {
     gl.uniform1f(U.uTime, t % 1000); gl.uniform1f(U.uStill, still ? 1 : 0);
     gl.uniform1f(U.uDrift, still ? 0 : 13 * Math.sin(t * 0.021));
     gl.uniform1f(U.uHasTex, hasTex); gl.uniform1f(U.uHasCity, hasCity); gl.uniform1f(U.uCityK, frozen ? CITY_FROZEN_K : 1);
+    if (U.uER) gl.uniform1f(U.uER, geo.discR ? geo.discR * k : 0.042 * canvas.height);   // Moon only (live: .042 H, exactly as before pass 4)
+    if (auxTex) { gl.uniform1f(U.uHasAux, hasAux); gl.activeTexture(gl.TEXTURE3); gl.bindTexture(gl.TEXTURE_2D, auxTex); }
+    if (baseTex) { gl.uniform1f(U.uHasBase, hasBase); gl.activeTexture(gl.TEXTURE2); gl.bindTexture(gl.TEXTURE_2D, baseTex); }
     gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, cityTex);
     gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, tex);
     gl.drawArrays(gl.TRIANGLES, 0, 3);
     return st;
   }
   const dispose = () => { disposed = true; try { const e = gl.getExtension('WEBGL_lose_context'); e && e.loseContext(); } catch { /* ignore */ } };
-  return { setTexture, setCityTexture, resize, draw, layout, dispose, hasTexture: () => !!hasTex, isLost: () => lost };
+  return { body, setTexture, setCityTexture, setBaseTexture, setAuxTexture, resize, draw, layout, dispose, hasTexture: () => !!hasTex, isLost: () => lost };
 }

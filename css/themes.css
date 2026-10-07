@@ -1,0 +1,94 @@
+/* v38: Earth and Moon themes (js/theme.js puts data-theme on <html>). Mars is the default and is defined by app.css / flat.css / motion.css: NOTHING here applies to Mars,
+   so the Mars look is unchanged. Each theme only re-points the custom properties (accent, buttons, box tint, greeting text, sky / veil colours) and swaps a few
+   hard-coded Mars tints for its own. Contrast targets: white text on --btn >= 4.5:1; --wx-red (greeting + Mars weather) >= 4.5:1 at the worst sun angle (ai-tor-test-themes.py). */
+
+/* Values: the Graphic Designer's palette (/workspace/ai-tor-design/themes/palette.json, contrast in contrast.json). Same keys as Mars; the extra keys
+   (--sky-low, --sky-base, --limb-glow, --btn-active, --danger-fill, --err-fill, --overlay, --dialog-bg, --strip-bg, --veil, --night, --vignette, --wheel-mark,
+   --star, --dust) replace colours that are hard-coded for Mars; they are used below and in js/wheel.js / js/bg.js. */
+/* ---------- EARTH: deep-space to ocean-night sky, ocean-blue accent, atmosphere-blue highlights, teal airglow ---------- */
+html[data-theme=earth]{
+  --bg:#02060d;--surf:rgba(255,255,255,.08);--surf-hi:rgba(255,255,255,.14);--surf-line:rgba(255,255,255,.35);--surf-line-lo:rgba(255,255,255,.2);
+  --surf-dim:rgba(2,6,13,.5);--surf-over:rgba(5,14,26,.88);--tab-fill:rgba(255,255,255,.1);--tab-on:rgba(31,111,219,.26);--surf-on:rgba(31,111,219,.18);
+  --hair:rgba(255,255,255,.14);--hair-2:rgba(255,255,255,.3);--hl:transparent;--text:#e1e6eb;--text-hi:#f6f8fa;--muted:#c8cfd7;--text-soft:#d0d7de;
+  --mars:#1f6fdb;--ember:#5cb0ff;--rust:#0b2f5c;--blood:#12468c;--rim:#36e0c8;--sky-top:#02060d;--sky-mid:#06182b;--accent-glow:rgba(31,111,219,.38);
+  --accent-soft:rgba(31,111,219,.16);--accent-line:rgba(92,176,255,.45);--btn:#1a63c9;--focus:#4fe3d0;--green:#ffffff;--red:#5cb0ff;--amber:#5cb0ff;
+  --gold:#5cb0ff;--cool:#e1e6eb;--lav:#c8cfd7;--green-line:rgba(255,255,255,.4);--red-line:rgba(92,176,255,.55);--amber-line:rgba(92,176,255,.55);
+  --wx-red:#a9d4ff;--g1:#1f6fdb;--g2:#36e0c8;--g3:#0b2f5c;--sky-low:#03101e;--sky-base:#081f38;--limb-glow:rgba(58,160,255,.30);--btn-active:#2a72d8;
+  --danger-fill:rgba(31,111,219,.14);--err-fill:rgba(31,111,219,.12);--overlay:rgba(1,4,8,.78);--dialog-bg:rgba(5,14,26,.95);
+  --strip-bg:rgba(2,6,13,.96);--veil:#01050b;--night:#010309;--vignette:rgba(1,4,9,.55);--wheel-mark:#5cb0ff;--star:#e6eeff;--dust:#6fe6d6;
+}
+html[data-theme=earth][data-sec=finances]{--g1:#2277e0;--g2:#46e6cf;--g3:#0d3566;}
+html[data-theme=earth][data-sec=travels]{--g1:#1a5fd0;--g2:#38c6ea;--g3:#0a2854;}
+html[data-theme=earth][data-sec=todo]{--g1:#2a84ec;--g2:#5ae6bc;--g3:#0e386a;}
+html[data-theme=earth][data-sec=settings]{--g1:#2a4e86;--g2:#5e8ab8;--g3:#0e1f38;}
+/* ---------- MOON: airless black sky, silver accent, grey wheel mark, Earthrise blue for focus / rim / losses ---------- */
+html[data-theme=moon]{
+  --bg:#000000;--surf:rgba(255,255,255,.08);--surf-hi:rgba(255,255,255,.14);--surf-line:rgba(255,255,255,.35);--surf-line-lo:rgba(255,255,255,.2);
+  --surf-dim:rgba(0,0,0,.5);--surf-over:rgba(10,10,11,.88);--tab-fill:rgba(255,255,255,.1);--tab-on:rgba(211,217,224,.26);
+  --surf-on:rgba(211,217,224,.18);--hair:rgba(255,255,255,.14);--hair-2:rgba(255,255,255,.3);--hl:transparent;--text:#e4e4e4;--text-hi:#f8f8f8;
+  --muted:#c6c6c6;--text-soft:#d1d1d1;--mars:#6e757d;--ember:#d3d9e0;--rust:#1c1e21;--blood:#3a3e43;--rim:#79b8ff;--sky-top:#000000;--sky-mid:#030303;
+  --accent-glow:rgba(110,117,125,.38);--accent-soft:rgba(211,217,224,.16);--accent-line:rgba(211,217,224,.45);--btn:#5f656c;--focus:#79b8ff;
+  --green:#ffffff;--red:#79b8ff;--amber:#79b8ff;--gold:#79b8ff;--cool:#e4e4e4;--lav:#c6c6c6;--green-line:rgba(255,255,255,.4);
+  --red-line:rgba(121,184,255,.55);--amber-line:rgba(121,184,255,.55);--wx-red:#dde2e8;--g1:#24272a;--g2:#34383c;--g3:#0b0b0c;--sky-low:#000000;
+  --sky-base:#070707;--limb-glow:rgba(220,224,230,.06);--btn-active:#6e757d;--danger-fill:rgba(211,217,224,.14);--err-fill:rgba(211,217,224,.12);
+  --overlay:rgba(0,0,0,.78);--dialog-bg:rgba(10,10,11,.95);--strip-bg:rgba(0,0,0,.96);--veil:#000000;--night:#000000;--vignette:rgba(0,0,0,.55);
+  --wheel-mark:#7d838a;--star:#ffffff;--dust:#ffffff;
+}
+html[data-theme=moon][data-sec=finances]{--g1:#26292c;--g2:#363a3e;--g3:#0c0c0d;}
+html[data-theme=moon][data-sec=travels]{--g1:#232629;--g2:#33373b;--g3:#0b0b0c;}
+html[data-theme=moon][data-sec=todo]{--g1:#282b2e;--g2:#383b3f;--g3:#0d0d0e;}
+html[data-theme=moon][data-sec=settings]{--g1:#202224;--g2:#2e3134;--g3:#0a0a0a;}
+
+/* Earth: blue-ish boxes (Aitor's request, the equivalent of Mars's rust-tinted boxes). Overrides the palette's neutral white surfaces: ocean-blue fill,
+   blue-gray borders (same chamfers). Text on these stays >= 4.5:1 (the fill is darker than the light text by a wide margin). */
+html[data-theme=earth]{--surf:rgba(31,111,219,.16);--surf-hi:rgba(31,111,219,.26);--surf-line:#4a76ad;--surf-line-lo:#3a5f8f;--tab-fill:rgba(31,111,219,.14)}
+/* home greeting + Mars weather line */
+html[data-theme=earth] .home-greet{--wx-red:#a9d4ff}
+html[data-theme=moon] .home-greet{--wx-red:#dde2e8}
+/* Earth / Moon only: a soft horizon shade under the greeting + weather lines. Their planets are bright at the bottom of the screen around noon (sunlit clouds /
+   regolith), so without it the pale greeting text drops below 4.5:1 there; with it every sun angle stays >= 4.5:1. UI only: the planet render is unchanged.
+   Mars deliberately has NO shade (Aitor: keep the v37 greeting look). KNOWN EXCEPTION: once the Mars weather block loads it lifts the greeting ~39 px over a
+   brighter band, and around noon (sol ~150-210) the Mars greeting / weather text #ffa38e is only ~2.8:1 (fails WCAG AA 4.5:1); logged as a known exception. */
+html:is([data-theme=earth],[data-theme=moon]) .home-greet::before{content:"";position:absolute;left:0;right:0;top:-56px;bottom:calc(-1 * (var(--safe-b) + 12px));z-index:-1;pointer-events:none;
+  background:linear-gradient(180deg,transparent,color-mix(in srgb,var(--veil) 30%,transparent) 22px,color-mix(in srgb,var(--veil) 74%,transparent) 52px,color-mix(in srgb,var(--veil) 82%,transparent))}
+
+/* hard-coded Mars tints elsewhere -> the palette's variables (selectors copied from app.css / flat.css / finances.css / todo.css / game.css / travels.css).
+   Mars itself keeps its literal values in those files, so nothing changes for Mars. */
+html:is([data-theme=earth],[data-theme=moon]) .btn.primary:active{background:var(--btn-active)}
+html:is([data-theme=earth],[data-theme=moon]) .btn.danger{background:var(--danger-fill)}
+html:is([data-theme=earth],[data-theme=moon]) .form-err,html:is([data-theme=earth],[data-theme=moon]) .banner{background:var(--err-fill)}
+html:is([data-theme=earth],[data-theme=moon]) .overlay{background:var(--overlay)}
+html:is([data-theme=earth],[data-theme=moon]) .dialog{background:var(--dialog-bg)}
+html:is([data-theme=earth],[data-theme=moon]) .trv-searchrow{background:var(--strip-bg)}
+html:is([data-theme=earth],[data-theme=moon]) .app-foot{background:var(--surf-dim)}
+html:is([data-theme=earth],[data-theme=moon]) .todo-paste-x:active{background:var(--accent-soft)}
+html:is([data-theme=earth],[data-theme=moon]) .game .game-ov-card{background:color-mix(in srgb,var(--bg) 86%,transparent)}
+html:is([data-theme=earth],[data-theme=moon]) .wheel-arrow{color:var(--wheel-mark)}
+
+/* background layers (motion.css): sky gradient, vignette, section veil, CSS-fallback night, intro dawn. The limb glow (.mars-glow), the CSS-fallback sun glow
+   (.sol-glow), the Mars CSS city, the #bg sky gradient and the glow blobs (.bg-par, hidden on Earth / Moon) per body are the Graphics Engineer's rules at the end of css/motion.css (html[data-body=...]). */
+html:is([data-theme=earth],[data-theme=moon]) #bg::after{background:radial-gradient(150% 100% at 50% 52%,transparent 58%,var(--vignette))}
+html:is([data-theme=earth],[data-theme=moon]) .mars-dim{background:linear-gradient(180deg,transparent,color-mix(in srgb,var(--veil) 74%,transparent) 30%,color-mix(in srgb,var(--veil) 92%,transparent))}
+html:is([data-theme=earth],[data-theme=moon]) .sol-veil{background:var(--veil)}
+html.sol-css:is([data-theme=earth],[data-theme=moon]) .sol-night{background:var(--night)}
+html[data-theme=earth] .splash-dawn{background:radial-gradient(52% 34% at 50% 68%,rgba(255,214,170,.5),rgba(92,176,255,.30) 38%,rgba(31,111,219,.12) 66%,rgba(31,111,219,0) 100%)}
+html[data-theme=moon] .splash-dawn{background:radial-gradient(40% 26% at 50% 68%,rgba(121,184,255,.22),rgba(121,184,255,.08) 45%,rgba(121,184,255,0) 100%)}   /* no atmosphere: only a faint Earthrise tint */
+
+/* theme switch without View Transitions: a short fade of the whole page (no flash: the background is dark in every theme) */
+html.theme-switching #bg,html.theme-switching #app{transition:opacity .2s ease}
+html.theme-switching.theme-fade #bg,html.theme-switching.theme-fade #app{opacity:0}
+/* with View Transitions: one plain crossfade of the whole frame (same plus-lighter trick as the page transitions in motion.css) */
+html.vt-theme::view-transition-old(root){animation:vt-out .5s var(--ease-io) both;mix-blend-mode:plus-lighter}
+html.vt-theme::view-transition-new(root){animation:vt-in .5s var(--ease-io) both;mix-blend-mode:plus-lighter}
+
+/* Settings > Background: theme picker */
+.theme-pick{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:4px 0 12px;border:0;padding:0}
+.theme-pick legend{padding:0;margin:0 0 8px;font-size:15px;font-weight:600;color:var(--text)}
+.theme-opt{position:relative;display:flex;flex-direction:column;align-items:center;gap:6px;min-height:84px;padding:10px 6px 8px;border:1px solid transparent;background-color:var(--surf);cursor:pointer;text-align:center}   /* chamfered like the cards (tools/make_chamfer_css.py) */
+.theme-opt input{position:absolute;inset:0;margin:0;opacity:0;width:100%;height:100%;cursor:pointer}
+.theme-opt .sw{width:36px;height:36px;display:block}   /* a small globe picture per body (js/settings.js swatch(), tools/make_theme_swatches.py) */
+.theme-opt .tl{font-size:14px;font-weight:600;color:var(--text-hi);line-height:1.2}
+.theme-opt:has(input:checked){--cf-line:var(--ember);background-color:var(--surf-on)}
+.theme-opt:has(input:focus-visible){--cf-line:var(--focus);--cf-t:2px}   /* chamfered: an outline would be clipped (css/chamfer.css §4) */
+.theme-opt.on{--cf-line:var(--ember);background-color:var(--surf-on)}
+.theme-note{font-size:12.5px;color:var(--muted);margin:0 0 10px}

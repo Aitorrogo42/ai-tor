@@ -5,9 +5,10 @@ import { field, confirmDialog, toast } from './ui.js';
 import * as storage from './storage.js';
 import { buildExport, validateImport, applyImport, MAX_IMPORT_BYTES } from './dataio.js';
 import { sections } from './sections.js';
-import { isDynamicBackground, setDynamicBackground } from './bg.js';
+import { isDynamicBackground, setDynamicBackground, setBackgroundBody } from './bg.js';
+import { THEMES, THEME_IDS } from './theme.js';
 
-export const APP_VERSION = '2.14.0 (v37)';
+export const APP_VERSION = '2.15.0 (v38)';
 
 export async function renderSettings(root, ctx) {
   document.title = 'Settings · AI-TOR';
@@ -87,6 +88,20 @@ export async function renderSettings(root, ctx) {
   // ---- v21: dynamic sunrise background toggle (device-local, default on)
   const dyn = h('input', { type: 'checkbox', class: 'set-cb', id: 'set-dynbg', checked: isDynamicBackground(), onchange: () => { setDynamicBackground(dyn.checked); toast(dyn.checked ? 'Dynamic sunrise background on' : 'Dynamic sunrise background off'); } });
 
+  // v38: the swatch is a tiny lit-globe picture of each body (assets/swatch-<id>.webp, 72 px, built by tools/make_theme_swatches.py; precached, ~6 KB total)
+  const swatch = (id) => h('img', { class: 'sw', src: 'assets/swatch-' + id + '.webp', alt: '', width: 36, height: 36, decoding: 'async', draggable: 'false' });
+  // ---- v38: theme (Mars / Earth / Moon): applies at once, saved on this device, included in exports
+  const cur0 = document.documentElement.dataset.theme || 'mars';
+  const picker = h('fieldset', { class: 'theme-pick', id: 'set-theme', role: 'radiogroup', 'aria-label': 'Theme' },
+    h('legend', null, 'Theme'),
+    THEME_IDS.map((id) => h('label', { class: 'theme-opt' + (id === cur0 ? ' on' : ''), 'data-theme-opt': id },
+      h('input', { type: 'radio', name: 'theme', value: id, checked: id === cur0, onchange: async (e) => {
+        if (!e.target.checked) return;
+        picker.querySelectorAll('.theme-opt').forEach((l) => l.classList.toggle('on', l.dataset.themeOpt === id));
+        await setBackgroundBody(id); toast(THEMES[id].label + ' theme');
+      } }),
+      swatch(id), h('span', { class: 'tl' }, THEMES[id].label))));
+
   root.append(
     h('div', { class: 'topbar' }, h('a', { class: 'back', href: '#/' }, icon('chevL'), 'Home')),
     h('div', { class: 'fin-head' }, pageTitle('settings', 'Settings')),
@@ -98,9 +113,11 @@ export async function renderSettings(root, ctx) {
       h('div', { class: 'btnrow' }, h('button', { type: 'submit', class: 'btn primary', id: 'save-profile' }, 'Save profile'))),
     h('h2', { class: 'sec' }, 'Background'),
     h('div', { class: 'card' },
+      picker,
+      h('p', { class: 'note theme-note', id: 'set-theme-note' }, 'Re-themes the whole app: planet, sky and colours. On the Moon the Earth rises where the Sun would.'),
       h('label', { class: 'set-toggle', for: 'set-dynbg' }, dyn,
         h('span', { class: 'set-toggle-txt' }, h('span', { class: 'set-toggle-t' }, 'Dynamic sunrise background'),
-          h('span', { class: 'note' }, 'On the home screen the Mars planet moves through sunrise, day, sunset and night as you turn the wheel (one turn = one Martian day). Inside a section the scene you opened stays still behind it. Off keeps the still planet.')))),
+          h('span', { class: 'note' }, 'On the home screen the planet moves through sunrise, day, sunset and night as you turn the wheel (one turn = one day). Inside a section the scene you opened stays still behind it. Off keeps the still planet.')))),
     h('h2', { class: 'sec' }, 'Your data'),
     h('div', { class: 'card stackc' },
       h('p', { class: 'note' }, 'Your data lives only in this browser on this device. Export a backup to keep it safe or move it to another device.'),

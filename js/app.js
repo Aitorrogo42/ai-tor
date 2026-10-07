@@ -4,16 +4,18 @@ import { icon } from './icons.js';
 import { h, setCurrency } from './util.js';
 import * as storage from './storage.js';
 import { renderSettings } from './settings.js';
+import { initTheme } from './theme.js';
 import { initBackground, setBackdropSection } from './bg.js';
 import { createWheel, rememberSelection } from './wheel.js';
 import { classify, transition, beginEnter, markEnter } from './nav.js';
 import { splashWanted, armSplash, skipNextSplash } from './splash.js';
-import { weatherBlock, scheduleWeather } from './marsweather.js';
+import { homeWeatherBlock, scheduleHomeWeather } from './homeweather.js';
 
 const app = document.getElementById('app');
 const splashOn = splashWanted();   // launch splash (see js/splash.js): the first render must not start its entrance animation behind it
+initTheme();        // v38: <html data-theme> before anything renders (Mars / Earth / Moon)
 initBackground();
-scheduleWeather();   // v37: Mars weather, fetched later in the background (never blocks the intro / wheel)
+scheduleHomeWeather();   // v37/v38: the theme's weather line (Mars: Curiosity, Earth: Starbase via Open-Meteo, Moon: computed), fetched later in the background (never blocks the intro / wheel)
 let deferredInstall = null;
 window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); deferredInstall = e; const f = document.getElementById('app-foot'); if (f) f.replaceWith(buildFoot()); });
 
@@ -55,7 +57,7 @@ function renderHome() {
     list,
     h('div', { class: 'home-greet' },    // v19: greeting block at the very bottom of the screen (fixed, above the safe-area / home indicator)
       h('p', { class: 'greeting', id: 'greeting' }, greetingText(name)),
-      weatherBlock()));   // v37: the tagline is gone; Mars weather (Curiosity, cached, js/marsweather.js) sits under the greeting when there is data   // v18: no footer on the home screen; the privacy line + install hint now live at the bottom of Settings (buildFoot)
+      homeWeatherBlock()));   // v37: the tagline is gone; Mars weather (Curiosity, cached, js/marsweather.js) sits under the greeting when there is data   // v18: no footer on the home screen; the privacy line + install hint now live at the bottom of Settings (buildFoot)
 }
 
 let shownHash = null;     // hash of the page currently on screen (null before the first render)

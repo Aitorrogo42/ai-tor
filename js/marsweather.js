@@ -1,6 +1,6 @@
 // Mars weather line on the home screen (v37). Source: NASA / Centro de Astrobiología REMS data from the Curiosity rover (Gale Crater),
 //   GET https://mars.nasa.gov/rss/api/?feed=weather&category=msl&feedtype=json   (CORS *, JSON, newest sol first, ~120 KB gzipped)
-// The data lags weeks behind, so it is shown as "Sol N" with the Earth date, never as live / today. This is the app's only third-party
+// The data lags weeks behind, so it is shown as "Sol N" with the Earth date, never as live / today. Mars theme only since v38 (Earth: js/earthweather.js). A third-party
 // request: made straight from the page (the service worker never touches cross-origin requests), at most once per day after a
 // success (a failed attempt waits WX_RETRY_MS), only while online, and only after the intro has finished and the browser is idle, so it never
 // delays the intro, the sunrise or the wheel. The last good result is kept in localStorage (aitor:cfg:marsweather, device only, never exported)
@@ -11,7 +11,7 @@ import { h } from './util.js';
 export const WX_URL = 'https://mars.nasa.gov/rss/api/?feed=weather&category=msl&feedtype=json';
 export const WX_MAX_AGE_MS = 24 * 60 * 60 * 1000;   // one successful fetch per day
 export const WX_RETRY_MS = 3 * 60 * 60 * 1000;      // after a failure, try again at most every 3 h
-const WX_DELAY_MS = 5000;                           // after launch: the intro (~4 s) and the first wheel frames come first
+export const WX_DELAY_MS = 5000;                           // after launch: the intro (~4 s) and the first wheel frames come first
 const WX_TIMEOUT_MS = 20000;
 
 const cfg = () => storage.config('marsweather');
@@ -87,7 +87,7 @@ export function wxIconKind(opacity) {
   if (/cloud|overcast/.test(o)) return 'cloudy';
   return 'thermo';
 }
-function wxIcon(kind) {
+export function wxIcon(kind) {
   const svg = document.createElementNS(SVG, 'svg');
   for (const [k, v] of Object.entries(WX_SVG_ATTRS)) svg.setAttribute(k, v);
   svg.setAttribute('class', 'wx-ico wx-ico-' + kind); svg.setAttribute('aria-hidden', 'true'); svg.setAttribute('focusable', 'false');
@@ -108,6 +108,7 @@ export function weatherBlock(d = cached()) {
 function paint() {
   const host = document.querySelector('.home-greet');
   if (!host) return;
+  const th = document.documentElement.dataset.theme; if (th && th !== 'mars') return;   // v38: Earth / Moon show their own line (js/homeweather.js)
   const blk = weatherBlock();
   const old = host.querySelector('#mars-wx');
   if (old && blk) old.replaceWith(blk);

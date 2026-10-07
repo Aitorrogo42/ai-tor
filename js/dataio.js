@@ -3,9 +3,10 @@
 import { sections } from './sections.js';
 import * as storage from './storage.js';
 import { CURRENCIES, formatMoney } from './util.js';
+import { savedTheme, isTheme, setTheme } from './theme.js';
 
 // schema 2 added Travels, schema 3 adds To-Do, schema 4 adds Travels destinations, schema 5 adds Architecture (an older app refuses a schema-5 file instead of silently dropping Architecture). Older files (finances only, finances+travels) still import; every section is optional.
-// Sync settings (passphrase) are device settings and are never exported.
+// Sync settings (passphrase) are device settings and are never exported. v38: the theme (Mars / Earth / Moon) rides along as an optional "display": { theme }.
 export const SCHEMA = 5;
 export const MAX_IMPORT_BYTES = 5 * 1024 * 1024;
 
@@ -13,6 +14,7 @@ export async function buildExport() {
   const core = storage.getCore();
   const out = { app: 'ai-tor', schema: SCHEMA, exportedAt: new Date().toISOString(), profile: { ...core.profile }, sections: {} };
   for (const s of sections) { const d = storage.section(s.id).get(); if (d) out.sections[s.id] = d; }
+  out.display = { theme: savedTheme() };
   return out;
 }
 
@@ -37,6 +39,11 @@ export async function validateImport(obj) {
       else result.profile.currency = p.currency || 'USD';
     }
   }
+  const disp = obj.display;   // v38 (optional): { theme }
+  if (disp != null && typeof disp === 'object' && !Array.isArray(disp) && disp.theme != null) {
+    if (isTheme(disp.theme)) { result.display = { theme: disp.theme }; lines.push('Theme: ' + disp.theme[0].toUpperCase() + disp.theme.slice(1)); }
+    else warnings.push(`Ignored unknown theme "${String(disp.theme).slice(0, 20)}".`);
+  }
   const secs = obj.sections;
   if (secs != null && (typeof secs !== 'object' || Array.isArray(secs))) errors.push('"sections" must be an object.');
   else {
@@ -59,6 +66,7 @@ export function applyImport(result) {
   storage.eraseDocuments(); // device settings (sync passphrase) are not part of exports and are kept
   storage.setCore({ version: storage.CORE_VERSION, profile: result.profile });
   for (const [id, doc] of Object.entries(result.sections)) storage.section(id).set(doc);
+  if (result.display && isTheme(result.display.theme)) setTheme(result.display.theme);   // v38: saved + applied (crossfade); files without it keep the current theme
 }
 
 /** Replace a single section's data (used by "Load example data"). */

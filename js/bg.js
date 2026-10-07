@@ -12,6 +12,7 @@ import { createSunrise, solarState } from './sunrise.js';
 import * as storage from './storage.js';
 import { sunAnchors, sectionSunAngle } from './sections.js';
 import { solFromWheelAngle, nearestEquivalent, norm360, SOL_ORIGIN } from './sol.js';
+import { THEMES, registerBackgroundSwitcher, getTheme, setTheme } from './theme.js';   // v38: Earth / Moon themes (scene textures + shader variant + static photo)
 const reduce = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 let root, par, marsPar, cv, ctx2d, W = 0, H = 0, dpr = 1;
@@ -30,6 +31,21 @@ function make(n) {
   return out;
 }
 
+// v38: particle colours per theme. Mars (pal = null) keeps the exact v37 colours; Earth / Moon read the palette's --star / --dust; the Moon has no dust (airless)
+let pal = null;
+const hexRgb = (v) => { const m = /^#([0-9a-f]{6})$/i.exec((v || '').trim()); return m ? [0, 2, 4].map((i) => parseInt(m[1].slice(i, i + 2), 16)) : null; };
+function readParticlePalette() {
+  const id = document.documentElement.dataset.theme;
+  if (!id || id === 'mars') { pal = null; return; }
+  const cs = getComputedStyle(document.documentElement);
+  pal = { star: hexRgb(cs.getPropertyValue('--star')) || [255, 255, 255], dust: id === 'moon' ? null : hexRgb(cs.getPropertyValue('--dust')) };
+}
+function particleFill(p, a) {
+  if (!pal) return p.dust ? `rgba(255,${84 + (p.z * 40) | 0},${70 + (p.z * 34) | 0},${(a * 0.7).toFixed(3)})` : `rgba(244,226,226,${(a * 0.75).toFixed(3)})`;
+  if (p.dust) return pal.dust ? `rgba(${pal.dust.join(',')},${(a * 0.7).toFixed(3)})` : null;
+  return `rgba(${pal.star.join(',')},${(a * 0.75).toFixed(3)})`;
+}
+
 function size() {
   dpr = Math.min(window.devicePixelRatio || 1, 2);
   W = window.innerWidth; H = window.innerHeight;
@@ -46,7 +62,8 @@ function draw(t) {
     let y = p.y * H - (still ? 0 : p.vy * s) - curY * p.z * 0.12;
     x = ((x % W) + W) % W; y = ((y % H) + H) % H;
     const a = still ? 0.55 * p.z : (0.35 + 0.65 * (0.5 + 0.5 * Math.sin(p.tw + s * p.ts))) * (0.35 + 0.65 * p.z);
-    ctx2d.fillStyle = p.dust ? `rgba(255,${84 + (p.z * 40) | 0},${70 + (p.z * 34) | 0},${(a * 0.7).toFixed(3)})` : `rgba(244,226,226,${(a * 0.75).toFixed(3)})`;
+    const fill = particleFill(p, a); if (!fill) continue;    // Moon: no drifting dust
+    ctx2d.fillStyle = fill;
     ctx2d.beginPath(); ctx2d.arc(x, y, p.r, 0, 6.2832); ctx2d.fill();
   }
 }
@@ -204,26 +221,87 @@ function sunEnable() {
   try {
     sun.canvas = sun.canvas || document.getElementById('bg-gl') || Object.assign(document.createElement('canvas'), { id: 'bg-gl' });
     if (!sun.canvas.parentNode) root.insertBefore(sun.canvas, root.querySelector('.sol-veil'));
-    r = createSunrise(sun.canvas, { onLost: () => { sun.ready = false; fallbackCss('context-lost'); }, onRestored: () => { sun.renderer = r; sun.mode = 'gl'; sun.ready = true; html.classList.remove('sol-css'); html.classList.add('gl-on'); sunLayout(); sun.dirty = true; sunSync(); } });
+    r = makeRenderer(sun.canvas, themeId());
   } catch (err) { fallbackCss('webgl-failed'); return; }
   sun.renderer = r; sun.mode = 'gl'; sunLayout();
   const done = () => {
-    if (sun.mode !== 'gl') return;
+    if (sun.mode !== 'gl' || sun.ready) return;
     sunRender(performance.now() / 1000 * 1000); sun.ready = true;
     html.classList.add('gl-on'); html.classList.remove('sol-css'); sunSync();
   };
-  // photoreal city lights: two textures (the Mars map + the prebaked city lights); the first frame waits for both (each one is optional: a failed load just leaves it out)
-  let pending = 2; const one = () => { if (--pending === 0) done(); };
-  const img = new Image(); img.decoding = 'async';
-  img.onload = () => { try { r.setTexture(img); } catch { /* plain procedural planet */ } one(); };
-  img.onerror = one;
-  img.src = new URL('../assets/mars-map.webp', import.meta.url).href;
-  const city = new Image(); city.decoding = 'async';
-  city.onload = () => { try { r.setCityTexture(city); } catch { /* no city lights */ } one(); };
-  city.onerror = one;
-  city.src = new URL('../assets/city-lights.webp', import.meta.url).href;
+  // the theme's textures (Mars: the map + the prebaked city lights; Earth: day map + night lights; Moon: albedo + height + the small Earth). The first frame waits for
+  // all of them (each one is optional: a failed load just leaves it out)
+  const id = themeId();
+  loadSceneImages(id).then((imgs) => { if (sun.renderer === r && themeId() === id) { applySceneImages(r, imgs); done(); } });
   setTimeout(() => { if (!sun.ready && sun.mode === 'gl') done(); }, 6000);       // texture never arrived: show the procedural planet rather than an empty sky
 }
+
+// ===================== v38 themes =====================
+function makeRenderer(canvas, id) {             // one renderer = one body (its own shader); a theme switch builds a new one on a fresh canvas (see switchTheme)
+  const html = document.documentElement;
+  const r = createSunrise(canvas, { body: id, onLost: () => { if (sun.renderer !== r) return; sun.ready = false; fallbackCss('context-lost'); }, onRestored: () => { if (sun.canvas !== canvas) return; sun.renderer = r; sun.mode = 'gl'; sun.ready = true; html.classList.remove('sol-css'); html.classList.add('gl-on'); sunLayout(); sun.dirty = true; sunSync(); } });
+  return r;
+}
+const themeId = () => { const t = document.documentElement.dataset.theme; return THEMES[t] ? t : 'mars'; };
+const imgCache = new Map();          // url -> Promise<HTMLImageElement|null> (decoded); a theme's files are fetched only when it is used
+function loadImg(url) {
+  if (!url) return Promise.resolve(null);
+  if (!imgCache.has(url)) {
+    imgCache.set(url, new Promise((res) => {
+      const im = new Image(); im.decoding = 'async';
+      im.onload = () => { (im.decode ? im.decode().catch(() => {}) : Promise.resolve()).then(() => res(im)); };
+      im.onerror = () => { imgCache.delete(url); res(null); };
+      im.src = url;
+    }));
+  }
+  return imgCache.get(url);
+}
+function loadSceneImages(id) {                  // map = the body's surface; second = Mars: prebaked city lights, Earth: drifting clouds, Moon: the Earth disc map; third = Earth: whole globe, Moon: base lights; fourth = Moon: relief atlas
+  const b = THEMES[id].bg;
+  return Promise.all([loadImg(b.map), loadImg(b.second), loadImg(b.third), loadImg(b.fourth)]).then(([map, second, third, fourth]) => ({ map, second, third, fourth }));
+}
+function applySceneImages(r, im) {
+  if (im.map) { try { r.setTexture(im.map); } catch { /* plain procedural planet */ } }
+  if (im.second) { try { r.setCityTexture(im.second); } catch { /* no lights / plain Earth disc */ } }
+  if (im.third && r.setBaseTexture) { try { r.setBaseTexture(im.third); } catch { /* no Moon base lights */ } }   // GFX: Moon base lights (Mars city texture reused); Earth pass 3: the whole globe (unit 2)
+  if (im.fourth && r.setAuxTexture) { try { r.setAuxTexture(im.fourth); } catch { /* flat Moon shading */ } }   // GFX pass 3: Moon relief atlas (LOLA slopes + whole-globe albedo, unit 3)
+}
+function setPhoto(id) {                          // static photo (toggle off) + CSS fallback: the theme's own photo
+  const img = root && root.querySelector('.mars-photo'); if (!img) return;
+  const url = THEMES[id].bg.photo;
+  if (img.getAttribute('src') !== url && img.src !== url) img.src = url;
+}
+async function preloadTheme(id) {
+  const jobs = [loadImg(THEMES[id].bg.photo)];
+  if (sun.mode === 'gl') jobs.push(loadSceneImages(id));
+  await Promise.all(jobs);
+}
+async function switchTheme(id) {               // called by js/theme.js after <html data-theme> changed (inside the crossfade)
+  setPhoto(id);
+  if (ctx2d) { readParticlePalette(); draw(performance.now()); }
+  if (sun.mode === 'gl' && sun.renderer) {
+    const old = { r: sun.renderer, canvas: sun.canvas };
+    const imgs = await loadSceneImages(id);
+    if (sun.renderer !== old.r || themeId() !== id) return;
+    // build the new body's renderer on a fresh canvas UNDER the old one, draw the same sun angle, then drop the old canvas: no empty frame, no flash
+    const c2 = document.createElement('canvas');
+    c2.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;display:block;pointer-events:none;opacity:1;transition:none';
+    let r2;
+    try { old.canvas.parentNode.insertBefore(c2, old.canvas); r2 = makeRenderer(c2, id); } catch (err) { c2.remove(); fallbackCss('webgl-failed'); return; }
+    sun.renderer = r2; sun.canvas = c2; sunLayout(); applySceneImages(r2, imgs);
+    sun.dirty = true; sunRenderAt(sun.t || performance.now() - sun.off);
+    try { old.r.dispose(); } catch { /* ignore */ }
+    old.canvas.remove(); c2.id = 'bg-gl';
+    requestAnimationFrame(() => { c2.style.cssText = ''; });
+  } else if (sun.mode === 'css') { const st = cssState(); setVars(st); applyCss(st); }
+}
+switchTheme.preload = preloadTheme;
+registerBackgroundSwitcher(switchTheme);
+/** The Graphics Engineer's API, kept as the entry points: which body the scene shows ('mars' | 'earth' | 'moon'): ?body= override > aitor:cfg:theme {body} > 'mars'. */
+export const getBackgroundBody = () => getTheme();
+/** Settings > Background picker: persist + switch live, keeping the current sun angle. Goes through js/theme.js so the CSS theme (data-theme, palette
+ *  variables, wheel mark) and the planet body always change together (one source of truth). The renderer is rebuilt on a fresh canvas under the old one (no flash). */
+export const setBackgroundBody = (b) => setTheme(b);
 
 function sunDisable() {
   const html = document.documentElement;
@@ -250,16 +328,19 @@ function initSun() {
   window.__aitorBg.sun = {
     mode: () => sun.mode, ready: () => sun.ready, reason: () => sun.reason || '', solDeg: () => norm360(sun.cur), targetDeg: () => norm360(sun.tgt), running: () => !!sun.raf,
     snap: (deg) => { sun.tgt = sun.cur = deg; sun.dirty = true; if (sun.mode === 'gl') { sunRender(performance.now()); } else if (sun.mode === 'css') { const st = cssState(); setVars(st); applyCss(st); } },
-    scale: () => sun.scale, frozen: () => sun.frozen, shaderTime: () => sun.t, offset: () => sun.off, canvas: () => sun.canvas, draws: () => sun.frames, anchors: () => sunAnchors(),
+    discPx: () => { const r = sun.renderer, st = cssState(); const R0 = 1.5 * Math.min(window.innerWidth, 0.7 * window.innerHeight); const rad = (r && r.body === 'moon' ? 0.042 : 0.0105) * window.innerHeight; /* sunrise.js: Moon's Earth disc rE = .042 H (pass 2), the sun disc .0105 H */ return { x: st.sunX, y: Math.max(st.sunY, -200), r: rad, R: R0 }; },
+    theme: () => (sun.renderer && sun.renderer.body ? sun.renderer.body : themeId()),
+    scale: () => sun.scale, frozen: () => sun.frozen, shaderTime: () => sun.t, offset: () => sun.off, canvas: () => sun.canvas, draws: () => sun.frames, anchors: () => sunAnchors(), body: () => themeId(), setBody: (b) => setBackgroundBody(b),
   };
 }
 
 export function initBackground() {
   root = document.getElementById('bg'); if (!root) return;
+  if (themeId() !== 'mars') setPhoto(themeId());   // v38: Mars keeps the photo from index.html (preloaded); other themes swap it before the first paint of the background
   par = root.querySelector('.bg-par'); marsPar = root.querySelector('.mars-par'); cv = document.getElementById('bg-dust');
   if (!cv || !cv.getContext) return;
   ctx2d = cv.getContext('2d');
-  stars = make(72);
+  stars = make(72); readParticlePalette();
   size(); draw(performance.now());
   window.addEventListener('resize', () => { size(); draw(performance.now()); }, { passive: true });
   window.addEventListener('scroll', () => { scrollY = window.scrollY; }, { passive: true });

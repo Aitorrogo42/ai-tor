@@ -14,7 +14,14 @@ const VB = 300, C = VB / 2, R0 = 96;                 // viewBox size, centre, in
 const PER_MAX = 12, TICKS_MAX = 72;                  // ticks between two sections: 12 up to 6 sections, then fewer so the dial never holds more than 72 ticks (v22: scales with the section count)
 export const ticksPerSection = (K) => (K <= TICKS_MAX / PER_MAX ? PER_MAX : Math.max(3, Math.floor(TICKS_MAX / K)));
 const SIGMA = 27;                                    // degrees: how far from 12 o'clock a tick still grows (v29: 21 -> 27, a wider bump: more ticks take part)
-const EMBER = [255, 82, 56], WHITE = [255, 255, 255];
+const WHITE = [255, 255, 255];
+let EMBER = [255, 82, 56];                            // v38: the theme's --wheel-mark (Mars: none, so --ember #ff5238; Earth #5cb0ff; Moon Earthrise blue #79b8ff): the selected tick fades from white to it
+function readAccent() {
+  const cs = getComputedStyle(document.documentElement);
+  const v = (cs.getPropertyValue('--wheel-mark') || cs.getPropertyValue('--ember')).trim();
+  const m = /^#([0-9a-f]{6})$/i.exec(v);
+  EMBER = m ? [0, 2, 4].map((i) => parseInt(m[1].slice(i, i + 2), 16)) : [255, 82, 56];
+}
 const reduced = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 const wrap180 = (a) => ((a % 360) + 540) % 360 - 180;
 const mix = (a, b, t) => `rgb(${a.map((v, i) => Math.round(v + (b[i] - v) * t)).join(',')})`;
@@ -162,6 +169,7 @@ export function createWheel(items) {
   }, { passive: false });
 
   root.wheel = { select, step, index: () => sel, items };
-  setSel(sel); paint();
+  readAccent(); setSel(sel); paint();
+  const onTheme = () => { if (!root.isConnected) { window.removeEventListener('aitor-theme', onTheme); return; } readAccent(); paint(); }; window.addEventListener('aitor-theme', onTheme);   // v38: theme switch repaints the ticks
   return root;
 }

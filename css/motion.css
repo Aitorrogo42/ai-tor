@@ -203,3 +203,12 @@ html.splash-go:not(.splash-rm) .home-head .wordmark{animation:splash-wm .46s var
    (opacity = --sol-city, set by bg.js from the sun elevation like the shader: 0 by day and at sunset, fading in through dusk, 1 deep in the night; opacity / transform only, no filter / blend). */
 .sol-city{display:none;position:absolute;left:53%;top:calc(75% + 72px);width:328px;height:133px;margin:-45px 0 0 -143px;pointer-events:none;opacity:0;background:url(../assets/city-lights-css.webp) center/100% 100% no-repeat;transition:transform 1.5s var(--ease)}html:not([data-sec=home]) .sol-city{transform:translate3d(0,9vh,0)}
 html.sol-css .sol-city{display:block;opacity:var(--sol-city,0)}
+/* v38 themes (no-WebGL fallback): html[data-body] is set by bg.js; the photo src is swapped to THEMES[body].photo (pre-rendered by tools/bake_theme_photo.html).
+   Earth: blue limb glow instead of the red one; Moon: no limb glow, no sun glow (black sky). Neither shows the Mars procedural city. */
+html[data-body=earth] .mars-glow{background:radial-gradient(ellipse 52% 22% at 50% 37%,rgba(90,160,255,.26),rgba(60,120,230,.10) 48%,rgba(60,120,230,0) 74%)}
+html[data-body=earth] .sol-glow{background:radial-gradient(closest-side,rgba(255,250,240,.95),rgba(255,190,130,.45) 14%,rgba(120,150,230,.18) 40%,rgba(40,60,140,0))}
+html[data-body=moon] .mars-glow,html[data-body=moon] .sol-glow{display:none!important}
+html[data-body=earth] .sol-city,html[data-body=moon] .sol-city{display:none!important}
+html[data-body=earth] #bg{background:linear-gradient(180deg,#010208 0,#030817 40%,#0a2452 76%,#163f80 100%)}
+html[data-body=moon] #bg{background:#000}
+html[data-body=earth] .bg-par,html[data-body=moon] .bg-par{display:none}
