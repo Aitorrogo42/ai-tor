@@ -1,4 +1,5 @@
 # v38: bake assets/earth-photo.webp + assets/moon-photo.webp (no-WebGL fallback) with the real shader. Needs playwright + /usr/bin/google-chrome.
+# v39: optional body list, e.g. `python3 tools/bake_theme_photo.py moon` re-bakes only the Moon photo (default: earth moon).
 import subprocess, sys, time, io
 from PIL import Image
 from playwright.sync_api import sync_playwright
@@ -8,7 +9,7 @@ GL=['--no-sandbox','--use-gl=angle','--use-angle=swiftshader','--enable-unsafe-s
 try:
   with sync_playwright() as p:
     b=p.chromium.launch(executable_path='/usr/bin/google-chrome',args=GL)
-    for body in ['earth','moon']:
+    for body in [a for a in sys.argv[1:] if a in ('earth','moon')] or ['earth','moon']:
       pg=b.new_page(viewport={'width':2058,'height':1155}); errs=[]; pg.on('console',lambda m: errs.append(m.text) if m.type=='error' else None)
       pg.goto(f'http://127.0.0.1:{PORT}/tools/bake_theme_photo.html?body={body}'); pg.wait_for_function('window.done',timeout=30000); pg.wait_for_timeout(300)
       im=Image.open(io.BytesIO(pg.locator('#c').screenshot())).convert('RGB')
