@@ -40,7 +40,11 @@ export function listKeys() {
   try { for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (k && k.startsWith(PREFIX)) out.push(k); } } catch { /* ignore */ }
   return out;
 }
-export function eraseAll() { listKeys().forEach((k) => localStorage.removeItem(k)); }
+export function eraseAll() {
+  listKeys().forEach((k) => localStorage.removeItem(k));
+  // v42: the Architecture photo log keeps its photos in IndexedDB ("aitor-arch"); erase them too
+  try { if (typeof indexedDB !== 'undefined') indexedDB.deleteDatabase('aitor-arch'); } catch { /* ignore */ }
+}
 /** Wipe profile + section documents but keep device settings (aitor:cfg:*), used by Import. */
 export function eraseDocuments() { listKeys().filter((k) => !k.startsWith(PREFIX + 'cfg:')).forEach((k) => localStorage.removeItem(k)); }
 

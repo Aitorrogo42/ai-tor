@@ -8,7 +8,7 @@ import { sections } from './sections.js';
 import { isDynamicBackground, setDynamicBackground, setBackgroundBody } from './bg.js';
 import { THEMES, THEME_IDS } from './theme.js';
 
-export const APP_VERSION = '2.15.3 (v41)';
+export const APP_VERSION = '2.16.0 (v42)';
 
 export async function renderSettings(root, ctx) {
   document.title = 'Settings · AI-TOR';
@@ -77,7 +77,7 @@ export async function renderSettings(root, ctx) {
 
   // ---- erase
   const eraseBtn = h('button', { type: 'button', class: 'btn danger', id: 'erase-btn', onclick: async () => {
-    const ok = await confirmDialog({ title: 'Erase all data?', message: 'This permanently deletes your profile and everything you entered on this device, including your Personal and Work to-do lists and the saved To-Do sync settings. Export a backup first if you might want it back.', okLabel: 'Erase everything', danger: true });
+    const ok = await confirmDialog({ title: 'Erase all data?', message: 'This permanently deletes your profile and everything you entered on this device, including your Personal and Work to-do lists, your Architecture photo log and its photos, and the saved sync settings. Export a backup first if you might want it back.', okLabel: 'Erase everything', danger: true });
     if (!ok) return;
     storage.eraseAll(); setCurrency('USD');
     toast('All data erased');
@@ -133,5 +133,5 @@ export async function renderSettings(root, ctx) {
       h('div', { class: 'about-lockup', role: 'img', 'aria-label': 'ai-tor' }, lockup()),
       h('div', { class: 'row' }, h('div', { class: 'l' }, 'AI-TOR version'), h('div', { class: 'r' }, APP_VERSION)),
       h('div', { class: 'row' }, h('div', { class: 'l' }, 'Data format'), h('div', { class: 'r' }, 'schema 5')),
-      h('p', { class: 'note', style: 'margin-top:8px' }, 'No accounts, no servers, no analytics. The app makes no network requests and works offline once opened. The only exception is the optional To-Do task sync, which (once you enter a passphrase) reads one encrypted file from this same site.')));
+      h('p', { class: 'note', style: 'margin-top:8px' }, 'No accounts, no servers, no analytics. Your data stays on this device and the app works offline once opened. With your passphrase it reads encrypted feeds from this same site, and a photo you send for Architecture analysis leaves the phone encrypted (through the free ntfy.sh relay, which only sees scrambled data).')));
 }

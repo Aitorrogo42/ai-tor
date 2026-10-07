@@ -1,10 +1,40 @@
 # AI-TOR
 
-An installable personal-life app (PWA). Plain HTML/CSS/JS: **no build step, no CDNs, no analytics, no backend, no accounts, and no network requests of its own**, apart from the home screen's weather line (below). (The other exceptions are the optional, off-by-default encrypted feeds, which each read one encrypted file from the app's own site: [To-Do sync](#to-do-and-optional-task-sync) and the [Finances Refresh](#finances-refresh-optional-encrypted-feed) and the [Travels Destinations feed](#travels-destinations-optional-encrypted-feed).) **Third-party requests (two, both read-only public weather GETs, no cookies, no referrer, no personal data sent):** with the Mars theme (default), NASA's Curiosity weather feed (`mars.nasa.gov`, at most once a day, v37); with the Earth theme, Open-Meteo current conditions for Starbase, TX (`api.open-meteo.com`, fixed coordinates, at most every 30 minutes while the app is open, v38). Each one is only contacted while its theme is in use. The Moon theme makes no request: its line is computed on the device.
+An installable personal-life app (PWA). Plain HTML/CSS/JS: **no build step, no CDNs, no analytics, no backend, no accounts, and no network requests of its own**, apart from the home screen's weather line (below). (The other exceptions are the optional, off-by-default encrypted feeds, which each read one encrypted file from the app's own site: [To-Do sync](#to-do-and-optional-task-sync) and the [Finances Refresh](#finances-refresh-optional-encrypted-feed) and the [Travels Destinations feed](#travels-destinations-optional-encrypted-feed), plus the v42 [Architecture photo log](#v42--2160-sw-aitor-v42-architecture-photo-log-camera-button), which reads the encrypted `feed/architecture.enc.json` and, only when you tap Send, uploads an encrypted photo to ntfy.sh.) **Third-party requests (two, both read-only public weather GETs, no cookies, no referrer, no personal data sent):** with the Mars theme (default), NASA's Curiosity weather feed (`mars.nasa.gov`, at most once a day, v37); with the Earth theme, Open-Meteo current conditions for Starbase, TX (`api.open-meteo.com`, fixed coordinates, at most every 30 minutes while the app is open, v38). Each one is only contacted while its theme is in use. The Moon theme makes no request: its line is computed on the device.
 
 **Local-first:** every person who installs AI-TOR enters *their own* data. It is stored only in that device's browser storage (`localStorage`), never sent anywhere, and the app works fully offline once opened. **The app bundle contains no personal data**: only code, icons, and clearly-fake example data.
 
 Today: **Architecture** (v24, staged: materials, famous buildings, architects, designers and consultants by discipline), **Finances** (accounts, debts, income/expenses, goals, notes, dashboard, and an optional Refresh from your assistant) and **Travels** with two tabs: **Visited** (tick the countries you have visited out of a bundled offline list of 195, with search, per-continent counts, and optional year(s)/note per country) and **Destinations** (places your Travel Guide bot proposes, from an optional encrypted feed). **To-Do** (two parallel lists, **Personal** and **Work**, each a clear task list with a Done pile, comments per task, and an optional daily feed from your assistant). **Game** (v32: *Keep Mars up*, a one-thumb tap game; the best score is kept on the device and included in backups). The home screen is a registry of sections, so more can be added later. Section logos live in `icons/sections/`.
+
+## v42 / 2.16.0 (sw aitor-v42): Architecture photo log (camera button)
+- **What it does:** Architecture → camera button (**Take a photo** or **Choose from library**).
+  - Location comes from the photo's GPS, the phone's location, a typed place, or none. You can add an optional note, then **Send**.
+  - About 10–25 min later the pending row says **Ready** (the app checks every 2 min while a photo is pending).
+  - **Review** shows a short summary, the place and suggested **style** and **material** tags with a confidence word (Certain / Likely / Possible).
+    Nothing is pre-approved: approve or reject each tag, add your own, then **Save to log**.
+  - The **Photo log** lists the entries newest first. An entry has the photo, its place (with a map link), the date and summary, and one link per tag:
+    - **material** → Google Shopping;
+    - **style** → its Grokipedia article, or a Grokipedia search when there is no article.
+- **Privacy:**
+  - The photo is shrunk to 1600 px and re-encoded on the phone, which removes the EXIF data, including the camera's GPS fields.
+  - It is then encrypted with your feed passphrase (same AES-256-GCM envelope as the feeds) and sent to a private, unguessable **ntfy.sh** topic.
+  - ntfy.sh only ever holds ciphertext and deletes it after about 3 h. The topic itself only reaches the phone inside the encrypted `feed/architecture.enc.json`.
+  - The assistant decrypts in RAM, analyses the photo, publishes the result in that encrypted feed and shreds its copy.
+  - Photos you keep are stored only on the phone (IndexedDB `aitor-arch`). The log entries are part of the Architecture data, so they are included in backups, minus the photo files.
+  - **Erase all** also deletes the photo database.
+  - New third-party request: `PUT https://ntfy.sh/<topic>`, only when you tap Send (CSP `connect-src` adds exactly `https://ntfy.sh`; `img-src` adds `blob:` for the stored photos).
+- **"Send again":** a photo with no answer after 2 h can be re-sent (the photo is still on the phone).
+- **Box side:** `tools/aitor_arch.py` plus `aitor_publish_arch_feed.sh`, with the vocabulary in `aitor_arch_vocab.json`. The runbook and routine are in `/workspace/tools/README-arch-photo.md`.
+- **Tests:** new `ai-tor-test-arch.py` covers:
+  - capture, EXIF GPS, geolocation and typed place;
+  - ciphertext-only uploads with no metadata;
+  - offline queue, retry and Send again;
+  - review (nothing pre-approved), links per tag type, hostile links replaced, XSS shown as text;
+  - IndexedDB, delete, export, import and erase;
+  - CSP and service worker;
+  - the full round trip through the box scripts against a fake relay.
+  
+  The `enc` suite's CSP check now expects `https://ntfy.sh`.
 
 ## v40 / 2.15.2 (sw aitor-v40): new recommendations show up on their own
 - **Bug:** places your travel assistant published did not appear in Travels → Destinations until you refreshed by hand. On a phone the app made a

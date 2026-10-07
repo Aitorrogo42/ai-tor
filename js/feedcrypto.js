@@ -53,7 +53,7 @@ export async function decryptEnvelope(env, passphrase, noun = 'task') {
   if (typeof env.salt !== 'string' || typeof env.iv !== 'string' || typeof env.ct !== 'string') throw bad();
   let salt, iv, ct;
   try { salt = b64(env.salt); iv = b64(env.iv); ct = b64(env.ct); } catch { throw bad(); }
-  if (salt.length < 8 || salt.length > 64 || iv.length !== 12 || ct.length < 16 || ct.length > 4 * 1024 * 1024) throw bad();
+  if (salt.length < 8 || salt.length > 64 || iv.length !== 12 || ct.length < 16 || ct.length > 4 * 1024 * 1024) throw bad();   // (v42: the photo upload is encrypted, never decrypted, here)
   const subtle = globalThis.crypto && globalThis.crypto.subtle;
   if (!subtle) throw new FeedError('nocrypto', 'This browser cannot do encryption here (it needs HTTPS). Open AI-TOR from its normal https address.');
   const pw = new TextEncoder().encode(String(passphrase).normalize('NFC'));
@@ -64,6 +64,26 @@ export async function decryptEnvelope(env, passphrase, noun = 'task') {
     plain = await subtle.decrypt({ name: 'AES-GCM', iv }, key, ct);
   } catch { throw new FeedError('passphrase', `Wrong passphrase. It must match the one used to encrypt the ${noun} data exactly (check capital letters and spaces).`); }
   return new TextDecoder('utf-8', { fatal: true }).decode(plain);
+}
+
+// ---- v42: encrypt on this device (Architecture photo upload): the SAME envelope the box decrypts with tools/aitor_encrypt_feed.py ----
+export const ENC_ITER = 600000;
+/** Uint8Array -> base64 (chunked, so a 1 MB photo does not blow the call stack). */
+export function toB64(bytes) {
+  let s = '';
+  for (let i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+  return btoa(s);
+}
+/** Encrypt `plain` (string or Uint8Array) with the passphrase -> envelope object {v,kdf,iter,salt,iv,ct,updated}. Fresh random salt + iv every time. */
+export async function encryptEnvelope(plain, passphrase, iter = ENC_ITER) {
+  const subtle = globalThis.crypto && globalThis.crypto.subtle;
+  if (!subtle) throw new FeedError('nocrypto', 'This browser cannot do encryption here (it needs HTTPS). Open AI-TOR from its normal https address.');
+  const data = typeof plain === 'string' ? new TextEncoder().encode(plain) : plain;
+  const salt = crypto.getRandomValues(new Uint8Array(16)), iv = crypto.getRandomValues(new Uint8Array(12));
+  const base = await subtle.importKey('raw', new TextEncoder().encode(String(passphrase).normalize('NFC')), 'PBKDF2', false, ['deriveKey']);
+  const key = await subtle.deriveKey({ name: 'PBKDF2', hash: 'SHA-256', salt, iterations: iter }, base, { name: 'AES-GCM', length: 256 }, false, ['encrypt']);
+  const ct = new Uint8Array(await subtle.encrypt({ name: 'AES-GCM', iv }, key, data));
+  return { v: 1, kdf: 'PBKDF2-SHA256', iter, salt: toB64(salt), iv: toB64(iv), ct: toB64(ct), updated: new Date().toISOString().replace(/\.\d{3}Z$/, 'Z') };
 }
 
 /** GET a same-origin encrypted feed (never cached by the browser; the service worker is network-first for /feed/).

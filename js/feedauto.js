@@ -1,4 +1,5 @@
-// v40: one driver for the three encrypted feeds' automatic refresh (To-Do tasks, Finances, Travels → Destinations).
+// v40: one driver for the encrypted feeds' automatic refresh (To-Do tasks, Finances, Travels → Destinations; v42: Architecture photo results, which also
+// sends photos still waiting to go out and is checked every 2 minutes while a sent photo waits for its result).
 // It runs: when the app opens, when it comes back to the foreground (visibilitychange / pageshow / focus), and when the device comes back online.
 // Each feed decides if it is due (15 min after the last attempt; sooner after a network failure, see js/feedcrypto.js autoDueIn). While the app stays
 // open and visible a timer re-checks when the next one is due, so a failed attempt on a flaky phone network is retried within seconds instead of
@@ -12,6 +13,7 @@ const FEEDS = [
   { name: 'todo', has: () => pass('todo'), load: () => import('../sections/todo/sync.js'), run: (m) => m.maybeAutoSync(), dueIn: (m) => m.autoSyncIn() },
   { name: 'finances', has: shared, load: () => import('../sections/finances/feed.js'), run: (m) => m.maybeAutoRefresh(), dueIn: (m) => m.autoRefreshIn() },
   { name: 'destinations', has: shared, load: () => import('../sections/travels/dest-feed.js'), run: (m) => m.maybeAutoRefresh(), dueIn: (m) => m.autoRefreshIn() },
+  { name: 'architecture', has: shared, load: () => import('../sections/architecture/photo-feed.js'), run: (m) => m.maybeAutoRefresh(), dueIn: (m) => m.autoRefreshIn() },
 ];
 const MIN_TIMER_MS = 5000, MAX_TIMER_MS = 15 * 60 * 1000;
 let timer = 0, running = false, again = false;

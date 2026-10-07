@@ -19,6 +19,14 @@ const P = {
   plus: ['M12 5v14', 'M5 12h14'],
   star: ['M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z'],
   external: ['M7 17L17 7', 'M8.5 7H17v8.5'],
+  // v42 (Graphic Designer, Architecture photo log): same 24 grid, straight segments only, square caps + miter joins
+  camera: ['M3 8h4.5l2-3h5l2 3H21v11H3z', 'M10 10h4l2 2v2l-2 2h-4l-2-2v-2z'],            // body with a raised viewfinder + octagonal lens
+  image: ['M4 5h16v14H4z', 'M4 16l5-5 4 4 2.5-2.5L20 17', 'M15 8h2v2h-2z'],              // import from library: frame, mountains, square sun
+  pin: ['M12 21l-6-8V7l3-3h6l3 3v6z', 'M10.5 8.5h3v3h-3z'],                                // location: faceted map pin
+  clock: ['M7 3h10', 'M7 21h10', 'M8 3v4l4 5-4 5v4', 'M16 3v4l-4 5 4 5v4'],                // pending: hourglass
+  material: ['M4 5h16v4.5H4z', 'M4 9.5h16V14H4z', 'M4 14h16v4.5H4z', 'M10 5v4.5', 'M15 9.5V14', 'M9 14v4.5'],   // MATERIAL chip: coursed stone / brick bond
+  style: ['M5 20V11l7-7 7 7v9', 'M9 20v-6l3-3 3 3v6', 'M3 20h18'],                         // STYLE chip: pointed (Gothic) arch
+  trash: ['M5 7h14', 'M9 7V4h6v3', 'M7 7l1 13h8l1-13', 'M10.5 11v5.5', 'M13.5 11v5.5'],
 };
 // v18/v19: section glyphs = the approved "Set A (Solid)" from the Graphic Designer (flat, straight-edged, solid, transparent). Inline SVG filled with currentColor (white),
 // original 1024 geometry untouched; the viewBox is cropped to the mark (160 160 704 704) so it reads larger at 24-32px. Replaces icons/sections/*.png in the UI.

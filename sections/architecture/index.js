@@ -1,11 +1,14 @@
 // Architecture section (v24 / 2.8.0). A personal reference library in five categories: Materials, Famous Buildings, Architects, Designers, Consultants
 // (Consultants carry a discipline: MEP, Structural, Security, IT, AV, Fire & Life Safety, Civil & Traffic, Facade, Lighting, Acoustics, Sustainability).
 // Routes: #/architecture (dashboard with one card per category), #/architecture/<slug> (the category's list page). Local-first: one document in aitor:sec:architecture.
-// The page is built only from the registry-provided ctx (store, hash, rerender); no network, no feed.
+// The page is built only from the registry-provided ctx (store, hash, rerender).
+// v42: Photo log: #/architecture/photo-log (list), #/architecture/photo-log/<entry id>, #/architecture/review/<request id> (photo-ui.js). The camera button
+// sends an ENCRYPTED photo to the analysis relay and the suggestions come back in an encrypted feed (photo-feed.js); everything else stays on the device.
 import { h, pageTitle, sectionIcon } from '../../js/util.js';
 import { icon } from '../../js/icons.js';
 import { toast, confirmDialog, field } from '../../js/ui.js';
 import { CATEGORIES, DISCIPLINES, catBySlug, emptyDoc, isEmptyDoc, validate, summary, exampleDoc, cleanEntry, countBy, favCount, sortEntries, matches } from './model.js';
+import { photoBlock, renderReview, renderPhotoLog, renderPhotoEntry, releaseURLs, sweepOrphans } from './photo-ui.js';
 
 export { validate, summary, emptyDoc, exampleDoc };
 export const storageId = 'architecture';
@@ -15,6 +18,7 @@ const pl = (n, one, many) => `${n} ${n === 1 ? one : many}`;
 export async function render(root, ctx) {
   root.className = 'section-root fin arc';
   document.title = 'Architecture · AI-TOR';
+  releaseURLs();
   const store = ctx.store;
   const raw = store.get();
   let doc = emptyDoc();
@@ -34,7 +38,16 @@ export async function render(root, ctx) {
     doc.updatedAt = new Date().toISOString();
     try { store.set(doc); return true; } catch (e) { console.warn(e); toast('Could not save: storage is full or blocked'); return false; }
   };
-  const slug = (ctx.hash || '').replace(/^#\/architecture\/?/, '').split('/')[0];
+  const segs = (ctx.hash || '').replace(/^#\/architecture\/?/, '').split('/');
+  const slug = segs[0];
+  let sub = segs[1] || '';
+  try { sub = decodeURIComponent(sub); } catch { sub = ''; }
+  if (slug === 'review' && sub) return renderReview(root, sub, doc, persist);
+  if (slug === 'photo-log') {
+    if (sub) return renderPhotoEntry(root, sub, doc, persist);
+    sweepOrphans(doc);
+    return renderPhotoLog(root, doc, persist, ctx);
+  }
   const cat = slug ? catBySlug(slug) : null;
   if (cat) renderCategory(root, cat, doc, persist);
   else renderHome(root, doc, persist, ctx);
@@ -51,17 +64,18 @@ function renderHome(root, doc, persist, ctx) {
   if (doc.example) {
     root.append(h('div', { class: 'banner example', id: 'example-banner' }, h('b', null, 'Fake example data. '), 'These entries are made up to show how AI-TOR looks.',
       h('div', { class: 'btnrow' },
-        h('button', { class: 'btn ghost small', type: 'button', id: 'arc-clear-example', onclick: () => { ctx.store.clear(); ctx.rerender(); } }, 'Clear example & start fresh'),
+        h('button', { class: 'btn ghost small', type: 'button', id: 'arc-clear-example', onclick: () => { const keepLog = doc.photoLog || []; if (keepLog.length) { ctx.store.set({ ...emptyDoc(), photoLog: keepLog }); } else ctx.store.clear(); ctx.rerender(); } }, 'Clear example & start fresh'),
         h('button', { class: 'btn ghost small', type: 'button', id: 'arc-keep-example', onclick: () => { doc.example = false; persist(); ctx.rerender(); } }, 'Keep & edit as mine'))));
   }
+  root.append(photoBlock(doc));   // v42: camera button, photos waiting for / with results, Photo log card
   if (!total) {
     root.append(h('div', { class: 'card empty', id: 'empty-state' },
       h('div', { class: 'empty-icon', 'aria-hidden': 'true' }, sectionIcon('architecture', 56)),
       h('h2', null, 'Start your library'),
       h('p', null, 'Open a category below and add your first entry. Nothing is required: leave it empty until you have something worth saving.'),
-      h('p', { class: 'note' }, icon('lock'), 'Everything stays on this device. There is no account and nothing is uploaded.'),
+      h('p', { class: 'note' }, icon('lock'), 'Everything stays on this device. There is no account. Only a photo you send for analysis leaves it, encrypted.'),
       h('div', { class: 'btnrow col' },
-        h('button', { class: 'btn ghost', id: 'load-example', type: 'button', onclick: () => { ctx.store.set(exampleDoc()); ctx.rerender(); } }, 'Load example data'),
+        h('button', { class: 'btn ghost', id: 'load-example', type: 'button', onclick: () => { ctx.store.set({ ...exampleDoc(), photoLog: doc.photoLog || [] }); ctx.rerender(); } }, 'Load example data'),
         h('p', { class: 'note' }, 'Example data is fake, just to preview the pages. You can erase it any time.'))));
   }
   root.append(h('h2', { class: 'sec' }, 'Categories'),

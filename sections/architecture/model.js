@@ -1,5 +1,9 @@
 // Architecture data model (v24 / 2.8.0): a personal reference library in five categories. Pure functions (no DOM, no storage).
-// Document (aitor:sec:architecture):  { version:1, example:false, updatedAt, entries:[ Entry ] }
+// Document (aitor:sec:architecture):  { version:2, example:false, updatedAt, entries:[ Entry ], photoLog:[ PhotoEntry ] }   (v42: version 2 adds photoLog; version-1 documents still load)
+// PhotoEntry (v42, Architecture photo log; the photo itself is in IndexedDB on this device, see photodb.js, keyed by photoId):
+//   { id, reqId, photoId, createdAt, approvedAt, summary, name, note, place:{ name, short, lat, lon, source:'exif'|'device'|'manual' }|null,
+//     tags:[ { type:'material'|'style', label, detail, confidence (0-1, null for a tag you added yourself), url, fallback } ] }
+//   MATERIAL tags link to a Google Shopping search, STYLE tags to the Grokipedia article (or a Grokipedia search when there is no article).
 // Entry: { id, cat, name, fav, notes, link, createdAt, updatedAt, + category fields }
 //   materials   : type, supplier
 //   buildings   : architect, city, year          (Famous Buildings)
@@ -9,8 +13,8 @@
 import { uid } from '../../js/util.js';
 
 export const SECTION_ID = 'architecture';
-export const VERSION = 1;
-export const LIMITS = { name: 120, field: 120, contact: 200, notes: 2000, link: 400, items: 2000 };
+export const VERSION = 2;
+export const LIMITS = { name: 120, field: 120, contact: 200, notes: 2000, link: 400, items: 2000, photos: 2000 };
 
 /** The consultant sub-disciplines (also the filter chips on the Consultants page). */
 export const DISCIPLINES = ['MEP', 'Structural', 'Security', 'IT', 'AV', 'Fire & Life Safety', 'Civil & Traffic', 'Facade', 'Lighting', 'Acoustics', 'Sustainability'];
@@ -36,8 +40,8 @@ export const CATEGORIES = [
 export const catBySlug = (slug) => CATEGORIES.find((c) => c.slug === slug) || null;
 export const catByKey = (cat) => CATEGORIES.find((c) => c.cat === cat) || null;
 
-export const emptyDoc = () => ({ version: VERSION, example: false, updatedAt: null, entries: [] });
-export const isEmptyDoc = (d) => !d || !d.entries.length;
+export const emptyDoc = () => ({ version: VERSION, example: false, updatedAt: null, entries: [], photoLog: [] });
+export const isEmptyDoc = (d) => !d || (!d.entries.length && !(d.photoLog || []).length);
 
 const isStr = (v) => typeof v === 'string';
 
@@ -104,16 +108,86 @@ export function validate(raw) {
       doc.entries.push(c.entry);
     });
   }
+  if (raw.photoLog != null && !Array.isArray(raw.photoLog)) err('Architecture: "photoLog" must be a list.');
+  else if ((raw.photoLog || []).length > LIMITS.photos) err(`Architecture: too many photo log entries (max ${LIMITS.photos}).`);
+  else {
+    const ids = new Set();
+    (raw.photoLog || []).forEach((r, i) => {
+      const c = cleanPhotoEntry(r);
+      if (!c.ok) return err(`Architecture photo log entry #${i + 1}: ${c.errors[0]}`);
+      if (ids.has(c.entry.id)) c.entry.id = uid();
+      ids.add(c.entry.id);
+      doc.photoLog.push(c.entry);
+    });
+  }
   return { ok: errors.length === 0, errors, doc };
 }
+
+// ---------------------------------------------------------------- v42: photo log
+export const TAG_TYPES = ['material', 'style'];
+export const PLIM = { summary: 120, name: 120, note: 500, place: 200, label: 60, detail: 160, tags: 10, url: 600 };
+const enc = encodeURIComponent;
+/** MATERIAL tag link: Google Shopping search (udm=28 = the Shopping tab). */
+export const shopURL = (query) => `https://www.google.com/search?q=${enc(String(query).trim()).replace(/%20/g, '+')}&udm=28`;
+export const materialQuery = (label) => 'buy ' + String(label).trim().toLowerCase();
+/** STYLE tag links: the Grokipedia article, and the Grokipedia search used when an article does not exist. */
+export const grokSearchURL = (label) => `https://grokipedia.com/search?q=${enc(String(label).trim()).replace(/%20/g, '+')}`;
+export const grokPageURL = (slug) => `https://grokipedia.com/page/${enc(String(slug).trim().replace(/\s+/g, '_')).replace(/%2C/g, ',').replace(/%28/g, '(').replace(/%29/g, ')')}`;
+export const styleSearchTerm = (label) => (/architecture/i.test(label) ? label : label + ' architecture');
+
+function urlOk(u, host, pathRe) {
+  if (typeof u !== 'string' || !u || u.length > PLIM.url) return false;
+  try { const x = new URL(u); return x.protocol === 'https:' && x.hostname === host && !x.username && !x.password && !x.port && pathRe.test(x.pathname); } catch { return false; }
+}
+/** The links a tag may carry, whatever the feed says: MATERIAL -> only https://www.google.com/search…, STYLE -> only https://grokipedia.com/page/… or /search….
+ *  Anything else is replaced by a link built from the label. Returns { url, fallback }. */
+export function tagLinks(type, label, url, fallback) {
+  if (type === 'material') return { url: urlOk(url, 'www.google.com', /^\/search$/) ? url : shopURL(materialQuery(label)), fallback: '' };
+  const fb = urlOk(fallback, 'grokipedia.com', /^\/search$/) ? fallback : grokSearchURL(styleSearchTerm(label));
+  return { url: urlOk(url, 'grokipedia.com', /^\/(page\/.+|search)$/) ? url : fb, fallback: fb };
+}
+const str = (v, max) => (typeof v === 'string' ? v.trim().slice(0, max) : '');
+const num = (v, lo, hi) => (typeof v === 'number' && Number.isFinite(v) && v >= lo && v <= hi ? v : null);
+export function cleanPlace(p) {
+  if (!p || typeof p !== 'object' || Array.isArray(p)) return null;
+  const name = str(p.name, PLIM.place), lat = num(p.lat, -90, 90), lon = num(p.lon, -180, 180);
+  if (!name && (lat == null || lon == null)) return null;
+  const out = { name: name || `${lat.toFixed(5)}, ${lon.toFixed(5)}`, short: str(p.short, PLIM.place), source: ['exif', 'device', 'manual'].includes(p.source) ? p.source : 'manual' };
+  if (lat != null && lon != null) { out.lat = lat; out.lon = lon; }
+  return out;
+}
+export function cleanTag(t) {
+  if (!t || typeof t !== 'object' || Array.isArray(t)) return null;
+  const type = TAG_TYPES.includes(t.type) ? t.type : null, label = str(t.label, PLIM.label);
+  if (!type || !label) return null;
+  const c = num(t.confidence, 0, 1);
+  const lk = t.link && typeof t.link === 'object' && !Array.isArray(t.link) ? t.link : {};   // the feed nests them in "link"; stored entries keep them flat
+  return { type, label, detail: str(t.detail, PLIM.detail), confidence: c == null ? null : Math.round(c * 100) / 100, ...tagLinks(type, label, t.url ?? lk.url, t.fallback ?? lk.fallback) };
+}
+/** Validate / sanitise one photo log entry. Returns { ok, errors, entry }. */
+export function cleanPhotoEntry(r) {
+  if (!r || typeof r !== 'object' || Array.isArray(r)) return { ok: false, errors: ['must be an object.'], entry: null };
+  const errors = [];
+  const tags = Array.isArray(r.tags) ? r.tags.slice(0, PLIM.tags).map(cleanTag).filter(Boolean) : [];
+  if (!tags.length) errors.push('needs at least one approved tag.');
+  const e = { id: str(r.id, 40) || uid(), reqId: str(r.reqId, 40), photoId: str(r.photoId, 60), createdAt: str(r.createdAt, 40) || new Date().toISOString(), approvedAt: str(r.approvedAt, 40) || new Date().toISOString(),
+    summary: str(r.summary, PLIM.summary), name: str(r.name, PLIM.name), note: str(r.note, PLIM.note), place: cleanPlace(r.place), tags };
+  return { ok: errors.length === 0, errors, entry: e };
+}
+/** Newest first. */
+export const sortPhotos = (list) => [...list].sort((a, b) => String(b.approvedAt || b.createdAt).localeCompare(String(a.approvedAt || a.createdAt)));
+/** Confidence word (Architect bot scale): >= 0.9 Certain, >= 0.6 Likely, else Possible. */
+export const confWord = (c) => (c == null ? 'Your tag' : c >= 0.9 ? 'Certain' : c >= 0.6 ? 'Likely' : 'Possible');
 
 export const countBy = (doc, cat) => doc.entries.filter((e) => e.cat === cat).length;
 export const favCount = (doc) => doc.entries.filter((e) => e.fav).length;
 
 /** One-line description for the import dialog. */
 export function summary(doc) {
-  const n = doc.entries.length;
-  return n ? `${n} ${n === 1 ? 'entry' : 'entries'} (${CATEGORIES.map((c) => countBy(doc, c.cat) ? `${countBy(doc, c.cat)} ${c.title.toLowerCase()}` : '').filter(Boolean).join(', ')})` : 'empty';
+  const n = doc.entries.length, ph = (doc.photoLog || []).length;
+  const photos = ph ? `${ph} photo log ${ph === 1 ? 'entry' : 'entries'} (photos stay on the device they were taken on)` : '';
+  if (!n) return photos || 'empty';
+  return `${n} ${n === 1 ? 'entry' : 'entries'} (${CATEGORIES.map((c) => countBy(doc, c.cat) ? `${countBy(doc, c.cat)} ${c.title.toLowerCase()}` : '').filter(Boolean).join(', ')})` + (photos ? ' + ' + photos : '');
 }
 
 /** Sorted for display: favourites first, then A-Z. */
@@ -130,7 +204,7 @@ export function matches(e, q) {
 export function exampleDoc() {
   const now = new Date().toISOString();
   const mk = (cat, name, o = {}) => ({ id: uid(), cat, name, fav: false, notes: '', link: '', createdAt: now, updatedAt: now, ...o });
-  return { version: VERSION, example: true, updatedAt: now, entries: [
+  return { version: VERSION, example: true, updatedAt: now, photoLog: [], entries: [
     mk('materials', 'Board-formed concrete', { type: 'Concrete', supplier: 'Sample Ready-Mix Co.', notes: 'Rough timber-grain texture. Needs a sealer outdoors.', fav: true }),
     mk('materials', 'Charred cedar siding', { type: 'Timber', supplier: 'Sample Timber Supply', notes: 'Shou sugi ban finish.' }),
     mk('buildings', 'Farnsworth House', { architect: 'Mies van der Rohe', city: 'Plano, Illinois', year: '1951', notes: 'Glass box floating over a flood plain.', fav: true }),
