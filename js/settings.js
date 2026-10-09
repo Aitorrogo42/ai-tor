@@ -8,7 +8,24 @@ import { sections } from './sections.js';
 import { isDynamicBackground, setDynamicBackground, setBackgroundBody } from './bg.js';
 import { THEMES, THEME_IDS } from './theme.js';
 
-export const APP_VERSION = '2.16.0 (v42)';
+export const APP_VERSION = '2.16.1 (v43)';
+
+// ---- v43: Share AI-TOR. Only the PUBLIC app link and a fixed line of text are ever shared: nothing from storage (feed topic, passphrase, name, data)
+// goes into the payload. Friends who open the link start with an empty app. No network calls: Web Share API / clipboard are local browser features.
+export const SHARE_URL = 'https://aitorrogo42.github.io/ai-tor/';
+export const SHARE_DATA = Object.freeze({ title: 'AI-TOR', text: 'AI-TOR: my Mars-themed life organizer', url: SHARE_URL });
+
+/** Copy the public link: async Clipboard API first, then the selectable field + execCommand('copy'). Resolves true when copied. */
+export async function copyShareLink(field) {
+  try {
+    if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function' && window.isSecureContext !== false) { await navigator.clipboard.writeText(SHARE_URL); return true; }
+  } catch { /* permission denied / not focused: use the fallback below */ }
+  try {
+    if (!field) return false;
+    field.value = SHARE_URL; field.focus({ preventScroll: true }); field.select(); field.setSelectionRange(0, SHARE_URL.length);
+    return !!(document.execCommand && document.execCommand('copy'));
+  } catch { return false; }
+}
 
 export async function renderSettings(root, ctx) {
   document.title = 'Settings · AI-TOR';
@@ -102,6 +119,26 @@ export async function renderSettings(root, ctx) {
       } }),
       swatch(id), h('span', { class: 'tl' }, THEMES[id].label))));
 
+  // ---- v43: Share AI-TOR card
+  const shareMsg = h('div', { class: 'note', id: 'share-msg', role: 'status', 'aria-live': 'polite', hidden: true });
+  const linkField = h('input', { type: 'text', id: 'share-link', value: SHARE_URL, readonly: true, 'aria-label': 'AI-TOR link', autocomplete: 'off', spellcheck: 'false', onfocus: () => linkField.select() });
+  const say = (msg, ok) => { shareMsg.className = 'note' + (ok ? ' ok' : ''); shareMsg.textContent = msg; shareMsg.hidden = !msg; };
+  const doCopy = async () => {
+    if (await copyShareLink(linkField)) { say('Link copied', true); toast('Link copied'); }
+    else { linkField.focus({ preventScroll: true }); linkField.select(); say('Select the link above and copy it.'); }
+  };
+  const shareBtn = h('button', { type: 'button', class: 'btn primary', id: 'share-btn', onclick: async () => {
+    say('');
+    const canShare = typeof navigator.share === 'function' && (typeof navigator.canShare !== 'function' || navigator.canShare(SHARE_DATA));
+    if (!canShare) { await doCopy(); return; }   // no share sheet here (most desktop browsers): copy instead
+    try { await navigator.share({ ...SHARE_DATA }); }
+    catch (e) {
+      if (e && e.name === 'AbortError') return;   // the user closed the share sheet: not an error
+      await doCopy();                              // share sheet unavailable right now: fall back to copying the link
+    }
+  } }, icon('share'), 'Share AI-TOR');
+  const copyBtn = h('button', { type: 'button', class: 'btn ghost', id: 'share-copy', onclick: doCopy }, 'Copy link');
+
   root.append(
     h('div', { class: 'topbar' }, h('a', { class: 'back', href: '#/' }, icon('chevL'), 'Home')),
     h('div', { class: 'fin-head' }, pageTitle('settings', 'Settings')),
@@ -118,6 +155,15 @@ export async function renderSettings(root, ctx) {
       h('label', { class: 'set-toggle', for: 'set-dynbg' }, dyn,
         h('span', { class: 'set-toggle-txt' }, h('span', { class: 'set-toggle-t' }, 'Dynamic sunrise background'),
           h('span', { class: 'note' }, 'On the home screen the planet moves through sunrise, day, sunset and night as you turn the wheel (one turn = one day). Inside a section the scene you opened stays still behind it. Off keeps the still planet.')))),
+    h('h2', { class: 'sec' }, 'Share'),
+    h('div', { class: 'card stackc', id: 'share-card' },
+      h('p', { class: 'note' }, 'Share AI-TOR with friends. They get the app, not your data.'),
+      shareBtn,
+      linkField,
+      copyBtn,
+      shareMsg,
+      h('p', { class: 'note', id: 'share-private' }, 'Friends start with an empty app. Your tasks, finances, photos and feeds stay private on your phone.'),
+      h('p', { class: 'note', id: 'share-tip' }, 'Tip for friends: open the link in Safari, tap Share, then Add to Home Screen.')),
     h('h2', { class: 'sec' }, 'Your data'),
     h('div', { class: 'card stackc' },
       h('p', { class: 'note' }, 'Your data lives only in this browser on this device. Export a backup to keep it safe or move it to another device.'),

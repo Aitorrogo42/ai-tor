@@ -6,6 +6,10 @@ An installable personal-life app (PWA). Plain HTML/CSS/JS: **no build step, no C
 
 Today: **Architecture** (v24, staged: materials, famous buildings, architects, designers and consultants by discipline), **Finances** (accounts, debts, income/expenses, goals, notes, dashboard, and an optional Refresh from your assistant) and **Travels** with two tabs: **Visited** (tick the countries you have visited out of a bundled offline list of 195, with search, per-continent counts, and optional year(s)/note per country) and **Destinations** (places your Travel Guide bot proposes, from an optional encrypted feed). **To-Do** (two parallel lists, **Personal** and **Work**, each a clear task list with a Done pile, comments per task, and an optional daily feed from your assistant). **Game** (v32: *Keep Mars up*, a one-thumb tap game; the best score is kept on the device and included in backups). The home screen is a registry of sections, so more can be added later. Section logos live in `icons/sections/`.
 
+## v43 / 2.16.1 (sw aitor-v43): Share AI-TOR (Settings)
+
+Settings has a new **Share** card: **Share AI-TOR** opens the phone's share sheet (Web Share API, feature-detected) with a fixed payload (`title: AI-TOR`, `text: AI-TOR: my Mars-themed life organizer`, `url: https://aitorrogo42.github.io/ai-tor/`). Closing the sheet (`AbortError`) is silent; where there is no share sheet (most desktop browsers) or it is refused, the button copies the link instead. **Copy link** uses `navigator.clipboard.writeText`, falling back to selecting the read-only link field and `document.execCommand('copy')`, and shows "Link copied". The payload is a constant: nothing from storage (name, passphrase, feed topics, data) is ever shared, and friends who open the link start with an empty app. No new network requests, CSP unchanged. Tests: `ai-tor-test-share.py` (suite `share`).
+
 ## v42 / 2.16.0 (sw aitor-v42): Architecture photo log (camera button)
 - **What it does:** Architecture → camera button (**Take a photo** or **Choose from library**).
   - Location comes from the photo's GPS, the phone's location, a typed place, or none. You can add an optional note, then **Send**.
