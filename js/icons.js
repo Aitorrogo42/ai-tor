@@ -27,6 +27,8 @@ const P = {
   material: ['M4 5h16v4.5H4z', 'M4 9.5h16V14H4z', 'M4 14h16v4.5H4z', 'M10 5v4.5', 'M15 9.5V14', 'M9 14v4.5'],   // MATERIAL chip: coursed stone / brick bond
   style: ['M5 20V11l7-7 7 7v9', 'M9 20v-6l3-3 3 3v6', 'M3 20h18'],                         // STYLE chip: pointed (Gothic) arch
   trash: ['M5 7h14', 'M9 7V4h6v3', 'M7 7l1 13h8l1-13', 'M10.5 11v5.5', 'M13.5 11v5.5'],
+  eye: ['M2 12l4-5h12l4 5-4 5H6z', 'M10 10h4v4h-4z'],   // v44: net worth shown (angular eye: almond outline + square pupil)
+  eyeOff: ['M2 12l4-5h12l4 5-4 5H6z', 'M10 10h4v4h-4z', 'M4 20L20 4'],   // v44: net worth hidden (same eye, struck through)
   share: ['M12 15V3.5', 'M7.5 8L12 3.5 16.5 8', 'M8 11H5v9h14v-9h-3'],                  // v43: Share AI-TOR (open tray + up arrow)
 };
 // v18/v19: section glyphs = the approved "Set A (Solid)" from the Graphic Designer (flat, straight-edged, solid, transparent). Inline SVG filled with currentColor (white),

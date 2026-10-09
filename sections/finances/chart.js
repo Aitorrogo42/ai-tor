@@ -52,7 +52,7 @@ export function projectionChart({ series, start, end, goalValue, nowValue }) {
   }
   svg.append(s('rect', { x: X(start) - 4.5, y: Y(nowValue) - 4.5, width: 9, height: 9, fill: '#ff5238', stroke: '#0a0305', 'stroke-width': '2', transform: `rotate(45 ${X(start)} ${Y(nowValue)})` }));   // v24: diamond, not a round dot
   svg.append(s('rect', { x: X(end) - 4.5, y: Y(goalValue) - 4.5, width: 9, height: 9, fill: '#ffffff', stroke: '#0a0305', 'stroke-width': '2', transform: `rotate(45 ${X(end)} ${Y(goalValue)})` }));
-  svg.append(s('text', { x: X(start) + 8, y: Y(nowValue) + 16, fill: '#ffffff', 'font-size': '12' }, 'Today ' + moneyCompact(nowValue)));
+  svg.append(s('text', { class: 'nw-today', x: X(start) + 8, y: Y(nowValue) + 16, fill: '#ffffff', 'font-size': '12' }, 'Today ' + moneyCompact(nowValue)));
   if (min > 0) svg.append(s('text', { x: 6, y: H - 6, fill: '#c4c5c6', 'font-size': '12' }, 'Y-axis starts at ' + moneyCompact(min) + ' (not zero)'));
   return svg;
 }

@@ -4,6 +4,7 @@ import * as storage from '../../js/storage.js';
 import { compute, alerts, projectableGoals, validate, projectSavings, LIMITS, RETURN_DEFAULT, RETURN_MIN, RETURN_MAX } from './model.js';
 import { projectionChart, savingsChart } from './chart.js';
 import { refreshBar } from './refreshbar.js';
+import { netWorthPrivacy } from './privacy.js';
 
 let projGoalId = null; // which goal the illustration uses (UI-only state)
 
@@ -27,7 +28,7 @@ const na = (id, title, text, link = '#/finances/edit', cta = 'Add') =>
     h('div', { class: 'k' }, title), h('div', { class: 'big' }, 'Not added'), h('div', { class: 'note' }, text),
     h('a', { class: 'btn ghost small', href: link }, cta));
 
-function projectionCard(doc, c, cands) {
+function projectionCard(doc, c, cands, priv) {
   if (!cands.some((g) => g.id === projGoalId)) projGoalId = cands[0].id;
   const today = todayISO();
   const card = h('div', { class: 'card', id: 'projection' });
@@ -39,19 +40,23 @@ function projectionCard(doc, c, cands) {
       cands.length > 1 ? h('label', { class: 'fld', style: 'margin-top:10px' }, h('span', { class: 'fl' }, 'Goal to illustrate'),
         h('select', { id: 'proj-goal', onchange: (e) => { projGoalId = e.target.value; draw(); } },
           cands.map((x) => h('option', { value: x.id, selected: x.id === projGoalId }, x.name)))) : null,
-      h('div', { class: 'chart-wrap' }, projectionChart({
-        start: today, end: goal.date, goalValue: goal.target, nowValue: c.netWorth,
-        series: [
-          { label: 'Net worth held flat', color: '#ff5238', points: [[today, c.netWorth], [goal.date, c.netWorth]] },
-          { label: 'Straight line to goal', color: '#ffffff', dash: '6 5', points: [[today, c.netWorth], [goal.date, goal.target]] },
-        ] })),
+      h('div', { class: 'chart-wrap' }, (() => {
+        const svg = projectionChart({
+          start: today, end: goal.date, goalValue: goal.target, nowValue: c.netWorth,
+          series: [
+            { label: 'Net worth held flat', color: '#ff5238', points: [[today, c.netWorth], [goal.date, c.netWorth]] },
+            { label: 'Straight line to goal', color: '#ffffff', dash: '6 5', points: [[today, c.netWorth], [goal.date, goal.target]] },
+          ] });
+        priv.svgText(svg.querySelector('.nw-today'), 'Today \u2022\u2022\u2022\u2022');   // v44: the "Today $X" label repeats net worth
+        return svg;
+      })()),
       h('div', { class: 'legend' },
         h('span', null, h('span', { class: 'dot', style: 'background:#ff5238' }), 'Net worth today, held flat'),
         h('span', null, h('span', { class: 'dash-key' }), 'Straight line to goal')),
       h('div', { style: 'margin-top:10px' },
-        h('div', { class: 'row' }, h('div', { class: 'l' }, 'Net worth today'), h('div', { class: 'r' }, money(c.netWorth))),
+        h('div', { class: 'row' }, h('div', { class: 'l' }, 'Net worth today'), h('div', { class: 'r' }, priv.secret(money(c.netWorth), '$8,888,888'))),
         h('div', { class: 'row' }, h('div', { class: 'l' }, 'Goal (' + fmtDate(goal.date) + ')'), h('div', { class: 'r' }, money(goal.target))),
-        h('div', { class: 'row' }, h('div', { class: 'l' }, 'Gap'), h('div', { class: 'r' }, money(goal.target - c.netWorth))),
+        h('div', { class: 'row' }, h('div', { class: 'l' }, 'Gap'), h('div', { class: 'r' }, priv.secret(money(goal.target - c.netWorth), '$888,888'))),   // v44: goal - net worth gives net worth away
         h('div', { class: 'row' }, h('div', { class: 'l' }, 'Needed per month, with no growth'),
           h('div', { class: 'r' }, 'About ' + money((goal.target - c.netWorth) / Math.max(1, monthsTo(goal.date)))))));
   };
@@ -236,10 +241,14 @@ export function renderDashboard(root, doc, ctx) {
 
   // 1. net worth
   const top = c.groups[0];
+  // v44: privacy blur. Hidden on every draw (no stored state); no count-up on this number so it can never flash. Show/Hide button or a tap on the number reveals it.
+  const priv = netWorthPrivacy();
   root.append(h('div', { class: 'card', id: 'networth' },
     h('div', { class: 'k' }, 'Net worth'),
-    h('div', { class: 'v ' + (c.netWorth < 0 ? 'neg' : ''), 'data-count': String(c.netWorth) }, money(c.netWorth)),
-    h('div', { class: 'sub' }, 'Assets ' + money(c.assets) + ' − Debts ' + money(c.debts)),
+    h('div', { class: 'nw-line' },
+      priv.secret(money(c.netWorth), '$8,888,888', { tag: 'div', cls: 'v nw-val ' + (c.netWorth < 0 ? 'neg' : ''), main: true, id: 'nw-value' }),
+      priv.toggle('nw-value')),
+    h('div', { class: 'sub' }, priv.secret('Assets ' + money(c.assets) + ' − Debts ' + money(c.debts), 'Assets $8,888,888 − Debts $888')),   // assets − debts = net worth
     h('div', null,
       !doc.debts.length ? h('span', { class: 'chip warn' }, 'No debts added') : null,
       !c.hasCash ? h('span', { class: 'chip warn' }, 'No bank/cash accounts added') : null),
@@ -276,7 +285,7 @@ export function renderDashboard(root, doc, ctx) {
 
   // 4. projection (illustration)
   const cands = projectableGoals(doc, c);
-  if (cands.length) { root.append(h('h2', { class: 'sec' }, 'Projection (illustration)')); root.append(projectionCard(doc, c, cands)); }
+  if (cands.length) { root.append(h('h2', { class: 'sec' }, 'Projection (illustration)')); root.append(projectionCard(doc, c, cands, priv)); }
 
   // 5. alerts & goals
   const al = alerts(doc, c, pct, money);

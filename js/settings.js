@@ -8,7 +8,7 @@ import { sections } from './sections.js';
 import { isDynamicBackground, setDynamicBackground, setBackgroundBody } from './bg.js';
 import { THEMES, THEME_IDS } from './theme.js';
 
-export const APP_VERSION = '2.16.1 (v43)';
+export const APP_VERSION = '2.16.2 (v44)';
 
 // ---- v43: Share AI-TOR. Only the PUBLIC app link and a fixed line of text are ever shared: nothing from storage (feed topic, passphrase, name, data)
 // goes into the payload. Friends who open the link start with an empty app. No network calls: Web Share API / clipboard are local browser features.
