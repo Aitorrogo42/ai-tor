@@ -9,6 +9,7 @@
 // js/sections.js sectionSunAngle), under a flat dark veil (.sol-veil) so text keeps AA contrast. Going home resumes from the very same angle (no jump). Deep links /
 // cold starts use the section's default angle. Toggle off = the old dimmed photo. No-WebGL: the CSS fallback layers are frozen at the same angle.
 import { createSunrise, solarState } from './sunrise.js';
+import { createRetro } from './retrosky.js';   // v45: Retro theme scene (Canvas2D, same renderer interface)
 import * as storage from './storage.js';
 import { sunAnchors, sectionSunAngle } from './sections.js';
 import { solFromWheelAngle, nearestEquivalent, norm360, SOL_ORIGIN } from './sol.js';
@@ -239,6 +240,8 @@ function sunEnable() {
 // ===================== v38 themes =====================
 function makeRenderer(canvas, id) {             // one renderer = one body (its own shader); a theme switch builds a new one on a fresh canvas (see switchTheme)
   const html = document.documentElement;
+  const lostCb = { onLost: () => { if (sun.renderer !== r) return; sun.ready = false; fallbackCss('context-lost'); } };
+  if (id === 'retro') { const rr = createRetro(canvas, lostCb); return rr; }   // no WebGL needed
   const r = createSunrise(canvas, { body: id, onLost: () => { if (sun.renderer !== r) return; sun.ready = false; fallbackCss('context-lost'); }, onRestored: () => { if (sun.canvas !== canvas) return; sun.renderer = r; sun.mode = 'gl'; sun.ready = true; html.classList.remove('sol-css'); html.classList.add('gl-on'); sunLayout(); sun.dirty = true; sunSync(); } });
   return r;
 }
@@ -293,6 +296,8 @@ async function switchTheme(id) {               // called by js/theme.js after <h
     try { old.r.dispose(); } catch { /* ignore */ }
     old.canvas.remove(); c2.id = 'bg-gl';
     requestAnimationFrame(() => { c2.style.cssText = ''; });
+  } else if (sun.mode === 'css' && id === 'retro' && isDynamicBackground()) {   // v45: Retro does not need WebGL: leave the CSS fallback and draw the pixel scene
+    html().classList.remove('sol-css'); sun.mode = 'off'; sun.first = false; sunEnable();
   } else if (sun.mode === 'css') { const st = cssState(); setVars(st); applyCss(st); }
 }
 switchTheme.preload = preloadTheme;

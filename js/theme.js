@@ -1,4 +1,4 @@
-// v38: app themes (Settings > Background): Mars (default), Earth, Moon. A theme is (1) a set of CSS custom properties on <html data-theme="...">
+// v38: app themes (Settings > Background): Mars (default), Earth, Moon, Retro. A theme is (1) a set of CSS custom properties on <html data-theme="...">
 // (accent, buttons, box tint, greeting text, sky colours; css/themes.css) and (2) the background scene: the planet textures, the shader look and the
 // static / CSS-fallback photo (js/bg.js asks THEMES[id].bg). Structure and behaviour never change: same wheel, sun angles, freeze, intro, ticks, city lights.
 // The choice is a device setting: localStorage 'aitor:cfg:theme' = {"body":"earth"} (the Graphics Engineer's key; one source of truth for the CSS theme AND the
@@ -6,7 +6,7 @@
 // Assets of Earth / Moon are loaded only when that theme is in use (the service worker caches them on first use, not at install).
 import * as storage from './storage.js';
 
-export const THEME_IDS = ['mars', 'earth', 'moon'];
+export const THEME_IDS = ['mars', 'earth', 'moon', 'retro'];
 export const DEFAULT_THEME = 'mars';
 const A = (p) => new URL('../assets/' + p, import.meta.url).href;
 export const THEMES = {
@@ -16,6 +16,9 @@ export const THEMES = {
     bg: { map: A('earth-day.webp'), second: A('earth-clouds.webp'), third: A('earth-globe.webp'), photo: A('earth-photo.webp'), cityCss: null } },   // GFX pass 3: day crop (lights in alpha), drifting clouds, whole globe outside the crop
   moon: { id: 'moon', label: 'Moon', blurb: 'Grey Moon, black sky, Earthrise', themeColor: '#000000',
     bg: { map: A('moon-albedo.webp'), second: A('earth-disc.webp'), third: A('city-lights.webp'), fourth: A('moon-relief.webp'), photo: A('moon-photo.webp'), cityCss: null } },   // GFX pass 3: LROC albedo + LOLA relief atlas; third = Moon base lights
+  // v45: Retro = pixel-art Earth at the bottom (Earth's composition) on a low-res canvas (js/retrosky.js; map = the tiny class map assets/retro-earth.png); photo = the static pixel scene (toggle off), baked by tools/make_retro_assets.py
+  retro: { id: 'retro', label: 'Retro', blurb: 'Pixel-art Earth, retro grey, 8-bit', themeColor: '#2b2a2a',
+    bg: { map: A('retro-earth.png'), second: null, third: null, fourth: null, photo: A('retro-photo.webp'), cityCss: null } },
 };
 
 const cfg = () => storage.config('theme');

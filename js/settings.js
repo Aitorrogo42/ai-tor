@@ -8,7 +8,7 @@ import { sections } from './sections.js';
 import { isDynamicBackground, setDynamicBackground, setBackgroundBody } from './bg.js';
 import { THEMES, THEME_IDS } from './theme.js';
 
-export const APP_VERSION = '2.16.2 (v44)';
+export const APP_VERSION = '2.17.0 (v45)';
 
 // ---- v43: Share AI-TOR. Only the PUBLIC app link and a fixed line of text are ever shared: nothing from storage (feed topic, passphrase, name, data)
 // goes into the payload. Friends who open the link start with an empty app. No network calls: Web Share API / clipboard are local browser features.
@@ -151,7 +151,7 @@ export async function renderSettings(root, ctx) {
     h('h2', { class: 'sec' }, 'Background'),
     h('div', { class: 'card' },
       picker,
-      h('p', { class: 'note theme-note', id: 'set-theme-note' }, 'Re-themes the whole app: planet, sky and colours. On the Moon the Earth rises where the Sun would.'),
+      h('p', { class: 'note theme-note', id: 'set-theme-note' }, 'Re-themes the whole app: planet, sky and colours. On the Moon the Earth rises where the Sun would. Retro redraws everything as 8-bit pixel art.'),
       h('label', { class: 'set-toggle', for: 'set-dynbg' }, dyn,
         h('span', { class: 'set-toggle-txt' }, h('span', { class: 'set-toggle-t' }, 'Dynamic sunrise background'),
           h('span', { class: 'note' }, 'On the home screen the planet moves through sunrise, day, sunset and night as you turn the wheel (one turn = one day). Inside a section the scene you opened stays still behind it. Off keeps the still planet.')))),

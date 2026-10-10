@@ -9,7 +9,7 @@ const theme = () => document.documentElement.dataset.theme || 'mars';
 /** The block for the current theme (or null: no data yet = the greeting alone). */
 export function homeWeatherBlock() {
   const t = theme();
-  return t === 'earth' ? earthBlock() : t === 'moon' ? moonBlock() : weatherBlock();
+  return t === 'earth' || t === 'retro' ? earthBlock() : t === 'moon' ? moonBlock() : weatherBlock();
 }
 /** Swap the block in the home greeting (if the home screen is showing). */
 export function paintHomeWeather() {
@@ -21,7 +21,7 @@ let started = false;
 function tick() {
   if (!started || document.hidden) return;
   const t = theme();
-  if (t === 'earth') refreshEarthWeather({ onNew: () => { if (theme() === 'earth') paintHomeWeather(); } });
+  if (t === 'earth' || t === 'retro') refreshEarthWeather({ onNew: () => { if (theme() === 'earth' || theme() === 'retro') paintHomeWeather(); } });   // v44: Retro shows the Earth weather (Starbase, TX)
   else if (t === 'mars') refreshWeather();
   else paintHomeWeather();                              // Moon: recompute (phase / day-night change slowly)
 }

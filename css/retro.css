@@ -1,0 +1,132 @@
+/* v45 RETRO theme: a fourth theme (Mars / Earth / Moon / Retro). Everything here is scoped to html[data-theme=retro]: NOTHING applies to Mars, Earth or Moon.
+   Base model = Earth's structure (blue-ish boxes, Starbase TX weather line, same wheel + layout); the look = Starbase retro grey + 8-bit pixel treatment:
+   - palette: warm-neutral charcoal (#2b2a2a .. #3a3837), light grey text, cyan-blue (#33a8e0) box tint + primary buttons, orange-red (#f0541f / #ff7d4a) for selection, links, losses, focus is cyan.
+   - fonts (SIL OFL, bundled, see fonts/OFL-VT323.txt + OFL-PressStart2P.txt): VT323 for body text (pixel terminal face; sized up with font-size-adjust so it stays readable),
+     Press Start 2P (8x8 grid, 12px minimum) for headings, buttons, tabs and labels.
+   - shapes: square corners with a 2-step pixel notch (clip-path staircase + one corner pixel drawn in the outline colour), hard 3px pixel borders, an ordered-dither (checker) fill on
+     surfaces, no smooth shadows / gradients / blurs, stepped (not eased) motion on the dial arrow and presses.
+   - the background scene is js/retrosky.js (low-res Canvas2D, nearest-neighbour upscaled). Static photo (toggle off) = assets/retro-photo.webp.
+   The selector list in section "pixel boxes" is copied from css/chamfer.css section 2 (specificity 0 there, so these rules win). */
+@font-face{font-family:"VT323";font-style:normal;font-weight:400;font-display:swap;src:url(../fonts/vt323-latin.woff2) format("woff2")}
+@font-face{font-family:"Press Start 2P";font-style:normal;font-weight:400;font-display:swap;src:url(../fonts/press-start-2p-latin.woff2) format("woff2")}
+
+html[data-theme=retro]{
+  --bg:#2b2a2a;--surf:rgba(51,168,224,.13);--surf-hi:rgba(51,120,160,.55);--surf-line:#8c8985;--surf-line-lo:#6a6865;--surf-dim:rgba(26,25,25,.62);--surf-over:rgba(31,30,30,.94);
+  --tab-fill:rgba(51,168,224,.14);--tab-on:rgba(51,168,224,.30);--surf-on:rgba(51,168,224,.22);--hair:rgba(255,255,255,.16);--hair-2:rgba(255,255,255,.32);--hl:transparent;
+  --text:#e4e1de;--text-hi:#f6f4f0;--muted:#d2cec8;--text-soft:#dbd7d1;--veil-lo:.84;--veil-hi:.9;
+  --mars:#33a8e0;--ember:#ff7d4a;--rust:#143a4e;--blood:#1b6a92;--rim:#33a8e0;--sky-top:#1b1a1a;--sky-mid:#2b2a2a;--accent-glow:rgba(51,168,224,.30);
+  --accent-soft:rgba(51,168,224,.16);--accent-line:rgba(51,168,224,.55);--btn:#14688f;--focus:#7fd4ff;--green:#ffffff;--red:#ff7d4a;--amber:#ff7d4a;--gold:#ff7d4a;--cool:#e4e1de;--lav:#d2cec8;
+  --green-line:rgba(255,255,255,.45);--red-line:#ff7d4a;--amber-line:#ff7d4a;--wx-red:#e4e1de;--g1:#3a3837;--g2:#33a8e0;--g3:#1d1c1c;--sky-low:#232222;--sky-base:#2b2a2a;--limb-glow:transparent;
+  --btn-active:#1d82b3;--danger-fill:rgba(240,84,31,.16);--err-fill:rgba(240,84,31,.14);--overlay:rgba(18,17,17,.82);--dialog-bg:#1f1e1e;--strip-bg:#1f1e1e;--veil:#1b1a1a;--night:#141313;
+  --vignette:transparent;--wheel-mark:#f0541f;--star:#efece6;--dust:#33a8e0;
+  --r-lg:0;--r-md:0;--r-sm:0;--r-tab:0;--u:3px;
+  --pix:"Press Start 2P","VT323",ui-monospace,monospace;
+  --font:"VT323",ui-monospace,"SF Mono",Menlo,Consolas,monospace;--mono:var(--font);
+  --track-label:.04em;--track-title:0;--track-brand:.1em;
+  --dither:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='4' height='4' shape-rendering='crispEdges'%3E%3Crect width='2' height='2' fill='%23fff' fill-opacity='.035'/%3E%3Crect x='2' y='2' width='2' height='2' fill='%23fff' fill-opacity='.035'/%3E%3C/svg%3E");
+  color-scheme:dark;
+}
+html[data-theme=retro][data-sec=finances]{--g2:#3aa0d4}
+html[data-theme=retro][data-sec=travels]{--g2:#2f95c8}
+html[data-theme=retro][data-sec=todo]{--g2:#5ab4e4}
+html[data-theme=retro][data-sec=settings]{--g2:#8c8985}
+
+/* ---------- type ---------- */
+/* VT323 has a small x-height (.40): font-size-adjust lifts every size so 15 px body text shows at ~23 px of glyph. The computed font-size is unchanged (the 12 px rule). */
+html[data-theme=retro] body{font-family:var(--font);font-size:15px;font-size-adjust:.62;letter-spacing:.01em;font-feature-settings:normal;-webkit-font-smoothing:none;font-smooth:never;line-height:1.3}
+html[data-theme=retro] :is(button,input,select,textarea){font-family:var(--font);font-size-adjust:.62}
+/* Press Start 2P (cap / x-height ~1 em): its own sizes, no font-size-adjust, never below 12 px */
+html[data-theme=retro] :is(h1,h2,h3,legend,.btn,.ghost,.trv-tab,.dst-chip,.fld .fl,.theme-opt .tl,.set-toggle-t,.section-title,.ph-title,.dlg-actions .btn,summary,.todo-tabn,.trv-tabbadge,.dst-new){font-family:var(--pix);font-size-adjust:none;letter-spacing:0;text-transform:none;font-weight:400;line-height:1.5}
+html[data-theme=retro] :is(h1,.ph-title){font-size:16px}
+html[data-theme=retro] h2.sec{font-size:12px;letter-spacing:0;text-transform:uppercase}
+html[data-theme=retro] h3,html[data-theme=retro] .dialog h2,html[data-theme=retro] legend{font-size:12px}
+html[data-theme=retro] :is(.btn,.ghost,.btn.small,.btn.big,.dlg-actions .btn){font-size:12px;font-weight:400;padding-left:12px;padding-right:12px}
+html[data-theme=retro] :is(.trv-tab,.dst-chip,.fld .fl,.theme-opt .tl,.set-toggle-t,summary,.section-title){font-size:12px;font-weight:400}
+html[data-theme=retro] .fld .fl{text-transform:none;line-height:1.6}
+html[data-theme=retro] .greeting{font-family:var(--font);font-size:15px;font-weight:400;letter-spacing:.02em}
+html[data-theme=retro] .mars-wx .wx-line,html[data-theme=retro] .mars-wx .wx-attr{font-family:var(--font);font-weight:400;font-size:13px;letter-spacing:.01em}
+html[data-theme=retro] .mars-wx .wx-line{font-size-adjust:.62}
+html[data-theme=retro] .mars-wx .wx-ico.wx-pix{width:18px;height:18px;vertical-align:-3px;image-rendering:pixelated}
+html[data-theme=retro] ::selection{background:var(--accent-soft);color:var(--text-hi)}
+
+/* ---------- pixel boxes ---------- */
+html[data-theme=retro] :is(.trv-cb,.todo-cb,.set-cb,.trv-tabbadge,.dst-new,.todo-tabn,.chip,.todo-chip,.dst-kind,.trv-pill,.dst-chip,.iso,.back,.dst-row,.todo-comment,.todo-paste-item){--u:2px}
+html[data-theme=retro] :is(.card, details.group, details.src-all, .dst-bar-card, .dst-sec, .feedbar, #networth, .theme-opt, .trv-searchrow, .app-foot, .dialog, .toast, .btn, .ghost, input[type=text], input[type=date], input[type=password], input[type=search], select, textarea, .todo-add-input, .feed-formrow input, .trv-search, .banner, .form-err, .trv-tab, .dst-row, .todo-comment, .todo-paste-item, .chip, .todo-chip, .dst-kind, .trv-pill, .dst-chip, .iso, .back, .trv-tabbadge, .dst-new, .todo-tabn, .trv-cb, .todo-cb, .set-cb){
+  --cx:var(--u);--cy:calc(var(--u)*2);
+  border-radius:0!important;
+  border:var(--u) solid transparent!important;border-color:transparent!important;
+  clip-path:polygon(0 var(--cy),var(--u) var(--cy),var(--u) var(--u),var(--cy) var(--u),var(--cy) 0,calc(100% - var(--cy)) 0,calc(100% - var(--cy)) var(--u),calc(100% - var(--u)) var(--u),calc(100% - var(--u)) var(--cy),100% var(--cy),100% calc(100% - var(--cy)),calc(100% - var(--u)) calc(100% - var(--cy)),calc(100% - var(--u)) calc(100% - var(--u)),calc(100% - var(--cy)) calc(100% - var(--u)),calc(100% - var(--cy)) 100%,var(--cy) 100%,var(--cy) calc(100% - var(--u)),var(--u) calc(100% - var(--u)),var(--u) calc(100% - var(--cy)),0 calc(100% - var(--cy)));
+  background-origin:border-box!important;background-clip:border-box!important;
+  background-repeat:no-repeat,no-repeat,no-repeat,no-repeat,repeat!important;
+  background-size:var(--u) var(--u),var(--u) var(--u),var(--u) var(--u),var(--u) var(--u),calc(var(--u)*2) calc(var(--u)*2)!important;
+  background-position:var(--u) var(--u),calc(100% - var(--u)) var(--u),var(--u) calc(100% - var(--u)),calc(100% - var(--u)) calc(100% - var(--u)),0 0!important;
+  background-image:linear-gradient(var(--cf-line),var(--cf-line)),linear-gradient(var(--cf-line),var(--cf-line)),linear-gradient(var(--cf-line),var(--cf-line)),linear-gradient(var(--cf-line),var(--cf-line)),var(--dither)!important;
+  transition:none;
+}
+/* the groups that never had a visible outline (tabs, chips-as-tabs, back link, badges): no border, only the notched silhouette */
+html[data-theme=retro] :is(.trv-tab,.dst-chip,.iso,.back,.trv-tabbadge,.dst-new,.todo-tabn){border:0!important;background-image:var(--dither)!important;background-repeat:repeat!important;background-size:calc(var(--u)*2) calc(var(--u)*2)!important;background-position:0 0!important}
+html[data-theme=retro] .trv-tab.on,html[data-theme=retro] .dst-chip.on{background-color:var(--tab-on)}
+html[data-theme=retro] .btn:active,html[data-theme=retro] .dst-chip:active{transform:translateY(var(--u))}
+html[data-theme=retro] .btn:active{transition:none}
+html[data-theme=retro] .btn.primary:active{background-color:var(--btn-active)}
+html[data-theme=retro] .btn.danger{background-color:var(--danger-fill)}
+html[data-theme=retro] :is(.form-err,.banner){background-color:var(--err-fill)}
+html[data-theme=retro] .overlay{background:var(--overlay)}
+html[data-theme=retro] .dialog{background-color:var(--dialog-bg)}
+html[data-theme=retro] .trv-searchrow{background-color:var(--strip-bg)}
+html[data-theme=retro] .app-foot{background-color:var(--surf-dim)}
+html[data-theme=retro] .todo-paste-x:active{background:var(--accent-soft)}
+html[data-theme=retro] .game .game-ov-card{background:color-mix(in srgb,var(--bg) 90%,transparent)}
+html[data-theme=retro] .wheel-arrow{color:var(--wheel-mark)}
+/* checkboxes: a solid pixel block instead of the rotated tick */
+html[data-theme=retro] :is(.trv-cb,.todo-cb,.set-cb):checked::after{transform:none;border:0;background:#fff;left:26%;top:26%;width:48%;height:48%}
+html[data-theme=retro] :is(.trv-cb,.todo-cb,.set-cb):focus-visible{outline:0}
+html[data-theme=retro] :focus-visible{outline-offset:0}
+/* inputs: the notch clips the focus outline, so the outline colour comes from --cf-line (chamfer.css) like the other themes */
+
+/* ---------- pixel icons / wheel / brand ---------- */
+html[data-theme=retro] :is(svg,.ico,.sec-ico,.brand-mark,.wordmark){shape-rendering:crispEdges}
+html[data-theme=retro] img{image-rendering:pixelated}
+html[data-theme=retro] .wheel .tick{shape-rendering:crispEdges}
+html[data-theme=retro] .wheel-arrow{animation:wheel-nudge-px 1.6s steps(2,end) infinite}
+@keyframes wheel-nudge-px{0%{transform:translateY(-2px)}50%{transform:translateY(3px)}}
+@media (prefers-reduced-motion:reduce){html[data-theme=retro] .wheel-arrow{animation:none}}
+html[data-theme=retro] .home-greet{--wx-red:#e4e1de}
+/* hard-stepped horizon shade under the greeting (4 flat steps instead of a gradient): keeps the greeting >= 4.5:1 over the brightest sky */
+html[data-theme=retro] .home-greet::before{content:"";position:absolute;left:0;right:0;top:-56px;bottom:calc(-1 * (var(--safe-b) + 12px));z-index:-1;pointer-events:none;
+  background:linear-gradient(180deg,transparent 0 20px,color-mix(in srgb,var(--veil) 34%,transparent) 20px 32px,color-mix(in srgb,var(--veil) 58%,transparent) 32px 44px,color-mix(in srgb,var(--veil) 78%,transparent) 44px 56px,color-mix(in srgb,var(--veil) 90%,transparent) 56px)}
+
+/* ---------- background layers ---------- */
+html[data-theme=retro] #bg{background:var(--bg)}
+html[data-theme=retro] #bg::after{background:none}
+html[data-theme=retro] #bg-gl,html[data-theme=retro] .retro-canvas{image-rendering:pixelated;image-rendering:crisp-edges;image-rendering:pixelated}
+html[data-theme=retro] .sol-veil{background:var(--veil)}
+html[data-theme=retro] .bg-par,html[data-theme=retro] .mars-glow,html[data-theme=retro] .sol-glow,html[data-theme=retro] .sol-city{display:none!important}
+html[data-theme=retro] .splash-dawn{display:none}
+html[data-theme=retro] .mars-dim{background:var(--veil)}
+html.sol-css[data-theme=retro] .sol-night{background:var(--night)}
+/* static scene (Dynamic background off): the baked low-res pixel photo, scaled with nearest neighbour, covering the whole screen */
+html[data-theme=retro] .mars{left:0;top:0;width:100%;height:100%;margin:0;--dip:0px}
+html[data-theme=retro] .mars-wrap{-webkit-mask-image:none;mask-image:none}
+html[data-theme=retro] .mars-photo{object-fit:cover;image-rendering:pixelated}
+html[data-theme=retro] .mars-dim{opacity:0}
+html[data-theme=retro]:not([data-sec=home]) .mars-dim{opacity:.7}
+
+/* ---------- Settings > Background picker (all themes): 4 options ---------- */
+html[data-theme=retro] .theme-opt[data-theme-opt=retro] .sw,html[data-theme=retro] .theme-opt .sw{image-rendering:pixelated}
+html[data-theme=retro] .theme-opt .tl{font-size:12px}
+html[data-theme=retro] .theme-pick legend{font-size:12px;margin-bottom:10px}
+html[data-theme=retro] .theme-opt:has(input:checked){--cf-line:var(--ember)}
+html[data-theme=retro] .theme-note,html[data-theme=retro] .note{font-size:14px}
+html[data-theme=retro] .theme-note{color:var(--text)}
+html[data-theme=retro] :is(.todo-tabn,.trv-tabbadge,.dst-new){color:#fff}
+
+/* ---------- v45 net worth privacy mask: the real CSS blur stays (the nwblur guarantees: placeholder text only, filter blur >= 8 px, no selection), and a hard pixel grid is cut
+   into it with a mask (CSS applies filter first, then mask), so the blur reads as a mosaic of square 6 px blocks with 2 px gaps instead of a smooth smear ---------- */
+html[data-theme=retro] .nw-blur{
+  -webkit-mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='8' shape-rendering='crispEdges'%3E%3Crect width='6' height='6' fill='%23000'/%3E%3C/svg%3E");
+  mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='8' shape-rendering='crispEdges'%3E%3Crect width='6' height='6' fill='%23000'/%3E%3C/svg%3E");
+  -webkit-mask-size:8px 8px;mask-size:8px 8px;-webkit-mask-repeat:repeat;mask-repeat:repeat;
+}
+html[data-theme=retro] .nw-toggle{min-width:44px;min-height:44px}
+html[data-theme=retro] .section-btn:not(.wheel-open) .section-icon .sec-ico{width:48px;height:48px}   /* 3 x 16 px: whole-pixel scale */

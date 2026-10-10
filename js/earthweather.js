@@ -9,6 +9,24 @@ import * as storage from './storage.js';
 import { h } from './util.js';
 import { wxIcon } from './marsweather.js';
 
+// v45 Retro theme: the same four weather icons as 11 x 11 pixel art (one <rect>-free path of unit squares, shape-rendering crispEdges, currentColor).
+const PIX = {
+  sunny: ['.....#.....', '.#...#...#.', '..#.....#..', '...#####...', '...#####...', '##.#####.##', '...#####...', '...#####...', '..#.....#..', '.#...#...#.', '.....#.....'],
+  cloudy: ['...........', '.....##....', '....####...', '..#######..', '.#########.', '###########', '###########', '.#########.', '...........', '...........', '...........'],
+  partly: ['...#.......', '.#.#.#.....', '..###......', '##.###.##..', '...#.#####.', '....#######', '...########', '...########', '....#######', '...........', '...........'],
+  thermo: ['....###....', '...#...#...', '...#...#...', '...#.#.#...', '...#.#.#...', '...#.#.#...', '..#..#..#..', '..#.###.#..', '..#.###.#..', '...#...#...', '....###....'],
+};
+const SVGNS = 'http://www.w3.org/2000/svg';
+export function pixelWxIcon(kind) {
+  const rows = PIX[kind] || PIX.thermo; let d = '';
+  rows.forEach((r, y) => { for (let x = 0; x < r.length; x++) if (r[x] === '#') d += `M${x} ${y}h1v1h-1z`; });
+  const svg = document.createElementNS(SVGNS, 'svg');
+  svg.setAttribute('viewBox', '0 0 11 11'); svg.setAttribute('class', 'wx-ico wx-ico-' + kind + ' wx-pix'); svg.setAttribute('aria-hidden', 'true'); svg.setAttribute('focusable', 'false');
+  svg.setAttribute('shape-rendering', 'crispEdges'); svg.setAttribute('fill', 'currentColor'); svg.setAttribute('stroke', 'none');
+  const path = document.createElementNS(SVGNS, 'path'); path.setAttribute('d', d); svg.append(path);
+  return svg;
+}
+
 export const EWX_URL = 'https://api.open-meteo.com/v1/forecast?latitude=25.997&longitude=-97.157&current=temperature_2m,weather_code,wind_speed_10m,relative_humidity_2m,is_day&temperature_unit=fahrenheit&wind_speed_unit=mph';
 export const EWX_MAX_AGE_MS = 30 * 60 * 1000;     // refresh at most every 30 min
 export const EWX_RETRY_MS = 10 * 60 * 1000;       // after a failed attempt: wait 10 min
@@ -68,7 +86,7 @@ export function earthBlock(d = cached()) {
   const c = cfg().get() || {};
   const [, kind] = wmo(d.code, d.isDay);
   return h('div', { class: 'mars-wx home-wx', id: 'earth-wx', 'data-code': String(d.code) },
-    h('p', { class: 'wx-line', id: 'earth-wx-line', 'aria-label': 'Weather, ' + earthText(d) }, wxIcon(kind), h('span', null, earthText(d))),
+    h('p', { class: 'wx-line', id: 'earth-wx-line', 'aria-label': 'Weather, ' + earthText(d) }, document.documentElement.dataset.theme === 'retro' ? pixelWxIcon(kind) : wxIcon(kind), h('span', null, earthText(d))),
     h('p', { class: 'wx-attr', id: 'earth-wx-attr' }, ['Open-Meteo', updated(d, c.fetchedAt)].filter(Boolean).join(' \u00b7 ')));
 }
 

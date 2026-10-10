@@ -82,7 +82,7 @@ html.vt-theme::view-transition-old(root){animation:vt-out .5s var(--ease-io) bot
 html.vt-theme::view-transition-new(root){animation:vt-in .5s var(--ease-io) both;mix-blend-mode:plus-lighter}
 
 /* Settings > Background: theme picker */
-.theme-pick{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:4px 0 12px;border:0;padding:0}
+.theme-pick{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin:4px 0 12px;border:0;padding:0}
 .theme-pick legend{padding:0;margin:0 0 8px;font-size:15px;font-weight:600;color:var(--text)}
 .theme-opt{position:relative;display:flex;flex-direction:column;align-items:center;gap:6px;min-height:84px;padding:10px 6px 8px;border:1px solid transparent;background-color:var(--surf);cursor:pointer;text-align:center}   /* chamfered like the cards (tools/make_chamfer_css.py) */
 .theme-opt input{position:absolute;inset:0;margin:0;opacity:0;width:100%;height:100%;cursor:pointer}
