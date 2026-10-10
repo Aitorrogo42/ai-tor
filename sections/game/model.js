@@ -9,7 +9,7 @@ export function validate(raw) {
   const errors = [];
   if (!Number.isInteger(raw.version)) errors.push('Game: missing "version".');
   else if (raw.version > VERSION) errors.push(`Game: data is from a newer version of AI-TOR (schema ${raw.version}; this app supports up to ${VERSION}).`);
-  if (raw.best != null && !int(raw.best, 1e6)) errors.push('Game: "best" must be a whole number from 0 to 1000000.');
+  if (raw.best != null && !int(raw.best, 1e6)) errors.push('Game: "best" must be a whole number from 0 to 1e6.');
   if (raw.played != null && !int(raw.played, 1e7)) errors.push('Game: "played" must be a whole number.');
   if (raw.updatedAt != null && (typeof raw.updatedAt !== 'string' || raw.updatedAt.length > 40)) errors.push('Game: "updatedAt" must be a date string.');
   if (errors.length) return { ok: false, errors, doc };
