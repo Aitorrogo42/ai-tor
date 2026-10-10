@@ -5,7 +5,7 @@
 :root{--cf:8px;--cf-s:5px;--cf-xs:4px}
 
 /* 1) size + default outline colour per group (specificity 0, so any state rule below wins) */
-:where(.card, details.group, details.src-all, .dst-bar-card, .dst-sec, .feedbar, #networth, .theme-opt){--c:var(--cf);--cf-line:var(--surf-line-lo)}
+:where(.card, details.group, details.src-all, .dst-bar-card, .dst-sec, .feedbar, .privbar, #networth, .theme-opt){--c:var(--cf);--cf-line:var(--surf-line-lo)}
 :where(.trv-searchrow, .app-foot, .dialog, .toast, .btn, .ghost, input[type=text], input[type=date], input[type=password], input[type=search], select, textarea, .todo-add-input, .feed-formrow input, .trv-search){--c:var(--cf);--cf-line:var(--surf-line)}
 :where(.banner, .form-err){--c:var(--cf);--cf-line:var(--ember)}
 :where(.trv-tab){--c:var(--cf);--cf-line:transparent}
@@ -20,7 +20,7 @@
 
 /* 2) the shape and the outline (one rule for all of them).
       The real border only keeps the 1px of layout (transparent); the visible outline is the 6 gradients: top / right / bottom / left strips (each stops short of the chamfers) + the two 45-degree bands. */
-:where(.card, details.group, details.src-all, .dst-bar-card, .dst-sec, .feedbar, #networth, .theme-opt, .trv-searchrow, .app-foot, .dialog, .toast, .btn, .ghost, input[type=text], input[type=date], input[type=password], input[type=search], select, textarea, .todo-add-input, .feed-formrow input, .trv-search, .banner, .form-err, .trv-tab, .dst-row, .todo-comment, .todo-paste-item, .chip, .todo-chip, .dst-kind, .trv-pill, .dst-chip, .iso, .back, .trv-tabbadge, .dst-new, .todo-tabn, .trv-cb, .todo-cb, .set-cb){
+:where(.card, details.group, details.src-all, .dst-bar-card, .dst-sec, .feedbar, .privbar, #networth, .theme-opt, .trv-searchrow, .app-foot, .dialog, .toast, .btn, .ghost, input[type=text], input[type=date], input[type=password], input[type=search], select, textarea, .todo-add-input, .feed-formrow input, .trv-search, .banner, .form-err, .trv-tab, .dst-row, .todo-comment, .todo-paste-item, .chip, .todo-chip, .dst-kind, .trv-pill, .dst-chip, .iso, .back, .trv-tabbadge, .dst-new, .todo-tabn, .trv-cb, .todo-cb, .set-cb){
   --cf-t:1px;--cf-tt:var(--cf-t);--cf-k:calc(var(--c) + .9px);--cf-d:calc(var(--c) + 5px);--cf-p:calc(var(--c)*.7071 + var(--cf-t)*.8);
   clip-path:polygon(var(--c) 0,100% 0,100% calc(100% - var(--c)),calc(100% - var(--c)) 100%,0 100%,0 var(--c));
   border-color:transparent!important;
@@ -68,6 +68,7 @@ input[type=text]:focus-visible,input[type=date]:focus-visible,input[type=passwor
 .dst-bar-card:focus-visible,
 .dst-sec:focus-visible,
 .feedbar:focus-visible,
+.privbar:focus-visible,
 .theme-opt:focus-visible,
 .trv-searchrow:focus-visible,
 .app-foot:focus-visible,
@@ -100,4 +101,4 @@ input[type=text]:focus-visible,input[type=date]:focus-visible,input[type=passwor
 }
 
 /* 5) high-contrast / forced-colors: plain rectangles with a real border (the gradient outline is not drawn there) */
-@media (forced-colors:active){:where(.card, details.group, details.src-all, .dst-bar-card, .dst-sec, .feedbar, #networth, .theme-opt, .trv-searchrow, .app-foot, .dialog, .toast, .btn, .ghost, input[type=text], input[type=date], input[type=password], input[type=search], select, textarea, .todo-add-input, .feed-formrow input, .trv-search, .banner, .form-err, .trv-tab, .dst-row, .todo-comment, .todo-paste-item, .chip, .todo-chip, .dst-kind, .trv-pill, .dst-chip, .iso, .back, .trv-tabbadge, .dst-new, .todo-tabn, .trv-cb, .todo-cb, .set-cb){clip-path:none;border-color:CanvasText!important;background-image:none!important}}
+@media (forced-colors:active){:where(.card, details.group, details.src-all, .dst-bar-card, .dst-sec, .feedbar, .privbar, #networth, .theme-opt, .trv-searchrow, .app-foot, .dialog, .toast, .btn, .ghost, input[type=text], input[type=date], input[type=password], input[type=search], select, textarea, .todo-add-input, .feed-formrow input, .trv-search, .banner, .form-err, .trv-tab, .dst-row, .todo-comment, .todo-paste-item, .chip, .todo-chip, .dst-kind, .trv-pill, .dst-chip, .iso, .back, .trv-tabbadge, .dst-new, .todo-tabn, .trv-cb, .todo-cb, .set-cb){clip-path:none;border-color:CanvasText!important;background-image:none!important}}

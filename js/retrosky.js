@@ -6,7 +6,7 @@
 //     R = surface class (deep ocean / ocean / coast / desert / dry land / green / forest / ice), G = cloud cover (4 levels), B = city lights.
 //     Each class has a 4-step palette; the Sun's light picks the step per pixel through a 4x4 ordered (Bayer) dither, so continents, oceans and clouds are dithered, not smooth.
 //     A pixel atmosphere: haze toward the limb, a stepped blue rim just outside it (orange where the sun grazes it), city lights on the night side.
-//   Sky: warm retro grey, two palette colours mixed with the same dither, a dithered Milky Way band, twinkling stars, comet streaks.
+//   Sky: warm retro grey, two palette colours mixed with the same dither, a dithered Milky Way band, twinkling stars (v46: no comet streaks).
 //   Day cycle: NO smooth gradients. The sun angle (wheel) picks one of 5 sky palette steps and the Earth's lighting steps with it (sunrise: the sun sits on the limb, a dithered
 //   orange-red glow; day; sunset: cyan-blue dusk glow; night: city lights). No WebGL: plain Canvas2D, ~15k shaded pixels per frame (about 1 ms).
 import { solarState } from './sunrise.js';
@@ -21,7 +21,7 @@ const DEG = Math.PI / 180;
 const SKY = [[hex('#141313'), hex('#1d1c1c')], [hex('#1b1a1a'), hex('#262524')], [hex('#232222'), hex('#302e2d')], [hex('#2b2a2a'), hex('#3a3837')], [hex('#302f2e'), hex('#403e3c')]];
 const MW = [hex('#3f3d3c'), hex('#575452'), hex('#76736f')];
 const C_DAWN = hex('#6f2e12'), C_DUSK = hex('#17566f');
-const WHITE = hex('#efece6'), STAR_DIM = hex('#8a8785'), COMET = hex('#a8a5a0');
+const WHITE = hex('#efece6'), STAR_DIM = hex('#8a8785');
 // Earth classes x 4 light steps [night, dim, mid, bright]: ocean = the cyan-blue accent family, land = warm tan / muted teal-green, ice = white
 const CLS = [
   ['#0c1b27', '#0f2c40', '#16547a', '#1f7db0'],   // 0 deep ocean
@@ -37,7 +37,6 @@ const CLOUD = ['#22262a', '#7a8187', '#b9c0c5', '#eef1f2'].map(hex);
 const HAZE_BLUE = ['#0d1a24', '#18435f', '#2a7aae', '#5db5e6'].map(hex), HAZE_WARM = ['#1e0f07', '#5e280e', '#b04a19', '#ee7a26'].map(hex);
 const RIM = ['#143f60', '#235f8f', '#3a8fcc', '#7ccdf5', '#d6f0ff'].map(hex), RIM_WARM = ['#4a2008', '#8a3a12', '#cf6420', '#f59a3c', '#ffe0a8'].map(hex);
 const LIGHTS = [hex('#ff8a2a'), hex('#ffc060')];
-const COMETS = [[0.98, 0.03, 0.62, 0.30], [1.0, 0.11, 0.70, 0.34], [0.78, 0.0, 0.56, 0.27], [1.0, 0.21, 0.84, 0.38]];   // x0,y0 -> x1,y1 (fractions): thin dotted streaks, as in the Starbase reference
 const TILT = 0.80, ROLL = -0.30, EARTH_DLAT = 16 * DEG;   // same camera as js/sunrise.js
 
 function hash(ix, iy) { let h = (ix * 374761393 + iy * 668265263) | 0; h = (h ^ (h >>> 13)) * 1274126177 | 0; return ((h ^ (h >>> 16)) >>> 0) / 4294967295; }
@@ -91,7 +90,7 @@ export function createRetro(canvas, { onLost, onRestored } = {}) {
   };
 
   function draw(sol, t, still, frozen) {
-    if (!img) resize(window.innerWidth, window.innerHeight);
+    if (!img) resize(window.innerWidth, Math.max(window.innerHeight, (document.getElementById('bg') || {}).clientHeight || 0));
     const R = 1.5 * Math.min(W, 0.7 * H), cxp = W / 2, cyp = 0.60 * H + R;      // exactly the Earth theme's planet: apex at 60 % of the height
     const st = solarState(sol, W, H, cxp, cyp, R);
     const e = st.sinE, step = e < -0.55 ? 0 : e < -0.22 ? 1 : e < 0.08 ? 2 : e < 0.45 ? 3 : 4;
@@ -122,10 +121,9 @@ export function createRetro(canvas, { onLost, onRestored } = {}) {
         px[y * cw + x] = pack(c);
       }
     }
-    // ---- stars (single pixels, stepped twinkle, fewer by day) and comet streaks
+    // ---- stars (single pixels, stepped twinkle, fewer by day). v46: the diagonal comet streaks are gone
     const nvis = Math.round(stars.length * (0.25 + 0.75 * night));
     for (let i = 0; i < nvis; i++) { const s = stars[i]; if (still || (Math.floor(t * s.sp + s.ph) & 3) !== 0) put(s.x * cw, s.y * ch, pack(s.br > 0.9 ? WHITE : s.br > 0.5 ? STAR_DIM : mixc(bot, STAR_DIM, 0.55))); }
-    for (const [a, b, c, d] of COMETS) { line(a * cw, b * ch, c * cw, d * ch, pack(mixc(bot, COMET, 0.6)), 3); put(c * cw, d * ch, pack(WHITE)); }
     // ---- the sun, only while it is near the limb (sunrise / sunset): a small pixel disc, dithered halo, thin horizontal streak. The planet is drawn over it.
     const sxp = st.sunX / PX, syp = st.sunY / PX;
     if (e > -0.14 && e < 0.62 && syp > -6 && syp < ch) {

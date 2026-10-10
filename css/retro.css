@@ -51,7 +51,7 @@ html[data-theme=retro] ::selection{background:var(--accent-soft);color:var(--tex
 
 /* ---------- pixel boxes ---------- */
 html[data-theme=retro] :is(.trv-cb,.todo-cb,.set-cb,.trv-tabbadge,.dst-new,.todo-tabn,.chip,.todo-chip,.dst-kind,.trv-pill,.dst-chip,.iso,.back,.dst-row,.todo-comment,.todo-paste-item){--u:2px}
-html[data-theme=retro] :is(.card, details.group, details.src-all, .dst-bar-card, .dst-sec, .feedbar, #networth, .theme-opt, .trv-searchrow, .app-foot, .dialog, .toast, .btn, .ghost, input[type=text], input[type=date], input[type=password], input[type=search], select, textarea, .todo-add-input, .feed-formrow input, .trv-search, .banner, .form-err, .trv-tab, .dst-row, .todo-comment, .todo-paste-item, .chip, .todo-chip, .dst-kind, .trv-pill, .dst-chip, .iso, .back, .trv-tabbadge, .dst-new, .todo-tabn, .trv-cb, .todo-cb, .set-cb){
+html[data-theme=retro] :is(.card, details.group, details.src-all, .dst-bar-card, .dst-sec, .feedbar, .privbar, #networth, .theme-opt, .trv-searchrow, .app-foot, .dialog, .toast, .btn, .ghost, input[type=text], input[type=date], input[type=password], input[type=search], select, textarea, .todo-add-input, .feed-formrow input, .trv-search, .banner, .form-err, .trv-tab, .dst-row, .todo-comment, .todo-paste-item, .chip, .todo-chip, .dst-kind, .trv-pill, .dst-chip, .iso, .back, .trv-tabbadge, .dst-new, .todo-tabn, .trv-cb, .todo-cb, .set-cb){
   --cx:var(--u);--cy:calc(var(--u)*2);
   border-radius:0!important;
   border:var(--u) solid transparent!important;border-color:transparent!important;
@@ -93,7 +93,7 @@ html[data-theme=retro] .wheel-arrow{animation:wheel-nudge-px 1.6s steps(2,end) i
 @media (prefers-reduced-motion:reduce){html[data-theme=retro] .wheel-arrow{animation:none}}
 html[data-theme=retro] .home-greet{--wx-red:#e4e1de}
 /* hard-stepped horizon shade under the greeting (4 flat steps instead of a gradient): keeps the greeting >= 4.5:1 over the brightest sky */
-html[data-theme=retro] .home-greet::before{content:"";position:absolute;left:0;right:0;top:-56px;bottom:calc(-1 * (var(--safe-b) + 12px));z-index:-1;pointer-events:none;
+html[data-theme=retro] .home-greet::before{content:"";position:absolute;left:0;right:0;top:-56px;bottom:calc(-1 * (var(--safe-b) + 60px));z-index:-1;pointer-events:none;
   background:linear-gradient(180deg,transparent 0 20px,color-mix(in srgb,var(--veil) 34%,transparent) 20px 32px,color-mix(in srgb,var(--veil) 58%,transparent) 32px 44px,color-mix(in srgb,var(--veil) 78%,transparent) 44px 56px,color-mix(in srgb,var(--veil) 90%,transparent) 56px)}
 
 /* ---------- background layers ---------- */
@@ -130,3 +130,6 @@ html[data-theme=retro] .nw-blur{
 }
 html[data-theme=retro] .nw-toggle{min-width:44px;min-height:44px}
 html[data-theme=retro] .section-btn:not(.wheel-open) .section-icon .sec-ico{width:48px;height:48px}   /* 3 x 16 px: whole-pixel scale */
+
+/* v46: the page colour behind the scene is the scene's own dark ground (never the lighter UI grey), so no strip can show at an edge */
+html[data-theme=retro]{background:#121110}

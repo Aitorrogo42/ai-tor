@@ -13,7 +13,7 @@ import pathlib
 
 # (selectors, chamfer var, default line colour or None for a fill-only element)
 GROUPS = [
-  ('.card, details.group, details.src-all, .dst-bar-card, .dst-sec, .feedbar, #networth, .theme-opt', '--cf', 'var(--surf-line-lo)'),
+  ('.card, details.group, details.src-all, .dst-bar-card, .dst-sec, .feedbar, .privbar, #networth, .theme-opt', '--cf', 'var(--surf-line-lo)'),
   ('.trv-searchrow, .app-foot, .dialog, .toast, .btn, .ghost, input[type=text], input[type=date], input[type=password], input[type=search], select, textarea, .todo-add-input, .feed-formrow input, .trv-search', '--cf', 'var(--surf-line)'),
   ('.banner, .form-err', '--cf', 'var(--ember)'),
   ('.trv-tab', '--cf', 'transparent'),

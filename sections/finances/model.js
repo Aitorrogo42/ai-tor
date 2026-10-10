@@ -44,6 +44,25 @@ export function cleanPrices(raw, feedShape = false) {
   return { list, skipped };
 }
 
+// v46 net worth HISTORY (feed-only, user-entered facts): [{ date 'YYYY-MM-DD', label, netWorth }] drawn as the past of the projection chart. `feedShape` = snake_case (net_worth).
+export const HISTORY_LIMITS = { items: 24, label: 20 };
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+export function cleanHistory(raw, feedShape = false) {
+  if (raw == null) return { list: null, skipped: 0 };
+  if (!Array.isArray(raw)) return { list: null, skipped: 1 };
+  let skipped = Math.max(0, raw.length - HISTORY_LIMITS.items);
+  const list = [], seen = new Set();
+  for (const o of raw.slice(0, HISTORY_LIMITS.items)) {
+    const nw = o && typeof o === 'object' ? (feedShape ? o.net_worth : o.netWorth) : null;
+    if (!o || typeof o !== 'object' || !isStr(o.date) || !isValidISODate(o.date) || seen.has(o.date) || typeof nw !== 'number' || !Number.isFinite(nw) || Math.abs(nw) > LIMITS.amount) { skipped++; continue; }
+    seen.add(o.date);
+    const label = isStr(o.label) && o.label.trim() ? o.label.trim().slice(0, HISTORY_LIMITS.label) : MONTHS[Number(o.date.slice(5, 7)) - 1] + ' ' + o.date.slice(0, 4);
+    list.push({ date: o.date, label, netWorth: nw });
+  }
+  list.sort((a, b) => a.date.localeCompare(b.date));
+  return { list, skipped };
+}
+
 // v40.1 "Income breakdown" (feed-only, like the Key holdings): who brings in the monthly income and, optionally, one person's paycheck
 // (gross, each deduction line, net) and monthly gross / deductions / net. Never edited by hand; replaced on every Refresh; absent = card hidden.
 export const BREAKDOWN_LIMITS = { people: 8, lines: 12, name: 40, label: 60, note: 300, asOf: 60, perYear: 366 };
@@ -166,14 +185,16 @@ export function validate(raw) {
     if (pr && pr.length) doc.feed.prices = pr;
     const ib = cleanBreakdown(f.incomeBreakdown).value;   // v40.1 "Income breakdown" from the last feed (feed-only)
     if (ib) doc.feed.incomeBreakdown = ib;
+    const hs = cleanHistory(f.history).list;   // v46 net worth history from the last feed (feed-only)
+    if (hs && hs.length) doc.feed.history = hs;
   }
   return { ok: errors.length === 0, errors, doc };
 }
 
 export function summary(doc, fmt) {
-  const c = compute(doc);
+  // v46: no amounts in the import / Settings summary (it can be on screen around other people); counts only
   const plural = (n, w) => `${n} ${w}${n === 1 ? '' : 's'}`;
-  return `${plural(doc.accounts.length, 'account')}, ${plural(doc.debts.length, 'debt')}, ${plural(doc.goals.length, 'goal')} · net worth ${fmt(c.netWorth)}`;
+  return `${plural(doc.accounts.length, 'account')}, ${plural(doc.debts.length, 'debt')}, ${plural(doc.goals.length, 'goal')}`;
 }
 
 export function groupColor(name, allNames) {

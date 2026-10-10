@@ -74,7 +74,7 @@ summary .sec-glyph{display:inline-block;vertical-align:-.28em}   /* v19: Setting
 .home-head{--lk:96px;position:fixed;left:0;right:0;top:calc(var(--safe-t) + 8px);z-index:1;padding:6px 0 4px;text-align:center;background:transparent;border:0}
 .lockup-hero{--lk:96px}
 .home-rule{display:none}
-.home-greet{position:fixed;left:0;right:0;bottom:calc(var(--safe-b) + 12px);z-index:1;padding:0 20px;text-align:center}
+.home-greet{position:fixed;left:0;right:0;bottom:calc(var(--safe-b) + 12px - var(--vgap,0px));z-index:1;padding:0 20px;text-align:center}
 /* v37: greeting + Mars weather in a light Mars red (hue 11, inside the Ember family). Readable (>= 4.5:1) at most sun angles, but NOT all: once the weather block
    loads the greeting sits ~39 px higher over a brighter band, and around noon (sol ~150-210) it drops to ~2.8:1. Known exception, kept as is (no shade on Mars). */
 .home-greet{--wx-red:#ffa38e}

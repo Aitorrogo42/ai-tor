@@ -212,3 +212,11 @@ html[data-body=earth] .sol-city,html[data-body=moon] .sol-city{display:none!impo
 html[data-body=earth] #bg{background:linear-gradient(180deg,#010208 0,#030817 40%,#0a2452 76%,#163f80 100%)}
 html[data-body=moon] #bg{background:#000}
 html[data-body=earth] .bg-par,html[data-body=moon] .bg-par{display:none}
+
+/* v46 edge-to-edge background: the scene must reach the physical bottom of the phone (under the home indicator), not stop at the safe area.
+   iOS standalone (viewport-fit=cover) can size a fixed `inset:0` layer to the layout viewport, which leaves a strip at the bottom. So #bg is at least as tall as the
+   LARGE viewport (100lvh) and also overshoots the bottom edge by the safe-area inset (offscreen when not needed). js/bg.js sizes the canvas from #bg's real height. Content is padded
+   by the safe-area insets (#app, .home-greet), the background never is. */
+#bg{bottom:calc(-1 * (var(--safe-b) + var(--vgap,0px)));min-height:100vh;min-height:100lvh}
+:root{--vgap:0px}   /* js/bg.js: iOS home-screen apps whose layout viewport is shorter than the screen (screen.height - innerHeight), else 0 */
+html,body{min-height:100vh;min-height:100lvh}

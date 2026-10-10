@@ -17,7 +17,7 @@ export const THEMES = {
   moon: { id: 'moon', label: 'Moon', blurb: 'Grey Moon, black sky, Earthrise', themeColor: '#000000',
     bg: { map: A('moon-albedo.webp'), second: A('earth-disc.webp'), third: A('city-lights.webp'), fourth: A('moon-relief.webp'), photo: A('moon-photo.webp'), cityCss: null } },   // GFX pass 3: LROC albedo + LOLA relief atlas; third = Moon base lights
   // v45: Retro = pixel-art Earth at the bottom (Earth's composition) on a low-res canvas (js/retrosky.js; map = the tiny class map assets/retro-earth.png); photo = the static pixel scene (toggle off), baked by tools/make_retro_assets.py
-  retro: { id: 'retro', label: 'Retro', blurb: 'Pixel-art Earth, retro grey, 8-bit', themeColor: '#2b2a2a',
+  retro: { id: 'retro', label: 'Retro', blurb: 'Pixel-art Earth, retro grey, 8-bit', themeColor: '#121110',
     bg: { map: A('retro-earth.png'), second: null, third: null, fourth: null, photo: A('retro-photo.webp'), cityCss: null } },
 };
 

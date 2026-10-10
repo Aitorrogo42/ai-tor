@@ -188,3 +188,15 @@ div.nw-secret{display:block}
 .nw-toggle .nw-ico{display:inline-flex}
 .nw-toggle .ico{width:1.25em;height:1.25em}
 .nw-toggle:focus-visible,.nw-val:focus-visible{outline:2px solid var(--ember);outline-offset:2px}
+
+/* ---- v46: ONE Show / Hide bar at the top of Finances (sticky) for every personal figure ---- */
+.privbar{position:sticky;top:var(--safe-t,0px);z-index:6;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:8px 8px 8px 14px;margin:0;background:var(--bg);border:1px solid var(--surf-line-lo);border-top:2px solid var(--mars);border-radius:var(--r-md)}
+.privbar .pb-text{display:flex;flex-direction:column;min-width:0;line-height:1.25}
+.privbar .pb-t{font-size:14px;font-weight:600;color:var(--text-hi)}
+.privbar .pb-state{font-size:12px;color:var(--muted);font-family:var(--mono);letter-spacing:.1em;text-transform:uppercase}
+.privbar .nw-toggle{min-width:104px;min-height:46px;font-size:15px}
+.privbar[data-nw-hidden=false]{border-top-color:var(--amber)}
+.nw-secret.nw-blur{color:var(--text-hi,#fff)!important}   /* a blurred figure never hints at its sign through a green / red colour */
+i.nw-blur{display:block}
+.exp-val .nw-secret{margin:0}
+p.nw-secret{display:block}

@@ -49,7 +49,7 @@ html[data-theme=moon] .home-greet{--wx-red:#dde2e8}
    regolith), so without it the pale greeting text drops below 4.5:1 there; with it every sun angle stays >= 4.5:1. UI only: the planet render is unchanged.
    Mars deliberately has NO shade (Aitor: keep the v37 greeting look). KNOWN EXCEPTION: once the Mars weather block loads it lifts the greeting ~39 px over a
    brighter band, and around noon (sol ~150-210) the Mars greeting / weather text #ffa38e is only ~2.8:1 (fails WCAG AA 4.5:1); logged as a known exception. */
-html:is([data-theme=earth],[data-theme=moon]) .home-greet::before{content:"";position:absolute;left:0;right:0;top:-56px;bottom:calc(-1 * (var(--safe-b) + 12px));z-index:-1;pointer-events:none;
+html:is([data-theme=earth],[data-theme=moon]) .home-greet::before{content:"";position:absolute;left:0;right:0;top:-56px;bottom:calc(-1 * (var(--safe-b) + 60px));z-index:-1;pointer-events:none;
   background:linear-gradient(180deg,transparent,color-mix(in srgb,var(--veil) 30%,transparent) 22px,color-mix(in srgb,var(--veil) 74%,transparent) 52px,color-mix(in srgb,var(--veil) 82%,transparent))}
 
 /* hard-coded Mars tints elsewhere -> the palette's variables (selectors copied from app.css / flat.css / finances.css / todo.css / game.css / travels.css).

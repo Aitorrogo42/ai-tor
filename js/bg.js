@@ -47,9 +47,27 @@ function particleFill(p, a) {
   return `rgba(${pal.star.join(',')},${(a * 0.75).toFixed(3)})`;
 }
 
+// v46: the background box can be taller than window.innerHeight (it overshoots the bottom safe area and is >= 100lvh, css/motion.css), so every scene is sized from it
+// v46: iOS home-screen apps (navigator.standalone) can report a layout viewport that is SHORTER than the screen (seen on an iPhone: ~60 px, the strip under the greeting
+// stayed a flat colour). --vgap = how much of the physical screen lies below the layout viewport (0 everywhere else: never on Android / desktop / Safari tabs / landscape);
+// css/motion.css overshoots #bg by it and lowers the greeting by it, so the scene reaches the real bottom edge.
+let lastGap = -1;
+function edgeGap() {
+  let g = 0;
+  try {
+    if (navigator.standalone === true && window.innerHeight > window.innerWidth && Math.abs(screen.width - window.innerWidth) <= 2) {
+      const d = screen.height - window.innerHeight;
+      if (d >= 2 && d <= 140) g = d;
+    }
+  } catch { /* ignore */ }
+  if (g !== lastGap) { lastGap = g; document.documentElement.style.setProperty('--vgap', g + 'px'); }
+  return g;
+}
+function viewH() { edgeGap(); const e = document.getElementById('bg'); return Math.max(window.innerHeight, (e && e.clientHeight) || 0); }
+
 function size() {
   dpr = Math.min(window.devicePixelRatio || 1, 2);
-  W = window.innerWidth; H = window.innerHeight;
+  W = window.innerWidth; H = viewH();
   cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
   ctx2d.setTransform(dpr, 0, 0, dpr, 0, 0);
 }
@@ -109,7 +127,7 @@ const cdiff360 = (a, b) => Math.abs((((a - b) % 360) + 540) % 360 - 180);   // d
 const isHome = () => { const s = document.documentElement.dataset.sec; return !s || s === 'home'; };
 
 function sunLayout() {
-  const W = window.innerWidth, H = window.innerHeight, dpr = Math.min(window.devicePixelRatio || 1, 2);
+  const W = window.innerWidth, H = viewH(), dpr = Math.min(window.devicePixelRatio || 1, 2);
   if (!sun.scale) sun.scale = dpr;
   let sc = Math.min(sun.scale, dpr);
   const budget = 1.25e6;                                   // ~1.25 Mpx per frame max: keeps iPhone GPUs comfortable
@@ -127,7 +145,7 @@ function setVars(st) {
 }
 
 function cssState() {
-  const W = window.innerWidth, H = window.innerHeight, R = 1.5 * Math.min(W, 0.7 * H);
+  const W = window.innerWidth, H = viewH(), R = 1.5 * Math.min(W, 0.7 * H);
   return solarState(norm360(sun.cur) * Math.PI / 180, W, H, W / 2, 0.62 * H + R, R);
 }
 function applyCss(st) {                                      // fallback layers: transform / opacity only
@@ -333,7 +351,7 @@ function initSun() {
   window.__aitorBg.sun = {
     mode: () => sun.mode, ready: () => sun.ready, reason: () => sun.reason || '', solDeg: () => norm360(sun.cur), targetDeg: () => norm360(sun.tgt), running: () => !!sun.raf,
     snap: (deg) => { sun.tgt = sun.cur = deg; sun.dirty = true; if (sun.mode === 'gl') { sunRender(performance.now()); } else if (sun.mode === 'css') { const st = cssState(); setVars(st); applyCss(st); } },
-    discPx: () => { const r = sun.renderer, st = cssState(); const R0 = 1.5 * Math.min(window.innerWidth, 0.7 * window.innerHeight); const rad = (r && r.body === 'moon' ? 0.042 : 0.0105) * window.innerHeight; /* sunrise.js: Moon's Earth disc rE = .042 H (pass 2), the sun disc .0105 H */ return { x: st.sunX, y: Math.max(st.sunY, -200), r: rad, R: R0 }; },
+    discPx: () => { const r = sun.renderer, st = cssState(); const R0 = 1.5 * Math.min(window.innerWidth, 0.7 * viewH()); const rad = (r && r.body === 'moon' ? 0.042 : 0.0105) * viewH(); /* sunrise.js: Moon's Earth disc rE = .042 H (pass 2), the sun disc .0105 H */ return { x: st.sunX, y: Math.max(st.sunY, -200), r: rad, R: R0 }; },
     theme: () => (sun.renderer && sun.renderer.body ? sun.renderer.body : themeId()),
     scale: () => sun.scale, frozen: () => sun.frozen, shaderTime: () => sun.t, offset: () => sun.off, canvas: () => sun.canvas, draws: () => sun.frames, anchors: () => sunAnchors(), body: () => themeId(), setBody: (b) => setBackgroundBody(b),
   };

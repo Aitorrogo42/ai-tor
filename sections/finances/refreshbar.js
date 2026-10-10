@@ -14,7 +14,7 @@ function when(iso) {
 }
 
 /** doc: current finances doc (or null); rerender: redraws the finances page. Returns an element. */
-export function refreshBar(doc, rerender) {
+export function refreshBar(doc, rerender, priv = null) {
   const f = doc && doc.feed;
   const st = feed.getState();
   let busy = false, error = null, kind = null, askPass = false;
@@ -68,7 +68,8 @@ export function refreshBar(doc, rerender) {
         h('div', { class: 'note' }, havePass ? 'Enter the passphrase again. It is the same one used for To-Do.' : 'Enter your passphrase once. It stays on this device and is shared with To-Do.'),
         h('div', { class: 'feed-formrow' }, pass, h('button', { class: 'btn ghost small', id: 'feed-save', type: 'submit' }, 'Save & refresh'))));
     }
-    if (f && f.notes && !busy) kids.push(h('details', { class: 'feed-notes', id: 'feed-notes' }, h('summary', null, 'Notes from your assistant'), h('p', { class: 'notes-text' }, f.notes)));
+    if (f && f.notes && !busy) kids.push(h('details', { class: 'feed-notes', id: 'feed-notes' }, h('summary', null, 'Notes from your assistant'),
+      priv ? priv.secret(f.notes, 'Hidden. Tap Show to read.', { tag: 'p', cls: 'notes-text' }) : h('p', { class: 'notes-text' }, f.notes)));   // v46: assistant notes can quote household totals
     root.replaceChildren(...kids);
   }
   draw();
